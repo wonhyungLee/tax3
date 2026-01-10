@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>통합 세금 플랫폼 · 연말정산 · 법인세 · 종합소득세</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="page">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">한 번의 입력으로 세 가지 세금 시나리오를 확인</p>
+        <h1>통합 세금 플랫폼</h1>
+        <p class="lede">연말정산 · 법인세 · 종합소득세 계산기를 한 화면에 통합했습니다. 핵심 숫자만 넣고 바로 환급/납부 예상액과 절세 팁을 받아보세요.</p>
+      </div>
+      <div class="actions">
+        <a class="btn ghost" href="https://github.com" target="_blank" rel="noreferrer">GitHub로 올리기</a>
+        <a class="btn primary" href="#deploy">Cloudflare Pages 배포 가이드</a>
+      </div>
+    </header>
+
+    <section class="insights">
+      <div class="insight-card" id="pulse-yearend">
+        <p class="pill">연말정산</p>
+        <div class="big-number" data-value>—</div>
+        <p class="muted" data-note>총급여와 공제액을 넣어 환급 가능성을 확인하세요.</p>
+      </div>
+      <div class="insight-card" id="pulse-corp">
+        <p class="pill">법인세</p>
+        <div class="big-number" data-value>—</div>
+        <p class="muted" data-note>접대비 한도/최저한세를 즉시 확인합니다.</p>
+      </div>
+      <div class="insight-card" id="pulse-fin">
+        <p class="pill">종합소득세</p>
+        <div class="big-number" data-value>—</div>
+        <p class="muted" data-note>금융소득 2천만 원 기준과 비교과세 결과를 보여줍니다.</p>
+      </div>
+    </section>
+
+    <section class="tabs">
+      <div class="tab-buttons">
+        <button class="tab-btn active" data-tab="yearend">연말정산</button>
+        <button class="tab-btn" data-tab="corporate">법인세</button>
+        <button class="tab-btn" data-tab="financial">종합소득세(금융)</button>
+      </div>
+
+      <div class="tab-panel active" id="tab-yearend">
+        <div class="panel-grid">
+          <div class="panel">
+            <div class="panel-head">
+              <div>
+                <p class="pill">간편 입력</p>
+                <h2>연말정산 입력</h2>
+                <p class="muted">총급여·카드사용·연금저축만 입력해도 환급/추가납부 예상액과 절세 포인트를 안내합니다.</p>
+              </div>
+              <div class="panel-actions">
+                <button class="btn ghost" id="ye-fill">샘플 채우기</button>
+                <button class="btn primary" id="ye-run">간편 계산</button>
+              </div>
+            </div>
+            <div class="form-grid">
+              <label>총급여(비과세 제외)
+                <input id="ye_salary" type="number" placeholder="예: 62000000">
+              </label>
+              <label>원천징수 소득세
+                <input id="ye_withheld" type="number" placeholder="예: 3200000">
+              </label>
+              <label>원천징수 지방세(없으면 자동 10%)
+                <input id="ye_withheld_local" type="number" placeholder="예: 320000">
+              </label>
+              <label>부양가족 수(본인 제외)
+                <input id="ye_dependents" type="number" value="0">
+              </label>
+              <label>장애인 인원
+                <input id="ye_disabled" type="number" value="0">
+              </label>
+              <label>자녀 수(8~20세)
+                <input id="ye_children" type="number" value="0">
+              </label>
+              <label>4대보험/연금 납입액
+                <input id="ye_social" type="number" placeholder="예: 3500000">
+              </label>
+              <label>연금저축/IRP 납입액
+                <input id="ye_pension" type="number" placeholder="예: 3000000">
+              </label>
+              <label>ISA 만기 이전금액(선택)
+                <input id="ye_isa" type="number" value="0">
+              </label>
+              <label>IRP 포함 납입 여부
+                <select id="ye_irp">
+                  <option value="true">IRP 포함(한도 900만원)</option>
+                  <option value="false">IRP 미포함(한도 600만원)</option>
+                </select>
+              </label>
+              <label>신용카드 사용액
+                <input id="ye_credit" type="number" placeholder="예: 14000000">
+              </label>
+              <label>체크/현금영수증
+                <input id="ye_debit" type="number" placeholder="예: 4000000">
+              </label>
+              <label>전통시장/대중교통
+                <input id="ye_market" type="number" placeholder="예: 2000000">
+              </label>
+              <label>문화비/스포츠
+                <input id="ye_culture" type="number" placeholder="예: 500000">
+              </label>
+              <label>전년도 카드 사용액(소비증가 공제)
+                <input id="ye_prev_card" type="number" value="0">
+              </label>
+              <label>주택청약/장기주택저축 납입
+                <input id="ye_housing" type="number" value="0">
+              </label>
+              <label>전세자금대출 상환액
+                <input id="ye_lease" type="number" value="0">
+              </label>
+              <label>주택담보대출 이자
+                <input id="ye_mortgage" type="number" value="0">
+              </label>
+              <label>주담대 공제 한도
+                <input id="ye_mortgage_limit" type="number" value="0">
+              </label>
+              <label>기타 소득공제 합계
+                <input id="ye_other" type="number" value="0">
+              </label>
+            </div>
+          </div>
+          <div class="panel result" id="ye-output">
+            <div class="panel-head">
+              <div>
+                <p class="pill">결과/피드백</p>
+                <h2>환급·절세 인사이트</h2>
+              </div>
+            </div>
+            <div class="result-body">
+              <div class="result-number" data-main>계산을 실행해 주세요.</div>
+              <p class="muted" data-sub>총급여, 원천징수, 카드 사용액을 입력하면 예상 환급/추가 납부액을 표시합니다.</p>
+              <div class="result-grid" data-cards></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="tab-corporate">
+        <div class="panel-grid">
+          <div class="panel">
+            <div class="panel-head">
+              <div>
+                <p class="pill">법인세</p>
+                <h2>손익·조정 입력</h2>
+                <p class="muted">접대비 한도, 감가상각, 최저한세, 세액공제를 한 번에 확인합니다.</p>
+              </div>
+              <div class="panel-actions">
+                <button class="btn ghost" id="corp-fill">샘플 채우기</button>
+                <button class="btn primary" id="corp-run">계산</button>
+              </div>
+            </div>
+            <div class="form-grid">
+              <label>기업 유형
+                <select id="corp_type">
+                  <option value="SME">중소기업</option>
+                  <option value="General">일반법인</option>
+                </select>
+              </label>
+              <label>당기순이익
+                <input id="corp_net" type="number">
+              </label>
+              <label>매출(일반)
+                <input id="corp_rev_general" type="number">
+              </label>
+              <label>매출(특수관계)
+                <input id="corp_rev_related" type="number">
+              </label>
+              <label>접대비 총액
+                <input id="corp_bp_total" type="number">
+              </label>
+              <label>증빙 없음
+                <input id="corp_bp_no_proof" type="number">
+              </label>
+              <label>문화접대비
+                <input id="corp_bp_culture" type="number">
+              </label>
+              <label>전통시장
+                <input id="corp_bp_market" type="number">
+              </label>
+              <label>가지급금
+                <input id="corp_advances" type="number">
+              </label>
+              <label>당좌차월 이자율(소수)
+                <input id="corp_od_rate" type="number" step="0.001" placeholder="예: 0.045">
+              </label>
+              <label>지급이자
+                <input id="corp_interest" type="number">
+              </label>
+              <label>업무용승용차 대수
+                <input id="corp_vehicle_count" type="number">
+              </label>
+              <label>차량 감가상각
+                <input id="corp_vehicle_dep" type="number">
+              </label>
+              <label>기타 감가상각(계상)
+                <input id="corp_dep_claimed" type="number">
+              </label>
+              <label>감가상각 한도
+                <input id="corp_dep_limit" type="number" placeholder="없으면 비워두기">
+              </label>
+              <label>비업무용 비용
+                <input id="corp_non_business" type="number">
+              </label>
+              <label>이월결손금
+                <input id="corp_loss" type="number">
+              </label>
+              <label>결손 발생연도
+                <input id="corp_loss_year" type="number" value="2020">
+              </label>
+              <label>R&D 지출(당기)
+                <input id="corp_rd_current" type="number">
+              </label>
+              <label>R&D 증액분
+                <input id="corp_rd_increment" type="number">
+              </label>
+              <label>R&D 기본율(일반)
+                <input id="corp_rd_base" type="number" step="0.001" placeholder="예: 0.015">
+              </label>
+              <label>투자금액(당기)
+                <input id="corp_inv_current" type="number">
+              </label>
+              <label>직전 3년 평균 투자
+                <input id="corp_inv_avg" type="number">
+              </label>
+              <label>기타 세액공제
+                <input id="corp_other_credit" type="number" value="0">
+              </label>
+              <label>외국납부세액 공제
+                <input id="corp_foreign_credit" type="number" value="0">
+              </label>
+              <label>기납부세액
+                <input id="corp_prepaid" type="number" value="0">
+              </label>
+            </div>
+          </div>
+          <div class="panel result" id="corp-output">
+            <div class="panel-head">
+              <div>
+                <p class="pill">결과/피드백</p>
+                <h2>법인세 인사이트</h2>
+              </div>
+            </div>
+            <div class="result-body">
+              <div class="result-number" data-main>계산을 실행해 주세요.</div>
+              <p class="muted" data-sub>접대비 한도, 최저한세, 세액공제를 반영한 예상 납부/환급액을 보여줍니다.</p>
+              <div class="result-grid" data-cards></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="tab-financial">
+        <div class="panel-grid">
+          <div class="panel">
+            <div class="panel-head">
+              <div>
+                <p class="pill">금융소득 종합과세</p>
+                <h2>금융소득 · 기타소득 입력</h2>
+                <p class="muted">20,000,000원 기준 비교과세와 배당 Gross-up, 외국납부세액공제까지 한 번에 확인합니다.</p>
+              </div>
+              <div class="panel-actions">
+                <button class="btn ghost" id="fin-fill">샘플 채우기</button>
+                <button class="btn primary" id="fin-run">계산</button>
+              </div>
+            </div>
+            <div class="form-grid two-col">
+              <div class="stack">
+                <div class="field-row">
+                  <label>금융소득 분리과세 한도
+                    <input id="fin_threshold" type="number" value="20000000">
+                  </label>
+                  <label>Gross-up 비율
+                    <input id="fin_grossup" type="number" value="0.1">
+                  </label>
+                  <label>세액 반올림 단위
+                    <input id="fin_round_tax" type="number" value="1">
+                  </label>
+                  <label>납부세액 반올림 단위
+                    <input id="fin_round_pay" type="number" value="10">
+                  </label>
+                </div>
+                <div class="table-wrap">
+                  <div class="table-head">
+                    <div>
+                      <p class="pill">금융소득 항목</p>
+                      <p class="muted">이자/배당별 금액과 원천세율, 국내·해외 여부를 입력하세요.</p>
+                    </div>
+                    <button class="btn ghost" id="fin-add">+ 항목 추가</button>
+                  </div>
+                  <table class="table" id="fin-table">
+                    <thead>
+                      <tr>
+                        <th>유형</th>
+                        <th>금액</th>
+                        <th>원천세율</th>
+                        <th>원천</th>
+                        <th>Gross-up</th>
+                        <th>기납부/외국세액</th>
+                      </tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+              </div>
+              <div class="stack">
+                <div class="field-row">
+                  <label>다른 종합소득 금액
+                    <input id="fin_other_gross" type="number" placeholder="근로/사업 등">
+                  </label>
+                  <label>소득공제 합계
+                    <input id="fin_other_ded" type="number" placeholder="인적공제 등">
+                  </label>
+                  <label>기타 세액공제
+                    <input id="fin_other_credit" type="number" value="0">
+                  </label>
+                  <label>중간예납 등(국세)
+                    <input id="fin_prepaid_nat" type="number" value="0">
+                  </label>
+                  <label>기납부 지방세
+                    <input id="fin_prepaid_loc" type="number" value="0">
+                  </label>
+                </div>
+                <div class="muted tip-box">
+                  <p class="pill">입력 팁</p>
+                  <ul>
+                    <li>해외 배당/이자는 <strong>원천</strong>을 “해외”로 선택하면 종합과세로 강제 전환됩니다.</li>
+                    <li>Gross-up 대상 배당만 체크하면 배당가산·배당세액공제를 자동 계산합니다.</li>
+                    <li>금융소득이 20,000,000원 이하라도 해외소득이 있으면 비교과세를 수행합니다.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="panel result" id="fin-output">
+            <div class="panel-head">
+              <div>
+                <p class="pill">결과/피드백</p>
+                <h2>종합소득세 인사이트</h2>
+              </div>
+            </div>
+            <div class="result-body">
+              <div class="result-number" data-main>계산을 실행해 주세요.</div>
+              <p class="muted" data-sub>20,000,000원 한도, 비교과세 결과, 배당·외국납부 세액공제를 보여줍니다.</p>
+              <div class="result-grid" data-cards></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="deploy" id="deploy">
+      <div>
+        <p class="pill">배포 가이드</p>
+        <h2>GitHub → Cloudflare Pages</h2>
+        <p class="muted">정적 사이트라 빌드 단계 없이 바로 배포할 수 있습니다.</p>
+      </div>
+      <ol>
+        <li>이 폴더를 GitHub에 올립니다. (루트에 <code>index.html</code>, <code>styles.css</code>, <code>app.js</code> 유지)</li>
+        <li>Cloudflare Pages에서 새 프로젝트를 만들고 리포지토리를 연결합니다.</li>
+        <li>Build command: <code>없음</code>, Output directory: <code>/</code></li>
+        <li>배포 후 각 탭 계산기를 열어 결과가 나오는지 확인합니다.</li>
+      </ol>
+    </section>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
