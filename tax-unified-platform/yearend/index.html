@@ -1,0 +1,1630 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <base href="/" />
+  <title>2025 연말정산 권장 카드 사용액</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container nav-wrap">
+      <div class="brand">
+        <span class="brand-mark">2025</span>
+        <span class="brand-title">연말정산 권장 사용액</span>
+      </div>
+      <nav class="nav">
+        <a href="#suite">통합 허브</a>
+        <a href="#calculator">권장 사용액</a>
+        <a href="#inputs">입력 항목</a>
+        <a href="#data-guide">자료 가이드</a>
+        <a href="#flow">계산 단계</a>
+        <a href="#formulas">공식·표</a>
+        <a href="#schema">스키마</a>
+        <a href="#pseudocode">의사코드</a>
+        <a href="#tests">검증</a>
+        <a href="#nts-cases">사례</a>
+        <a href="#references">출처</a>
+        <a href="/board/">익명 게시판</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero" id="top">
+      <div class="container hero-grid">
+        <div class="hero-copy">
+          <p class="eyebrow">2025년 귀속 · 2026년 초 정산 대상</p>
+          <h1>총급여 기준으로 카드 사용 목표선을 먼저 확인하세요.</h1>
+          <p class="lead">
+            이 사이트는 2025년 귀속 근로소득 연말정산을 위한 웹 안내서이자 프로토타입입니다.
+            총급여를 입력하면 카드 소득공제 한도에 도달하는 권장 사용액을 먼저 제시하고, 세부 항목별 미리 계산도 제공합니다.
+          </p>
+          <div class="hero-actions">
+            <a class="btn primary" href="#calculator">권장 사용액 확인</a>
+            <a class="btn ghost" href="#formulas">공식/표 바로가기</a>
+          </div>
+          <div class="hero-meta">
+            <div class="meta-card">
+              <span class="meta-title">계산 범위</span>
+              <span class="meta-value">근로소득 단일 직장</span>
+            </div>
+            <div class="meta-card">
+              <span class="meta-title">포함 항목</span>
+              <span class="meta-value">소득공제·세액공제·환급</span>
+            </div>
+            <div class="meta-card">
+              <span class="meta-title">참고 기준</span>
+              <span class="meta-value">국세청/정부 자료</span>
+            </div>
+          </div>
+        </div>
+        <div class="hero-visual">
+          <img src="assets/hero-tax.png" alt="연말정산 계산과 한국 원화 이미지" />
+          <p class="caption">README 참고 이미지: 원화와 계산기 모티프.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="suite">
+      <div class="container">
+        <div class="section-head">
+          <h2>세금 계산 통합 허브</h2>
+          <p>
+            연말정산 계산기를 기반으로 법인세·종합소득세 시뮬레이터까지 한 도메인에서 제공합니다.
+            각 계산기는 독립된 페이지로 유지해 원본 로직을 그대로 활용하면서, 단일 네비게이션으로 이동할 수 있습니다.
+          </p>
+        </div>
+        <div class="grid suite-grid">
+          <article class="card suite-card">
+            <div class="case-tag">연말정산</div>
+            <h3>연말정산 권장 사용액</h3>
+            <p>총급여 입력 기반 권장 사용액·공제/세액 계산, 공유 링크, 익명 게시판 포함.</p>
+            <ul class="list">
+              <li>2025 귀속 근로소득 기준 업데이트</li>
+              <li>OG 공유(24시간 TTL) · Cloudflare D1/KV 게시판</li>
+              <li>쿠팡 파트너스 연동(서버 사이드 키 관리)</li>
+            </ul>
+            <div class="suite-actions">
+              <a class="btn primary" href="#calculator">메인 계산기 이동</a>
+              <a class="btn ghost" href="/board/">게시판 열기</a>
+            </div>
+          </article>
+          <article class="card suite-card">
+            <div class="case-tag">법인세</div>
+            <h3>TaxCore 2025 · 법인세 시뮬레이터</h3>
+            <p>접대비 한도, 감가상각, 손금불산입, 최저한세까지 포함한 고정밀 계산기.</p>
+            <ul class="list">
+              <li>SME/일반 기업 구분 및 최저한세 자동 검증</li>
+              <li>접대비 한도·문화/전통시장 가산 계산</li>
+              <li>예시 데이터 로드 및 결과 카드 제공</li>
+            </ul>
+            <div class="suite-actions">
+              <a class="btn primary" href="/apps/corporate-tax/">법인세 계산하기</a>
+              <a class="btn ghost" href="/apps/corporate-tax/#inputs">입력 폼으로 이동</a>
+            </div>
+          </article>
+          <article class="card suite-card">
+            <div class="case-tag">종합소득세</div>
+            <h3>TaxCore · 종합소득세/사업소득 시뮬레이터</h3>
+            <p>사업소득·임대소득 중심의 종합소득세 흐름을 빠르게 가늠하는 데모 계산기.</p>
+            <ul class="list">
+              <li>누진세율·지방소득세 동시 계산</li>
+              <li>사업용 차량 비용 한도/개인사용 분리</li>
+              <li>조정/공제 항목 경고 및 트레이스 표시</li>
+            </ul>
+            <div class="suite-actions">
+              <a class="btn primary" href="/apps/comprehensive-income/">종합소득세 계산하기</a>
+              <a class="btn ghost" href="/apps/comprehensive-income/#resultPrimary">결과 영역으로 이동</a>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="overview">
+      <div class="container">
+        <div class="section-head">
+          <h2>개요</h2>
+          <p>
+            이 프로젝트는 2026년 초에 진행될 2025년 귀속 근로소득 연말정산을 미리 계산하는 웹 사이트를 구축하기 위한
+            안내서입니다. 한 해 동안 원천징수된 소득세와 실제 납부해야 할 세금의 차액을 정산하기 전에 입력 항목·공식·한도·
+            최신 제도를 정리해 환급 최적화 또는 추가 납부 최소화를 돕습니다.
+          </p>
+        </div>
+        <div class="grid two">
+          <div class="card">
+            <h3>연말정산이란?</h3>
+            <p>
+              근로소득자는 매월 급여를 받을 때 예상 세액을 기준으로 소득세를 원천징수합니다. 하지만 실제 세금은 연말에 한 해
+              전체 소득과 공제 상황을 종합해 계산하므로 납부액과 차이가 생길 수 있습니다. 연말정산은 이 차이를 정산해
+              과다 납부한 세금은 환급하고 미납분은 추가 납부하는 제도입니다[1].
+            </p>
+            <p class="mini">출처: 근로자가 공제 자료를 제출해야 환급 최적화 가능[1].</p>
+          </div>
+          <div class="card highlight">
+            <h3>프로젝트 목표</h3>
+            <ul class="list">
+              <li>사용자 입력 정보와 공식 계산식을 기반으로 2025년 귀속 세액을 미리 계산</li>
+              <li>소득공제·세액공제 항목 및 최신 제도 변화(2025년)를 직관적으로 안내</li>
+              <li>국세·지방소득세를 분리해 환급/추납을 명확히 표시</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="changes">
+      <div class="container">
+        <div class="section-head">
+          <h2>2025년 주요 변경·확대 사항</h2>
+          <p>2025년 귀속 연말정산에서 새롭게 확대되거나 신설된 항목을 정리했습니다.</p>
+        </div>
+        <div class="grid three">
+          <div class="card">
+            <h3>문화비·체육시설 공제 확대</h3>
+            <p>
+              2025년 7월부터 헬스장·수영장 이용료가 문화비 공제에 포함됩니다. 문화비·체육시설은 총급여 7,000만 원
+              이하 근로자에게만 적용되며 30% 공제, 한도 300만 원입니다[7].
+            </p>
+          </div>
+          <div class="card">
+            <h3>자녀·결혼 세액공제 강화</h3>
+            <p>
+              자녀세액공제는 1명 25만, 2명 55만, 3명 이상은 55만 + 초과 자녀당 40만으로 인상됩니다[25].
+              2024~2026 혼인 부부는 생애 1회 결혼세액공제(부부 합산 100만) 대상입니다[27][28].
+            </p>
+          </div>
+          <div class="card">
+            <h3>의료·주거·보육 변화</h3>
+            <p>
+              산후조리원비는 총급여 요건이 폐지되고 의료비 공제(15%, 200만 원 한도)로 포함됩니다[18].
+              만 6세 이하 영유아 의료비는 한도 없이 공제됩니다[19]. 월세 세액공제 기준은 총급여 8,000만 원 이하로
+              확대되었고, 주택청약저축 공제 한도는 300만 원으로 상향되었습니다[13][17]. 청년형 장기집합투자증권저축
+              소득공제(한도 600만) 등 기타 항목도 확대되었습니다[18].
+            </p>
+          </div>
+        </div>
+        <div class="note">
+          <strong>비과세 한도 확대:</strong> 출산·보육수당 비과세 한도가 월 20만 원으로 증가했습니다[32].
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="inputs">
+      <div class="container">
+        <div class="section-head">
+          <h2>시스템 개요 및 데이터 요구사항</h2>
+          <p>홈택스 간소화 자료와 원천징수영수증을 참고해 입력해야 하는 항목입니다.</p>
+        </div>
+        <div class="grid three">
+          <div class="card">
+            <h3>총급여·비과세</h3>
+            <ul class="list">
+              <li>연간 근로소득(연봉, 비과세 포함) - 비과세소득 = 총급여</li>
+              <li>비과세 예시: 식대(월 20만), 보육수당(월 20만), 자기차량운전보조금(월 20만)</li>
+              <li>국외근로소득, 생산직 야간근로수당 등 비과세 항목은 총급여에서 제외</li>
+              <li>비과세 급여는 참고값으로 별도 기록</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>부양가족 정보</h3>
+            <ul class="list">
+              <li>소득 요건: 연간 소득금액 100만 원 이하(근로소득만 있는 경우 500만 원 이하)</li>
+              <li>배우자: 나이 제한 없음</li>
+              <li>부모: 60세 이상, 자녀/손자녀: 20세 이하</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>사회보험료</h3>
+            <ul class="list">
+              <li>4대 보험 근로자 부담분 전액 소득공제</li>
+              <li>배우자/부양가족 명의 보험료는 공제 불가</li>
+              <li>지역가입자 개인 납부분은 근로기간 납부분에 한해 공제 가능</li>
+              <li>세액공제가 아닌 소득공제로 과세표준 계산 전에 차감</li>
+              <li>원천징수영수증의 ‘근로자 부담분 보험료’ 항목을 참고</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>카드·현금영수증</h3>
+            <ul class="list">
+              <li>총급여의 25% 초과분부터 공제</li>
+              <li>신용 15%, 체크/현금 30%, 전통시장/교통 40%</li>
+              <li>문화비·체육시설 30% (총급여 7,000만 이하, 시설이용료만 인정·구분 불가 시 결제액의 50%)</li>
+              <li>체육시설 강습·PT·멤버십·대여료 등은 공제 대상에서 제외</li>
+              <li>기본공제한도: 총급여 7,000만 이하 300만, 초과 250만</li>
+              <li>추가공제: 문화·전통시장·대중교통 합산 300만(초과자는 200만), 소비증가분 100만</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>보험·의료·교육·기부</h3>
+            <ul class="list">
+              <li>의료비: 총급여 3% 초과분 15% 공제 (본인·65세↑·장애인·6세↓ 한도 없음, 난임 30%, 미숙아·선천성 이상아 20%)</li>
+              <li>실손보험금 수령액은 의료비 지출액에서 차감</li>
+              <li>교육비: 초중고 300만, 대학생 900만, 본인 대학원 무한도 15%</li>
+              <li>기부금: 일반 15%/30%(근로소득금액 30% 한도), 정치 100/110 + 15%/25%, 고향사랑 100/110 + 15%(재난 30%)</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>연금·주택·기타</h3>
+            <ul class="list">
+              <li>연금저축 600만, IRP 포함 900만 한도 + ISA 전환금 10%(최대 300만) 추가</li>
+              <li>월세 세액공제: 총급여 8,000만 이하, 연 1,000만 한도</li>
+              <li>주택청약저축: 무주택 세대주/배우자, 납입액 40% 공제, 한도 300만</li>
+              <li>주택임차차입금 원리금 상환액: 40% 공제, 주택청약저축과 합산 400만 한도</li>
+              <li>장기주택저당차입금 이자: 조건별 600만~2,000만 한도</li>
+              <li>청년형 장기집합투자증권저축 소득공제(한도 600만) 등은 기타 항목으로 관리</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>원천징수 세액</h3>
+            <ul class="list">
+              <li>소득세와 지방소득세를 분리 입력</li>
+              <li>지방소득세 미입력 시 소득세의 10%로 추정</li>
+            </ul>
+          </div>
+        </div>
+        <div class="note">
+          <strong>입력 편의성:</strong> CSV 업로드나 홈택스 자료 연동을 제공하면 입력 오류를 줄일 수 있습니다.
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="data-guide">
+      <div class="container">
+        <div class="section-head">
+          <h2>자료 입력 가이드</h2>
+          <p>간소화 PDF(소득·세액공제 증명서류)와 원천징수영수증의 역할을 구분해 입력해야 환급액이 정확해집니다.</p>
+        </div>
+        <div class="grid two">
+          <div class="card">
+            <h3>간소화 PDF에서 가져올 항목</h3>
+            <ul class="list">
+              <li>보장성 보험료: “납입금액 계/인별합계금액”</li>
+              <li>의료비: “의료비 인별합계금액” + 실손보험금 수령액 별도 차감</li>
+              <li>신용/직불/현금영수증: “전년도 사용금액 합계” + “사용금액 집계”</li>
+              <li>연금계좌: “순납입금액 합계”</li>
+              <li>기부금: “기부금액 합계/공제대상 기부금액”</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>원천징수영수증에서 가져올 항목</h3>
+            <ul class="list">
+              <li>총급여, 비과세 급여(연봉에서 비과세 제외)</li>
+              <li>기납부 소득세/지방소득세</li>
+              <li>4대 보험 근로자 부담분 합계(국민연금/공무원연금·건강보험·장기요양·고용보험)</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>지급명세서(연도별 급여 총 지급현황) 요약</h3>
+            <ul class="list">
+              <li>연간 근로소득(연봉) = 수당합계(또는 지급액 + 공제합계)</li>
+              <li>총급여 = 연간 근로소득 - 비과세합계</li>
+              <li>기납부세액 = 소득세 합계 + 지방소득세 합계</li>
+              <li>사회보험료 = 일반기여금(공무원연금) + 건강보험 + 건강보험연말정산 + 장기요양보험 + 장기요양연말정산</li>
+            </ul>
+          </div>
+        </div>
+        <div class="note">
+          <strong>중요:</strong> 간소화 PDF만으로는 환급액을 계산할 수 없습니다. 총급여와 기납부세액은 반드시
+          원천징수영수증을 기준으로 입력하세요.
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="calculator">
+      <div class="container">
+        <div class="section-head">
+          <h2>권장 카드 사용액 계산기</h2>
+          <p>
+            총급여 기준으로 카드 소득공제 한도에 도달하는 최소 사용액을 안내합니다. 실제 환급액은 회사 원천징수와 다른 공제
+            항목에 따라 달라질 수 있으므로 참고용으로 활용하세요.
+          </p>
+        </div>
+        <div class="calc-grid">
+          <form id="calc-form" class="calc-form">
+            <fieldset>
+              <legend>지급명세서 PDF 업로드</legend>
+              <div class="field-grid">
+                <label>
+                  지급명세서 파일
+                  <input type="file" id="paystub_file" accept="application/pdf" />
+                  <span class="help">브라우저에서만 처리되며 서버로 전송되지 않습니다.</span>
+                </label>
+                <div class="inline-actions">
+                  <button type="button" class="btn ghost" id="paystub_parse">파일 분석</button>
+                </div>
+              </div>
+              <p class="mini" id="paystub_status">파일 분석 후 총급여·비과세·기납부세액·사회보험료를 자동 입력합니다.</p>
+            </fieldset>
+
+            <fieldset>
+              <legend>추정 모드 (간소화 자료 없음)</legend>
+              <div class="field-grid">
+                <label class="checkbox">
+                  <input type="checkbox" id="estimate_mode" />
+                  간소화 자료 없음 모드 사용
+                </label>
+                <label class="checkbox">
+                  <input type="checkbox" id="estimate_ytd" />
+                  누적액을 연간 환산(기준월 기준)
+                </label>
+                <label>
+                  기준월
+                  <input type="number" id="estimate_month" min="1" max="12" step="1" placeholder="예: 9" />
+                  <span class="help">누적액 입력 시 12 / 기준월로 환산</span>
+                </label>
+                <label class="checkbox">
+                  <input type="checkbox" id="estimate_prev_year" />
+                  전년도 값으로 추정(증감율 적용)
+                </label>
+                <label>
+                  전년도 대비 증감율(%)
+                  <input type="number" id="estimate_prev_rate" min="-50" max="200" step="1" placeholder="예: 5" />
+                  <span class="help">현재 입력값을 전년도 값으로 보고 증감율 적용</span>
+                </label>
+                <label class="checkbox">
+                  <input type="checkbox" id="estimate_range" />
+                  환급 범위 표시
+                </label>
+                <label>
+                  범위 ±(%)
+                  <input type="number" id="estimate_range_percent" min="5" max="50" step="1" value="15" />
+                  <span class="help">추정 항목을 ±범위로 계산해 환급 범위 표시</span>
+                </label>
+              </div>
+              <p class="mini">
+                전년도 값이 있으면 동일 항목에 입력한 뒤 “전년도 값으로 추정”을 선택하세요. 누적액 환산은 카드/보험/의료/교육 등
+                누적 지출에만 적용하는 것을 권장합니다.
+              </p>
+            </fieldset>
+
+            <fieldset>
+              <legend>기본 정보</legend>
+              <div class="field-grid">
+                <label>
+                  연간 근로소득(연봉, 비과세 포함)
+                  <input type="number" id="annual_salary" min="0" step="10000" placeholder="예: 65000000" />
+                  <span class="help">총급여 = 연간 근로소득 - 비과세소득</span>
+                </label>
+                <label>
+                  총급여 (과세 대상 급여)
+                  <input type="number" id="gross_salary" min="0" step="10000" placeholder="예: 60000000" />
+                  <span class="help">비과세 급여는 제외한 금액 · 총급여만 입력해도 권장 사용액 계산 가능</span>
+                </label>
+                <label>
+                  비과세 급여 (참고)
+                  <input type="number" id="nontaxable_salary" min="0" step="10000" placeholder="예: 2000000" />
+                  <span class="help">계산에는 포함되지 않습니다.</span>
+                </label>
+                <label class="checkbox">
+                  <input type="checkbox" id="use_annual_salary" />
+                  연봉으로 총급여 자동 계산(연봉 - 비과세)
+                </label>
+                <label>
+                  기납부 소득세
+                  <input type="number" id="withheld_income_tax" min="0" step="1000" placeholder="예: 3500000" />
+                </label>
+                <label>
+                  기납부 지방소득세
+                  <input type="number" id="withheld_local_tax" min="0" step="100" placeholder="미입력 시 10% 추정" />
+                  <span class="help">미입력 시 소득세의 10%로 추정</span>
+                </label>
+              </div>
+            </fieldset>
+
+            <fieldset>
+              <legend>부양가족 및 추가공제</legend>
+              <div class="field-grid">
+                <label class="checkbox">
+                  <input type="checkbox" id="self_disabled" />
+                  본인 장애인 공제 대상
+                </label>
+                <label class="checkbox">
+                  <input type="checkbox" id="female_head" />
+                  부녀자/여성 세대주 공제 요건 충족
+                </label>
+                <label class="checkbox">
+                  <input type="checkbox" id="single_parent" />
+                  한부모 공제 요건 충족
+                </label>
+                <label class="checkbox">
+                  <input type="checkbox" id="marriage_credit" />
+                  결혼세액공제 대상 (2024~2026 혼인)
+                </label>
+              </div>
+
+              <div class="field-grid">
+                <label>
+                  출산·입양 (첫째)
+                  <input type="number" id="birth_first" min="0" step="1" placeholder="0" />
+                  <span class="help">1인당 30만</span>
+                </label>
+                <label>
+                  출산·입양 (둘째)
+                  <input type="number" id="birth_second" min="0" step="1" placeholder="0" />
+                  <span class="help">1인당 50만</span>
+                </label>
+                <label>
+                  출산·입양 (셋째 이상)
+                  <input type="number" id="birth_third" min="0" step="1" placeholder="0" />
+                  <span class="help">1인당 70만</span>
+                </label>
+              </div>
+
+              <div class="dependents">
+                <div class="dependents-header">
+                  <h4>부양가족 입력</h4>
+                  <button type="button" class="btn ghost" id="add-dependent">부양가족 추가</button>
+                </div>
+                <div id="dependents-list" class="dependents-list"></div>
+                <p class="mini">
+                  소득 요건(연 100만 원 이하, 근로소득만 있으면 총급여 500만 이하)과 연령 요건(부모 60세↑, 자녀 20세↓)을
+                  만족해야 기본공제에 포함됩니다. 형제자매는 20세 이하 또는 60세 이상이며, 장애인은 나이 요건이 없습니다.
+                  연간 소득금액을 비워두면 0원으로 간주되며, 나이가 비어 있는 경우 기본공제 적용이 제한됩니다.
+                </p>
+              </div>
+            </fieldset>
+
+            <fieldset>
+              <legend>소득공제 항목</legend>
+              <div class="field-grid">
+                <label>
+                  4대 보험 근로자 부담분
+                  <input type="number" id="social_insurance" min="0" step="1000" placeholder="예: 2000000" />
+                  <span class="help">공무원연금(일반기여금)·건강보험·장기요양보험·고용보험 + 연말정산 조정분</span>
+                </label>
+              </div>
+
+              <div class="field-grid">
+                <label>
+                  신용카드 사용액
+                  <input type="number" id="credit_card_spend" min="0" step="10000" placeholder="예: 10000000" />
+                  <span class="help">전통시장/대중교통/문화·체육 지출을 제외한 일반 사용액</span>
+                </label>
+                <label>
+                  체크카드·현금영수증
+                  <input type="number" id="debit_card_spend" min="0" step="10000" placeholder="예: 2000000" />
+                  <span class="help">전통시장/대중교통/문화·체육 제외. 월세 현금영수증은 월세 세액공제와 중복 불가</span>
+                </label>
+                <label>
+                  전통시장·대중교통
+                  <input type="number" id="market_transport_spend" min="0" step="10000" placeholder="예: 3000000" />
+                  <span class="help">문화·시장·교통 합산 추가공제 한도 300만(초과 200만)</span>
+                </label>
+                <label>
+                  문화비 지출액
+                  <input type="number" id="culture_expenses" min="0" step="10000" placeholder="예: 300000" />
+                  <span class="help">도서·공연·전시·영화·신문 등 (총급여 7,000만 초과자는 일반 사용액에 포함)</span>
+                </label>
+                <label>
+                  체육시설 공제 인정액
+                  <input type="number" id="sports_facility_fee_eligible" min="0" step="10000" placeholder="예: 200000" />
+                  <span class="help">시설이용료만 인정, 구분 불가 시 결제액의 50%</span>
+                </label>
+                <label class="checkbox">
+                  <input type="checkbox" id="culture_eligible" checked />
+                  문화비·체육시설 공제 대상 (총급여 7,000만 이하)
+                </label>
+                <label>
+                  전년도 신용카드 등 사용액
+                  <input type="number" id="previous_card_spend" min="0" step="10000" placeholder="예: 39000000" />
+                  <span class="help">전년 대비 5% 초과분의 10%, 한도 100만</span>
+                </label>
+              </div>
+
+              <div class="field-grid">
+                <label>
+                  주택청약저축 납입액
+                  <input type="number" id="housing_savings" min="0" step="10000" placeholder="예: 300000" />
+                  <span class="help">납입액 40%, 한도 300만</span>
+                </label>
+                <label class="checkbox">
+                  <input type="checkbox" id="housing_savings_eligible" />
+                  무주택 세대주/배우자 + 총급여 7,000만 이하
+                </label>
+                <label>
+                  주택임차차입금 원리금 상환액
+                  <input type="number" id="lease_loan_repayment" min="0" step="10000" placeholder="예: 4000000" />
+                  <span class="help">원리금의 40% 공제, 주택청약저축과 합산 400만 한도</span>
+                </label>
+                <label class="checkbox">
+                  <input type="checkbox" id="lease_loan_eligible" />
+                  무주택 세대주 + 임차 주택 요건 충족
+                </label>
+                <label>
+                  주택담보대출 이자상환액
+                  <input type="number" id="mortgage_interest" min="0" step="10000" placeholder="예: 5000000" />
+                </label>
+                <label>
+                  주택대출 공제 한도
+                  <select id="mortgage_limit">
+                    <option value="6000000">600만 (10~15년, 고정/비거치)</option>
+                    <option value="8000000">800만 (15년 이상 기타)</option>
+                    <option value="18000000" selected>1,800만 (15년 이상 고정 또는 비거치)</option>
+                    <option value="20000000">2,000만 (15년 이상 고정+비거치)</option>
+                  </select>
+                </label>
+                <label class="checkbox">
+                  <input type="checkbox" id="mortgage_eligible" />
+                  무주택 또는 1주택 세대주 요건 충족
+                </label>
+                <label>
+                  기타 소득공제 (직접 입력)
+                  <input type="number" id="other_income_deduction" min="0" step="1000" placeholder="예: 0" />
+                </label>
+              </div>
+            </fieldset>
+
+            <fieldset>
+              <legend>세액공제 항목</legend>
+              <div class="field-grid">
+                <label>
+                  연금저축·IRP 납입액
+                  <input type="number" id="pension_contribution" min="0" step="10000" placeholder="예: 600000" />
+                </label>
+                <label>
+                  ISA 만기금 연금계좌 전환액
+                  <input type="number" id="isa_transfer" min="0" step="10000" placeholder="예: 1000000" />
+                  <span class="help">전환금액의 10% (최대 300만) 추가</span>
+                </label>
+                <label class="checkbox">
+                  <input type="checkbox" id="pension_with_irp" checked />
+                  IRP 포함 (연 900만 한도)
+                </label>
+              </div>
+
+              <div class="field-grid">
+                <label>
+                  보장성 보험료 납입액
+                  <input type="number" id="insurance_premiums" min="0" step="10000" placeholder="예: 800000" />
+                  <span class="help">세액공제 대상 한도 100만</span>
+                </label>
+                <label class="checkbox">
+                  <input type="checkbox" id="insurance_disabled" />
+                  장애인전용 보장성 보험료 (15%)
+                </label>
+              </div>
+
+              <div class="field-grid">
+                <label>
+                  의료비(일반)
+                  <input type="number" id="medical_expenses" min="0" step="10000" placeholder="예: 2000000" />
+                  <span class="help">일반 의료비 (연 700만 한도, 특례 제외)</span>
+                </label>
+                <label>
+                  의료비(특례: 본인/65세↑/장애인/6세 이하/산정특례)
+                  <input type="number" id="medical_special_expenses" min="0" step="10000" placeholder="예: 0" />
+                  <span class="help">한도 없음, 공제율 15%</span>
+                </label>
+                <label>
+                  난임시술비
+                  <input type="number" id="medical_infertility" min="0" step="10000" placeholder="예: 0" />
+                  <span class="help">공제율 30%</span>
+                </label>
+                <label>
+                  미숙아·선천성 이상아 의료비
+                  <input type="number" id="medical_premature" min="0" step="10000" placeholder="예: 0" />
+                  <span class="help">공제율 20%</span>
+                </label>
+                <label>
+                  산후조리원비
+                  <input type="number" id="postnatal_care" min="0" step="10000" placeholder="예: 1500000" />
+                  <span class="help">최대 200만까지 의료비로 포함</span>
+                </label>
+                <label>
+                  실손보험금 수령액
+                  <input type="number" id="medical_reimbursements" min="0" step="10000" placeholder="예: 0" />
+                  <span class="help">의료비 지출액에서 차감</span>
+                </label>
+              </div>
+
+              <div class="field-grid">
+                <label>
+                  교육비(유치원·초중고)
+                  <input type="number" id="education_k12" min="0" step="10000" placeholder="예: 3000000" />
+                </label>
+                <label>
+                  교육비(대학생)
+                  <input type="number" id="education_university" min="0" step="10000" placeholder="예: 9000000" />
+                </label>
+                <label>
+                  교육비(본인 대학원)
+                  <input type="number" id="education_self" min="0" step="10000" placeholder="예: 0" />
+                </label>
+              </div>
+
+              <div class="field-grid">
+                <label>
+                  일반 기부금(종교단체 외)
+                  <input type="number" id="donations_general" min="0" step="10000" placeholder="예: 500000" />
+                  <span class="help">종교단체 기부금이 없으면 근로소득금액의 30% 한도</span>
+                </label>
+                <label>
+                  종교단체 기부금
+                  <input type="number" id="donations_religious" min="0" step="10000" placeholder="예: 0" />
+                  <span class="help">종교단체 10% + 종교단체 외 20% 한도(합계 30%)</span>
+                </label>
+                <label>
+                  특례기부금
+                  <input type="number" id="donations_special" min="0" step="10000" placeholder="예: 0" />
+                  <span class="help">국방헌금·위문금품 등 (정치/고향 차감 후 한도)</span>
+                </label>
+                <label>
+                  우리사주조합 기부금
+                  <input type="number" id="donations_employee_stock" min="0" step="10000" placeholder="예: 0" />
+                  <span class="help">근로소득금액의 30% 한도</span>
+                </label>
+                <label>
+                  정치자금 기부금
+                  <input type="number" id="donations_political" min="0" step="10000" placeholder="예: 100000" />
+                  <span class="help">10만 이하 100/110, 10만 초과 3천만까지 15%, 초과분 25% (근로소득금액 한도)</span>
+                </label>
+                <label>
+                  고향사랑기부금
+                  <input type="number" id="donations_hometown" min="0" step="10000" placeholder="예: 200000" />
+                  <span class="help">10만 이하 100/110, 초과분 15%(재난 30%), 2천만 한도</span>
+                </label>
+                <label class="checkbox">
+                  <input type="checkbox" id="donations_hometown_disaster" />
+                  특별재난지역 기부 (초과분 30%)
+                </label>
+              </div>
+
+              <div class="field-grid">
+                <label>
+                  월세 납입액
+                  <input type="number" id="rent_paid" min="0" step="10000" placeholder="예: 4800000" />
+                  <span class="help">연 1,000만 원 한도 · 월세 현금영수증은 카드 공제와 중복 불가</span>
+                </label>
+                <label class="checkbox">
+                  <input type="checkbox" id="rent_eligible" />
+                  무주택 + 주택요건(전용 85㎡↓/기준시가 4억↓) 충족
+                </label>
+              </div>
+
+              <div class="field-grid">
+                <label class="checkbox">
+                  <input type="checkbox" id="use_standard_credit" />
+                  표준세액공제 적용 (특별세액공제 미신청)
+                </label>
+                <label>
+                  기타 세액공제 (직접 입력)
+                  <input type="number" id="other_tax_credit" min="0" step="1000" placeholder="예: 0" />
+                </label>
+              </div>
+
+              <label>
+                기타 입력/메모 (others)
+                <textarea id="others_notes" rows="3" placeholder='예: 청년형 장기집합투자증권저축(600만), 출산·보육수당 비과세 등'></textarea>
+              </label>
+            </fieldset>
+          </form>
+
+          <aside class="calc-results">
+            <div class="result-card primary">
+              <h3>권장 사용액</h3>
+              <div class="result-row">
+                <span>공제 시작선 (총급여 25%)</span>
+                <strong data-output="cardThreshold">0원</strong>
+              </div>
+              <div class="result-row">
+                <span>기본한도 도달 최소 사용액 (체크·현금 30%)</span>
+                <strong data-output="cardBaseTarget">0원</strong>
+              </div>
+              <div class="result-row">
+                <span>기본한도 도달 최소 사용액 (신용 15%)</span>
+                <strong data-output="cardBaseTargetCredit">0원</strong>
+              </div>
+              <div class="result-row">
+                <span>최대 공제 도달 최소 사용액 (전통시장·교통 40%)</span>
+                <strong data-output="cardMaxTarget">0원</strong>
+              </div>
+              <div class="result-row total">
+                <span>현재 입력 기준 추가 필요액</span>
+                <strong data-output="cardAdditionalNeeded">0원</strong>
+              </div>
+              <p class="mini">
+                카드 공제 한도에 도달하면 추가 소비로 환급액이 더 늘지 않는 구간에 들어갑니다. 전통시장·대중교통 비중이 높을수록
+                최소 사용액이 줄어들며, 신용카드 비중이 높으면 필요 사용액이 더 커질 수 있습니다.
+              </p>
+            </div>
+
+            <div class="result-card" id="estimate-range-card">
+              <h3>추정 환급 범위</h3>
+              <div class="result-row">
+                <span>하한</span>
+                <strong data-output="refundRangeLow">0원</strong>
+              </div>
+              <div class="result-row">
+                <span>상한</span>
+                <strong data-output="refundRangeHigh">0원</strong>
+              </div>
+              <p class="mini">추정 모드에서만 표시되며, 입력값의 변동성을 반영한 대략적인 범위입니다.</p>
+            </div>
+
+            <div class="result-card primary">
+              <h3>예상 결과</h3>
+              <div class="result-row">
+                <span>과세표준</span>
+                <strong data-output="taxableIncome">0원</strong>
+              </div>
+              <div class="result-row">
+                <span>산출세액</span>
+                <strong data-output="calculatedTax">0원</strong>
+              </div>
+              <div class="result-row">
+                <span>총세액공제</span>
+                <strong data-output="totalTaxCredits">0원</strong>
+              </div>
+              <div class="result-row">
+                <span>결정소득세 (국세)</span>
+                <strong data-output="determinedIncomeTax">0원</strong>
+              </div>
+              <div class="result-row">
+                <span>지방소득세</span>
+                <strong data-output="localTax">0원</strong>
+              </div>
+              <div class="result-row">
+                <span>총결정세액</span>
+                <strong data-output="totalDeterminedTax">0원</strong>
+              </div>
+              <div class="result-row total">
+                <span data-output="refundLabel">예상 환급액</span>
+                <strong data-output="refundAmount">0원</strong>
+              </div>
+              <p class="mini" data-output="withheldNote"></p>
+              <div class="share-block">
+                <button type="button" class="btn primary" id="share-result">결과 공유하기</button>
+                <div class="share-output" id="share-output">
+                  <input type="text" id="share-link" readonly placeholder="공유 링크가 여기에 표시됩니다." />
+                  <button type="button" class="btn ghost" id="share-copy">링크 복사</button>
+                </div>
+                <p class="mini">공유 링크는 24시간 뒤 만료됩니다. 결과 금액만 포함됩니다.</p>
+              </div>
+            </div>
+
+            <details class="result-card" open>
+              <summary>소득공제 상세</summary>
+              <div class="result-row"><span>근로소득공제</span><strong data-output="earnedIncomeDeduction">0원</strong></div>
+              <div class="result-row"><span>기본공제</span><strong data-output="basicDeduction">0원</strong></div>
+              <div class="result-row"><span>추가공제</span><strong data-output="additionalDeduction">0원</strong></div>
+              <div class="result-row"><span>사회보험료 공제</span><strong data-output="socialInsuranceDeduction">0원</strong></div>
+              <div class="result-row"><span>신용카드 공제</span><strong data-output="cardDeduction">0원</strong></div>
+              <div class="result-row"><span>주택청약저축 공제</span><strong data-output="housingSavingsDeduction">0원</strong></div>
+              <div class="result-row"><span>주택임차차입금 공제</span><strong data-output="leaseLoanDeduction">0원</strong></div>
+              <div class="result-row"><span>주택대출이자 공제</span><strong data-output="mortgageDeduction">0원</strong></div>
+              <div class="result-row"><span>기타 소득공제</span><strong data-output="otherIncomeDeduction">0원</strong></div>
+              <div class="result-row total"><span>소득공제 합계</span><strong data-output="incomeDeductionTotal">0원</strong></div>
+            </details>
+
+            <details class="result-card">
+              <summary>세액공제 상세</summary>
+              <div class="result-row"><span>근로소득세액공제</span><strong data-output="earnedIncomeTaxCredit">0원</strong></div>
+              <div class="result-row"><span>자녀세액공제</span><strong data-output="childTaxCredit">0원</strong></div>
+              <div class="result-row"><span>출산·입양 공제</span><strong data-output="birthTaxCredit">0원</strong></div>
+              <div class="result-row"><span>결혼세액공제</span><strong data-output="marriageTaxCredit">0원</strong></div>
+              <div class="result-row"><span>연금계좌 세액공제</span><strong data-output="pensionTaxCredit">0원</strong></div>
+              <div class="result-row"><span>보험료 세액공제</span><strong data-output="insuranceTaxCredit">0원</strong></div>
+              <div class="result-row"><span>의료비 세액공제</span><strong data-output="medicalTaxCredit">0원</strong></div>
+              <div class="result-row"><span>교육비 세액공제</span><strong data-output="educationTaxCredit">0원</strong></div>
+              <div class="result-row"><span>기부금 세액공제</span><strong data-output="donationsGeneralCredit">0원</strong></div>
+              <div class="result-row"><span>정치자금 세액공제</span><strong data-output="donationsPoliticalCredit">0원</strong></div>
+              <div class="result-row"><span>고향사랑기부금 공제</span><strong data-output="donationsHometownCredit">0원</strong></div>
+              <div class="result-row"><span>월세 세액공제</span><strong data-output="rentTaxCredit">0원</strong></div>
+              <div class="result-row"><span>표준세액공제</span><strong data-output="standardTaxCredit">0원</strong></div>
+              <div class="result-row"><span>기타 세액공제</span><strong data-output="otherTaxCredit">0원</strong></div>
+            </details>
+
+            <details class="result-card">
+              <summary>기납부세액</summary>
+              <div class="result-row"><span>기납부 소득세</span><strong data-output="withheldIncomeTax">0원</strong></div>
+              <div class="result-row"><span>기납부 지방소득세</span><strong data-output="withheldLocalTax">0원</strong></div>
+              <div class="result-row total"><span>기납부 합계</span><strong data-output="withheldTotalTax">0원</strong></div>
+            </details>
+
+            <details class="result-card">
+              <summary>입력값 요약</summary>
+              <div class="mini" id="input-summary">입력값을 불러오는 중입니다.</div>
+            </details>
+
+            <div class="note" id="calc-warnings"></div>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="affiliate">
+      <div class="container">
+        <div class="section-head">
+          <h2>맞춤 추천 상품</h2>
+          <p>입력 항목과 관심 로그를 반영해 필요한 상품을 추천합니다.</p>
+        </div>
+        <div class="ad-grid" id="affiliate-banner">
+          <div class="ad-card skeleton">
+            <div class="ad-thumb"></div>
+            <div class="ad-lines">
+              <span></span>
+              <span></span>
+            </div>
+          </div>
+          <div class="ad-card skeleton">
+            <div class="ad-thumb"></div>
+            <div class="ad-lines">
+              <span></span>
+              <span></span>
+            </div>
+          </div>
+          <div class="ad-card skeleton">
+            <div class="ad-thumb"></div>
+            <div class="ad-lines">
+              <span></span>
+              <span></span>
+            </div>
+          </div>
+        </div>
+        <p class="mini">추천 영역은 쿠팡파트너스 연동 배너로 대체됩니다.</p>
+      </div>
+    </section>
+
+    <section class="section" id="flow">
+      <div class="container">
+        <div class="section-head">
+          <h2>계산 단계</h2>
+          <p>입력부터 환급액 계산까지의 흐름을 단계별로 정리했습니다.</p>
+        </div>
+        <div class="grid two">
+          <div class="card">
+            <h3>계산 흐름도</h3>
+            <img class="flow-img" src="assets/flow.png" alt="연말정산 계산 흐름도" />
+            <p class="caption">입력 → 소득공제 → 세액공제 → 국세/지방세 → 환급/추납.</p>
+          </div>
+          <div class="card">
+            <h3>주요 단계</h3>
+            <ol class="list ordered">
+              <li>총급여와 근로소득공제 계산</li>
+              <li>종합소득금액과 기본·추가공제 반영</li>
+              <li>소득공제 항목(사회보험, 카드, 주택 등) 합산 후 과세표준 산출</li>
+              <li>과세표준에 누진세율 적용해 산출세액 계산</li>
+              <li>세액공제(근로소득, 자녀, 연금, 의료비 등) 차감</li>
+              <li>결정소득세 산출 및 지방소득세(10%) 계산</li>
+              <li>기납부세액과 비교해 환급/추납 결정</li>
+            </ol>
+            <p class="mini">
+              근로소득 외 사업소득·이자·배당·연금소득이 있으면 종합소득금액에 합산해야 하며, 근로소득만 있는 경우
+              종합소득금액은 근로소득금액과 동일합니다.
+            </p>
+          </div>
+        </div>
+        <div class="grid two step-grid">
+          <div class="card step-card">
+            <span class="step-tag">01</span>
+            <h3>총급여·근로소득공제</h3>
+            <p class="mini">
+              총급여는 연간 급여·상여·현물보수 등을 합산합니다. 근로소득공제는 2025년에도 동일한 공제율을 적용하며,
+              공제표에 따라 산정된 금액을 총급여에서 차감해 근로소득금액을 계산합니다[21].
+            </p>
+          </div>
+          <div class="card step-card">
+            <span class="step-tag">02</span>
+            <h3>종합소득금액·기본공제</h3>
+            <p class="mini">
+              근로소득 외 소득이 있으면 합산해 종합소득금액을 산출합니다. 기본공제는 1인당 150만 원, 추가공제는
+              경로우대 100만, 장애인 200만, 부녀자 50만, 한부모 100만 원을 적용합니다[22].
+            </p>
+          </div>
+          <div class="card step-card">
+            <span class="step-tag">03</span>
+            <h3>과세표준·산출세액</h3>
+            <p class="mini">
+              소득공제 합계를 차감해 과세표준을 구하고, 누진세율(6~45%)과 누진공제액으로 산출세액을 계산합니다.
+              지방소득세는 결정소득세의 10%로 산정됩니다[23].
+            </p>
+          </div>
+          <div class="card step-card">
+            <span class="step-tag">04</span>
+            <h3>세액공제 적용</h3>
+            <p class="mini">
+              근로소득·자녀·결혼·연금계좌·보험료/의료비/교육비·기부금·주택 관련 공제를 적용한 뒤
+              표준세액공제 선택 여부를 확인해 최종 결정세액을 산출합니다.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="formulas">
+      <div class="container">
+        <div class="section-head">
+          <h2>공식 및 세율표</h2>
+          <p>2025년 귀속분 기준 공식과 세율표를 그대로 반영했습니다.</p>
+        </div>
+
+        <div class="card">
+          <h3>근로소득공제 계산식</h3>
+          <table class="table">
+            <thead>
+              <tr>
+                <th>총급여 구간</th>
+                <th>근로소득공제 계산식</th>
+                <th>비고</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>0 ~ 5,000,000</td>
+                <td>총급여 × 70%</td>
+                <td>-</td>
+              </tr>
+              <tr>
+                <td>5,000,001 ~ 15,000,000</td>
+                <td>3,500,000 + (총급여 – 5,000,000) × 40%</td>
+                <td>-</td>
+              </tr>
+              <tr>
+                <td>15,000,001 ~ 45,000,000</td>
+                <td>7,500,000 + (총급여 – 15,000,000) × 15%</td>
+                <td>-</td>
+              </tr>
+              <tr>
+                <td>45,000,001 ~ 100,000,000</td>
+                <td>12,000,000 + (총급여 – 45,000,000) × 5%</td>
+                <td>-</td>
+              </tr>
+              <tr>
+                <td>100,000,001 이상</td>
+                <td>14,750,000 + (총급여 – 100,000,000) × 2%</td>
+                <td>공제한도 20,000,000</td>
+              </tr>
+            </tbody>
+          </table>
+          <p class="mini">2025년에도 2024년과 동일한 공제율이 적용되며, 공제액은 최대 2,000만 원까지입니다[21].</p>
+        </div>
+
+        <div class="card">
+          <h3>추가공제 항목</h3>
+          <table class="table">
+            <thead>
+              <tr>
+                <th>공제 항목</th>
+                <th>금액</th>
+                <th>요건</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>경로우대공제</td>
+                <td>100만 원</td>
+                <td>70세 이상 부모·배우자·부양가족</td>
+              </tr>
+              <tr>
+                <td>장애인공제</td>
+                <td>200만 원</td>
+                <td>장애인, 국가유공자, 중증환자 등</td>
+              </tr>
+              <tr>
+                <td>부녀자/여성 세대주</td>
+                <td>50만 원</td>
+                <td>부양가족을 둔 여성 근로자 또는 배우자 소득 100만 이하 여성</td>
+              </tr>
+              <tr>
+                <td>한부모 공제</td>
+                <td>100만 원</td>
+                <td>배우자가 없고 기본공제 대상 자녀가 있는 경우</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <h3>소득세율 및 누진공제</h3>
+          <table class="table">
+            <thead>
+              <tr>
+                <th>과세표준(원)</th>
+                <th>세율</th>
+                <th>누진공제액</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>0 ~ 14,000,000</td><td>6%</td><td>0</td></tr>
+              <tr><td>14,000,001 ~ 50,000,000</td><td>15%</td><td>840,000</td></tr>
+              <tr><td>50,000,001 ~ 88,000,000</td><td>24%</td><td>6,240,000</td></tr>
+              <tr><td>88,000,001 ~ 150,000,000</td><td>35%</td><td>15,360,000</td></tr>
+              <tr><td>150,000,001 ~ 300,000,000</td><td>38%</td><td>37,060,000</td></tr>
+              <tr><td>300,000,001 ~ 500,000,000</td><td>40%</td><td>94,060,000</td></tr>
+              <tr><td>500,000,001 ~ 1,000,000,000</td><td>42%</td><td>174,060,000</td></tr>
+              <tr><td>1,000,000,001 이상</td><td>45%</td><td>384,060,000</td></tr>
+            </tbody>
+          </table>
+          <p class="mini">예: 과세표준 60,000,000원 → 60,000,000 × 24% – 6,240,000</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="tax-credits">
+      <div class="container">
+        <div class="section-head">
+          <h2>세액공제·소득공제 상세</h2>
+          <p>README의 4단계(세액공제 적용) 내용을 기준으로 핵심 공제 규칙을 정리했습니다.</p>
+        </div>
+
+        <details class="card" open>
+          <summary>4.1 근로소득 세액공제</summary>
+          <p>
+            산출세액 × 55% (최대 1,300,000원)과 715,000 + (산출세액 – 1,300,000) × 30% 중 작은 금액을
+            적용합니다. 총급여 33백만 이하 74만, 33~70백만 66만, 70~120백만 50만, 120백만 초과는 20만 원이 상한입니다[24].
+          </p>
+        </details>
+
+        <details class="card">
+          <summary>4.2 자녀·가족 세액공제</summary>
+          <p>
+            2025년부터 만 8~20세 자녀 기준으로 1명 25만, 2명 55만, 3명 이상은 55만 + (초과 인원 × 40만)입니다[25].
+            출산·입양 세액공제는 첫째 30만, 둘째 50만, 셋째 이상 70만 원입니다[26].
+          </p>
+        </details>
+
+        <details class="card">
+          <summary>4.3 결혼세액공제(신설)</summary>
+          <p>
+            2024년 1월 1일부터 2026년 12월 31일 사이에 혼인신고를 마친 부부에게 생애 1회 적용됩니다.
+            부부 각 50만 원(합산 100만 원)이며[27][28], 혼인신고일과 주민등록등본 주소가 일치해야 합니다.
+            혼인 취소·무효 또는 이혼이 발생할 경우 3개월 내 수정신고가 필요합니다.
+          </p>
+          <p class="mini">혼인한 해에만 공제가 적용됩니다.</p>
+        </details>
+
+        <details class="card">
+          <summary>4.4 연금계좌 세액공제</summary>
+          <p>
+            총급여 5,500만 원(종합소득금액 4,500만 이하) 15%, 초과 12%. 연금저축 단독 600만, IRP 포함 900만 한도이며
+            ISA 만기금 전환액의 10%(최대 300만)도 추가 한도로 인정됩니다[12][29].
+          </p>
+        </details>
+
+        <details class="card">
+          <summary>4.5 보험료·의료비·교육비 세액공제</summary>
+          <ul class="list">
+            <li>보험료: 보장성 보험 12%, 장애인전용 15%, 한도 100만 원</li>
+            <li>의료비: 총급여 3% 초과분 15% (난임시술비 30%, 미숙아·선천성 이상아 20%)</li>
+            <li>본인·65세↑·장애인·6세 이하·난임/미숙아 의료비는 한도 없음, 일반 의료비는 연 700만 한도</li>
+            <li>산후조리원비: 15%, 최대 200만 원 (총급여 요건 폐지)[30]</li>
+            <li>교육비: 초중고 300만, 대학생 900만 한도 15%, 본인 대학원 무한도</li>
+          </ul>
+        </details>
+
+        <details class="card">
+          <summary>4.5-기부금 세액공제</summary>
+          <ul class="list">
+            <li>특례·우리사주·일반 기부금: 1,000만 이하 15%, 초과 30%</li>
+            <li>종교단체 기부금 포함 시 한도: 종교 10% + 종교단체 외 20% (합계 30%)</li>
+            <li>특례기부금은 근로소득금액 전액, 우리사주조합 기부금은 근로소득금액의 30% 한도</li>
+            <li>일반 기부금 공제대상 한도: 근로소득금액의 30%</li>
+            <li>정치자금기부금: 10만 원까지 100/110, 초과분 15%(3천만 초과 25%)</li>
+            <li>고향사랑기부금: 10만까지 100/110, 초과분 15%(재난지역 30%), 2천만 한도</li>
+            <li>고향사랑기부금은 소득공제가 아닌 세액공제 항목</li>
+            <li>지방소득세 포함 실효율: 16.5% 또는 33% 수준</li>
+            <li>고향사랑기부자는 기부금의 30% 상당 답례품 제공</li>
+            <li>특례·일반 기부금은 10년간 이월공제 가능</li>
+            <li>정치자금·고향사랑·우리사주조합 기부금은 이월공제 불가</li>
+          </ul>
+        </details>
+
+        <details class="card">
+          <summary>4.6 신용카드 등 사용액 소득공제</summary>
+          <p>
+            총급여의 25%를 초과한 금액만 공제 대상이며, 신용 15%, 체크/현금 30%, 전통시장/교통 40%입니다.
+            문화비·체육시설은 총급여 7,000만 이하 근로자에게 30% 공제되며, 2025년 7월 1일 이후 체육시설 시설이용료가
+            포함됩니다[7]. 기본한도는 총급여 7,000만 이하 300만, 초과 250만이며, 문화·전통시장·대중교통 사용분은
+            추가한도(7,000만 이하 300만, 초과 200만)에서 합산 관리됩니다. 전년 대비 사용액 증가분의 10%는 100만 원 한도 내
+            추가 공제가 가능합니다[6].
+          </p>
+          <div class="note">
+            <strong>법정 계산식 준수:</strong> 총 사용액이 총급여의 25%를 초과한 부분을 항목별 사용 비율로 배분해
+            공제율을 적용하고, 최저사용금액(총급여의 25%)에 해당하는 공제금액은 15%·30%·40% 구간에 따라 차감됩니다.
+            예) 총 사용액 1,200만 원·총급여 4,000만 원이면 최저사용금액 1,000만 원을 초과한 200만 원만 공제 대상입니다.
+            공제가능금액(①~⑤-⑥)을 산출한 뒤 기본한도·추가한도·소비증가분 한도를 순서대로 적용해야 합니다.
+          </div>
+        </details>
+
+        <details class="card">
+          <summary>4.7 주택 관련 세액·소득공제</summary>
+          <ul class="list">
+            <li>월세 세액공제: 총급여 8,000만 이하(종합소득금액 7,000만 이하), 5,500만 이하 17%, 5,500~8,000만 15%, 연 1,000만 한도[13][14]</li>
+            <li>월세 공제 제출 서류: 주민등록등본, 임대차계약서, 무통장입금증 등</li>
+            <li>주택청약저축: 납입액 40% 공제, 한도 300만 (무주택 세대주/배우자, 총급여 7,000만 이하)</li>
+            <li>장기주택저당차입금 이자: 상환조건에 따라 연 600만~2,000만 한도, 주택 공시가격 6억 이하[15][16]</li>
+            <li>장기주택저당차입금 이자상환액은 소득공제 항목</li>
+          </ul>
+        </details>
+
+        <details class="card">
+          <summary>4.8 기타 세액공제 및 비과세 항목</summary>
+          <ul class="list">
+            <li>고향사랑기부제: 10만 이하 100/110, 초과분 15%(재난지역 30%), 답례품 제공</li>
+            <li>문화비 소득공제: 문화비·체육시설 30%, 전통시장·대중교통과 추가한도 합산 적용(시설이용료 구분 불가 시 50%)</li>
+            <li>출산·보육수당 비과세 한도: 월 20만 원으로 확대[32]</li>
+          </ul>
+        </details>
+
+        <details class="card">
+          <summary>4.9 표준세액공제</summary>
+          <p>
+            특별세액공제(보험료·의료비·교육비·법정·지정기부금, 주택관련 차입금·월세액 공제 등)를 전혀 신청하지 않을 때
+            적용되는 대체 세액공제입니다. 이를 선택하면 건강·고용보험료, 보장성보험료, 의료비, 교육비, 주택임차차입금 등
+            특별세액공제를 포기해야 하며 월세 세액공제도 제외됩니다[33]. 다만 정치자금기부금·우리사주조합기부금은 중복 적용
+            가능하고, 고향사랑기부금과 일부 지정기부금도 함께 적용될 수 있습니다[34].
+          </p>
+          <p class="mini">특별세액공제 합계가 13만 원보다 적을 때 유리하며, 선택한 과세연도에 한해 적용됩니다.</p>
+        </details>
+      </div>
+    </section>
+
+    <section class="section" id="schema">
+      <div class="container">
+        <div class="section-head">
+          <h2>입력 스키마 및 예시(JSON)</h2>
+          <p>계산 엔진은 다음 JSON 구조를 입력값으로 사용합니다. 값의 단위는 원(KRW)입니다.</p>
+        </div>
+        <pre><code class="language-json">{
+  "annual_salary": 65000000,        // 연간 근로소득(연봉, 비과세 포함, 선택)
+  "gross_salary": 60000000,         // 총급여(과세 대상 급여)
+  "nontaxable_salary": 2000000,      // 비과세 급여(식대 등)
+  "withheld_income_tax": 3500000,    // 이미 원천징수된 소득세
+  "withheld_local_tax": 350000,      // 이미 원천징수된 지방소득세
+  "dependents": [
+    {"relation": "spouse", "age": 40, "income": 0, "disabled": false},
+    {"relation": "child", "age": 10, "income": 0, "disabled": false},
+    {"relation": "child", "age": 6, "income": 0, "disabled": false}
+  ],
+  "credit_card_spend": 10000000,     // 신용카드 일반 사용액(전통시장/대중교통/문화·체육 제외)
+  "debit_card_spend": 2000000,       // 체크카드·현금영수증 일반 사용액
+  "market_transport_spend": 3000000, // 전통시장·대중교통 사용액
+  "culture_expenses": 300000,        // 도서·공연·전시·신문 등 문화비 지출액
+  "sports_facility_fee_eligible": 200000, // 체육시설 시설이용료 인정액(구분 불가 시 50%)
+  "previous_card_spend": 39000000,   // 전년도 신용카드 등 사용액
+  "insurance_premiums": 800000,      // 보장성 보험료 납입액
+  "medical_expenses": 2000000,       // 의료비(일반)
+  "medical_special_expenses": 500000, // 의료비(특례)
+  "medical_infertility": 0,          // 난임시술비
+  "medical_premature": 0,            // 미숙아·선천성 이상아 의료비
+  "medical_reimbursements": 0,       // 실손보험금 수령액
+  "education_k12": 3000000,          // 교육비(유치원·초중고)
+  "education_university": 9000000,   // 교육비(대학생)
+  "education_self": 0,               // 교육비(본인 대학원)
+  "donations_general": 500000,       // 일반 기부금(종교단체 외)
+  "donations_religious": 0,          // 종교단체 기부금
+  "donations_special": 0,            // 특례기부금
+  "donations_employee_stock": 0,     // 우리사주조합 기부금
+  "donations_political": 100000,     // 정치자금 기부금
+  "donations_hometown": 200000,      // 고향사랑기부금
+  "pension_contribution": 600000,    // 연금저축·IRP 납입액
+  "isa_transfer": 1000000,           // ISA 만기금 중 연금계좌 전환액
+  "rent_paid": 4800000,              // 월세 납입액
+  "housing_savings": 300000,         // 주택청약저축 납입액
+  "lease_loan_repayment": 4000000,   // 주택임차차입금 원리금 상환액
+  "mortgage_interest": 5000000,      // 장기주택저당차입금 이자상환액
+  "postnatal_care": 1500000,         // 산후조리원비(의료비 세액공제 항목)
+  "others": {},                      // 기타 항목 입력용
+  "social_insurance": 2000000        // 4대 보험 근로자 부담분 합계
+}</code></pre>
+        <p class="mini">
+          빈 값은 0으로 처리됩니다. 부양가족 배열에는 관계/나이/소득/장애 여부를 입력합니다. 문화비 대상 여부, 청약/대출/월세
+          요건, 표준세액공제 선택, 고향사랑 특별재난지역 여부 등 체크 항목은 UI에서 별도로 입력합니다.
+        </p>
+      </div>
+    </section>
+
+    <section class="section" id="pseudocode">
+      <div class="container">
+        <div class="section-head">
+          <h2>계산 절차 (의사코드)</h2>
+          <p>README의 의사코드를 보기 쉽게 정리했습니다.</p>
+        </div>
+        <pre><code>입력: JSON 객체 data
+
+1. 총급여 및 근로소득공제
+  총급여 = data.gross_salary
+  근로소득공제 = 근로소득공제표(총급여)
+  근로소득금액 = 총급여 - 근로소득공제
+
+2. 기본공제 및 추가공제
+  기본공제합 = (본인 + 배우자 + 부양가족) × 1,500,000 + 추가공제
+
+3. 소득공제 항목 반영
+  사회보험료공제 = data.social_insurance
+  신용카드공제 = 카드공제계산(...)
+  주택청약공제 = data.housing_savings × 40%
+  주택임차차입금공제 = data.lease_loan_repayment × 40% (주택청약저축과 합산 400만 한도)
+  주택대출이자공제 = min(data.mortgage_interest, mortgage_limit) // 한도 600만~2,000만
+  기타소득공제 = ... (개인연금저축, 소기업·소상공인공제부금 등)
+  과세표준 = 근로소득금액 - 기본공제합 - 사회보험료공제 - 신용카드공제
+            - 주택청약공제 - 주택임차차입금공제 - 주택대출이자공제 - 기타소득공제
+
+4. 산출소득세
+  산출소득세 = 누진세율표(과세표준)
+
+5. 세액공제 반영
+  근로소득세액공제 = min(산출소득세 × 55%, 715,000 + 30%×초과분)
+  자녀세액공제 = 자녀수에 따른 공제
+  결혼세액공제 = 혼인 여부에 따라 각 50만
+  연금계좌세액공제 = 납입액 × 15% 또는 12%
+  의료비세액공제 = 의료비 총액에서 총급여×3%를 일반→특례→미숙아→난임 순으로 차감 후 15%/20%/30% 적용
+  교육비세액공제 = 교육비 × 15% (한도 적용)
+  기부금세액공제 = 구분별 공제율
+  월세세액공제 = 월세 × (17% 또는 15%)
+  고향사랑기부금세액공제 = 10만까지 100/110 + 초과분 공제율
+  총세액공제 = 위 공제 합산
+
+6. 결정세액 및 지방소득세
+  결정소득세 = max(0, 산출소득세 - 총세액공제)
+  지방소득세 = 결정소득세 × 10%
+  총결정세액 = 결정소득세 + 지방소득세
+
+7. 환급액 계산
+  기납부세액 = withheld_income_tax + withheld_local_tax(없으면 10% 추정)
+  예상환급액 = 기납부세액 - 총결정세액</code></pre>
+      </div>
+    </section>
+
+    <section class="section" id="summary">
+      <div class="container">
+        <div class="section-head">
+          <h2>공제·세액공제 규칙 요약표</h2>
+          <p>핵심 숫자만 정리한 요약표입니다.</p>
+        </div>
+        <div class="card">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>항목</th>
+                <th>대상/요건</th>
+                <th>공제율 및 한도</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>기본공제</td>
+                <td>본인·배우자·부양가족</td>
+                <td>1인당 150만 (소득 100만 이하; 근로소득만 있으면 총급여 500만 이하, 배우자 나이 제한 없음, 직계존속 60세↑, 직계비속 20세↓)</td>
+              </tr>
+              <tr>
+                <td>추가공제</td>
+                <td>경로우대(70세↑)/장애인/부녀자/한부모</td>
+                <td>100만/200만/50만/100만</td>
+              </tr>
+              <tr>
+                <td>사회보험료 소득공제</td>
+                <td>4대 보험 근로자 부담분</td>
+                <td>납부액 전액 소득공제</td>
+              </tr>
+              <tr>
+                <td>근로소득세액공제</td>
+                <td>산출세액 기준</td>
+                <td>산출세액×55%(최대 130만) 또는 715,000+30%×초과분, 한도 74/66/50/20만</td>
+              </tr>
+              <tr>
+                <td>자녀세액공제</td>
+                <td>만 8~20세 자녀</td>
+                <td>1명 25만, 2명 55만, 3명 이상 55만+40만×추가</td>
+              </tr>
+              <tr>
+                <td>결혼세액공제</td>
+                <td>2024~2026 혼인</td>
+                <td>부부 각 50만 (합산 100만)</td>
+              </tr>
+              <tr>
+                <td>연금계좌세액공제</td>
+                <td>총급여 5,500만 이하 15%, 초과 12%</td>
+                <td>연금저축 600만, IRP 포함 900만, ISA 전환금 10%(최대 300만)</td>
+              </tr>
+              <tr>
+                <td>보험료 세액공제</td>
+                <td>보장성 보험료/장애인전용</td>
+                <td>12% (장애 15%), 한도 100만</td>
+              </tr>
+              <tr>
+                <td>신용카드 공제</td>
+                <td>총급여 25% 초과분</td>
+                <td>신용 15%, 체크 30%, 전통시장/교통 40%; 기본한도 300만/250만, 추가한도 300만/200만, 소비증가분 100만</td>
+              </tr>
+              <tr>
+                <td>문화·체육시설</td>
+                <td>총급여 7,000만 이하</td>
+                <td>30%, 전통시장·대중교통과 합산 추가한도 300만/200만, 구분 불가 시 50% 인정</td>
+              </tr>
+              <tr>
+                <td>의료비 세액공제</td>
+                <td>본인·65세↑·장애인·6세↓·난임/미숙아 포함</td>
+                <td>총급여 3% 초과분 15%(난임 30%, 미숙아 20%), 일반 700만 한도</td>
+              </tr>
+              <tr>
+                <td>교육비 세액공제</td>
+                <td>초중고/대학생/본인 대학원</td>
+                <td>15%, 300만/900만/무한도</td>
+              </tr>
+              <tr>
+                <td>기부금 세액공제</td>
+                <td>특례·우리사주·일반/종교·정치·고향사랑</td>
+                <td>일반/종교 15%/30%(종교 10% + 일반 20% 한도), 정치 100/110 + 15%/25%, 고향사랑 100/110 + 15%(30%)·2천만 한도</td>
+              </tr>
+              <tr>
+                <td>월세 세액공제</td>
+                <td>무주택, 총급여 8,000만 이하, 전용 85㎡/기준시가 4억 이하</td>
+                <td>17% 또는 15%, 한도 1,000만</td>
+              </tr>
+              <tr>
+                <td>표준세액공제</td>
+                <td>특별세액공제 미신청</td>
+                <td>13만 원 (정치자금·우리사주·고향사랑·일부 지정기부금 중복 가능)</td>
+              </tr>
+              <tr>
+                <td>주택청약저축</td>
+                <td>무주택 세대주/배우자 (총급여 7,000만 이하)</td>
+                <td>납입액 40%, 한도 300만</td>
+              </tr>
+              <tr>
+                <td>주택임차차입금</td>
+                <td>무주택 세대주 + 임차 주택 요건</td>
+                <td>원리금 40% 공제, 주택청약저축과 합산 400만 한도</td>
+              </tr>
+              <tr>
+                <td>장기주택저당차입금</td>
+                <td>무주택/1주택 세대주, 공시가격 6억 이하</td>
+                <td>15년 이상: 2,000만/1,800만/800만, 10~15년: 600만</td>
+              </tr>
+              <tr>
+                <td>산후조리원비</td>
+                <td>의료비 세액공제 내 포함</td>
+                <td>15%, 한도 200만</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="considerations">
+      <div class="container">
+        <div class="section-head">
+          <h2>사이트 구현 고려사항</h2>
+          <p>운영 단계에서 반드시 고려해야 할 가이드입니다.</p>
+        </div>
+        <div class="grid two">
+          <div class="card">
+            <h3>입력 편의성</h3>
+            <ul class="list">
+              <li>홈택스 간소화 자료 연동 또는 CSV 업로드 지원</li>
+              <li>필수/선택 입력값 표시와 항목별 그룹화</li>
+              <li>원천징수영수증 기준 입력 가이드 제공</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>계산 로직 검증</h3>
+            <ul class="list">
+              <li>법령 개정에 따른 공식·한도 업데이트 필요</li>
+              <li>카드 공제 등 법정 산식을 그대로 반영</li>
+              <li>국세·지방세를 분리 계산</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>세액공제 우선순위·한도</h3>
+            <ul class="list">
+              <li>카드 기본한도·추가한도·소비증가분 한도를 구분 관리</li>
+              <li>연금계좌 900만·청약저축 300만·주택임차차입금 합산 400만 등 한도 충돌 여부 점검</li>
+              <li>표준세액공제 선택 시 제외 항목/예외(정치·우리사주·고향사랑 등) 처리</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>결과 제공</h3>
+            <ul class="list">
+              <li>환급액과 함께 산출세액·공제 내역·지방세를 분리 표기</li>
+              <li>국세·지방세 환급액을 별도로 표시</li>
+              <li>환급액 증대 요인(체크카드 사용, 연금 납입 확대 등) 안내</li>
+            </ul>
+          </div>
+        </div>
+        <div class="note">
+          <strong>원 단위 절사:</strong> 국세와 지방세 각각 10원 미만 절사 후 합산해야 홈택스와 동일합니다[35].
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="conclusion">
+      <div class="container">
+        <div class="section-head">
+          <h2>결론</h2>
+          <p>
+            본 문서는 2025년 귀속 근로소득 연말정산 미리 계산을 위한 지침을 제공합니다. 공제 항목과 최신 개정 사항을
+            반영해 정확한 계산을 구현하고, 사용자가 이해하기 쉬운 인터페이스를 제공하는 것이 목표입니다.
+          </p>
+        </div>
+        <div class="card">
+          <p>
+            정책이 바뀔 경우 국세청 고시를 확인하여 수식을 업데이트하고, 프로토타입 단계에서는 단순화된 가정으로 테스트한 뒤
+            실제 환경에 맞춰 보정하시기 바랍니다.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="scope">
+      <div class="container">
+        <div class="section-head">
+          <h2>스코프 및 제한사항</h2>
+          <p>본 계산기는 근로소득만 있는 단일 직장 근로자를 대상으로 합니다.</p>
+        </div>
+        <div class="card">
+          <ul class="list">
+            <li>복수 사업장, 사업소득·기타소득·양도소득 신고는 지원하지 않음</li>
+            <li>중소기업취업자 감면, 외국납부세액공제 등 복잡한 특별감면은 제외</li>
+            <li>퇴직 후 재정산(5월 종합소득세 신고) 등 사후 정산 제외</li>
+          </ul>
+          <p class="mini">
+            실제 환급액은 회사 원천징수와 국세청 산출에 따라 달라질 수 있으며, 법령 변경이나 개인 상황에 따라 오차가
+            발생할 수 있습니다.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="tests">
+      <div class="container">
+        <div class="section-head">
+          <h2>검증 및 테스트 케이스</h2>
+          <p>홈택스 결과와 비교해 계산 로직을 점검하는 대표 사례입니다.</p>
+        </div>
+        <div class="card">
+          <ol class="list ordered">
+            <li>기본형: 총급여 40,000,000원, 배우자+자녀 1명, 카드사용 50% 초과, 연금저축 300만 원 → 자녀세액공제 25만, 근로소득세액공제 한도 확인</li>
+            <li>자녀 2명 + 월세: 총급여 60,000,000원, 자녀 2명, 월세 6,000,000원, 청약저축 240만 원 → 월세 15%, 청약저축 96만, 자녀세액공제 55만</li>
+            <li>연금·IRP 최대치: 총급여 100,000,000원, 연금저축+IRP 900만, ISA 전환 300만, 카드 사용 많음 → 연금계좌세액공제 12%×900만=108만, ISA 추가 한도 확인</li>
+            <li>고향사랑기부금과 기부금: 총급여 70,000,000원, 일반 기부금 2,000,000원, 고향사랑 300,000원(재난지역 아님) → 10만 100/110 + 나머지 15% 적용</li>
+            <li>결혼세액공제 적용: 2024년 혼인 신고 후 2025년 정산 대상 → 부부 각 50만 적용 및 중복 공제 확인</li>
+          </ol>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="nts-cases">
+      <div class="container">
+        <div class="section-head">
+          <h2>국세청 계산사례로 검증하기</h2>
+          <p>국세청 안내(PDF)·계산사례(HWP) 자료에서 발췌한 시나리오로 검증을 보강합니다.</p>
+        </div>
+        <div class="grid three case-grid">
+          <div class="card case-card">
+            <span class="case-tag">월세액 세액공제</span>
+            <h3>월세 세액공제 사례</h3>
+            <ul class="list">
+              <li>사례 1) 총급여 9,000만 원 → 소득요건 초과로 공제 불가</li>
+              <li>사례 2) 총급여 7,000만 원, 월세 1,100만 원 → 1,000만 × 15% = 150만</li>
+              <li>사례 3) 총급여 5,000만 원, 월세 600만 원 → 600만 × 17% = 102만</li>
+            </ul>
+          </div>
+          <div class="card case-card">
+            <span class="case-tag">연금계좌</span>
+            <h3>초과 납입액 이월 사례</h3>
+            <p class="mini">
+              총급여 5,400만 원 근로자가 2024년에 연금저축 600만 원을 납입했으나 400만 원만 공제받고,
+              초과 200만 원을 2025년 이월 전환한 경우 → 2025년 200만 × 15% = 30만 세액공제.
+            </p>
+          </div>
+          <div class="card case-card">
+            <span class="case-tag">신용카드 한도</span>
+            <h3>카드 공제 한도 적용</h3>
+            <p class="mini">
+              총급여 6,800만 원, 신용카드 등 5,000만 원(대중교통 200만, 전통시장 300만, 문화비 300만) 사용 →
+              계산된 공제액은 한도 적용 후 5,300,000원으로 제한. 전통시장·대중교통·문화비는 결제수단별 사용액에
+              포함되므로 중복 합산하지 않도록 주의.
+            </p>
+          </div>
+        </div>
+        <p class="mini">출처: 국세청 『2025년 연말정산 신고안내』(PDF), 『주요 공제 항목별 계산사례』(HWP).</p>
+      </div>
+    </section>
+
+    <section class="section" id="images">
+      <div class="container">
+        <div class="section-head">
+          <h2>참고 이미지</h2>
+          <p>README에서 제공한 데코 이미지를 그대로 포함했습니다.</p>
+        </div>
+        <div class="grid two">
+          <figure class="card">
+            <img src="assets/hero-tax.png" alt="연말정산 데코 이미지" />
+            <figcaption class="caption">원화와 계산기 모티프 배너 이미지</figcaption>
+          </figure>
+          <figure class="card">
+            <img src="assets/flow.png" alt="연말정산 계산 흐름도" />
+            <figcaption class="caption">연말정산 계산 흐름도</figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="references">
+      <div class="container">
+        <div class="section-head">
+          <h2>참고 자료</h2>
+          <p>README에 기재된 출처를 그대로 나열했습니다.</p>
+        </div>
+        <div class="card">
+          <ol class="references">
+            <li>[1] [18] [19] [30] [32] <a href="https://shiftee.io/ko/blog/article/2025-year-end-tax-settlement-schedule-and-benefits-guide" target="_blank" rel="noopener">2025년 연말정산 완벽 가이드 : 주요 일정과 달라진 공제 혜택, 절세 팁 총정리 | 시프티</a></li>
+            <li>[2] <a href="https://www.taxtimes.co.kr/mobile/article.html" target="_blank" rel="noopener">연말정산 '부양가족 공제' 포함? 제외?…헷갈리는 소득요건 총정리</a></li>
+            <li>[3] <a href="https://www.bokjiro.go.kr/ssis-tbu/cms/pc/news/news/6316800.html" target="_blank" rel="noopener">복지뉴스</a></li>
+            <li>[4] [5] <a href="https://www.koreatax.org/tax/taxpayers/work/new_13.html" target="_blank" rel="noopener">한국납세자연맹</a></li>
+            <li>[6] [8] [9] [10] [21] [22] [23] [24] <a href="https://assets.kpmg.com/content/dam/kpmgsites/xx/pdf/2023/01/TIES-SouthKorea.pdf.coredownload.inline.pdf" target="_blank" rel="noopener">TIES - South Korea</a></li>
+            <li>[7] [20] [31] <a href="https://www.korea.kr/news/policyNewsView.do" target="_blank" rel="noopener">전국 헬스장·수영장 이용료 소득공제…7월부터 최대 300만 원 - 정책뉴스</a></li>
+            <li>[11] <a href="https://ilovegohyang.go.kr/donation/guide1.html" target="_blank" rel="noopener">안내사항 &gt; 고향사랑기부제 안내 | 고향사랑e음</a></li>
+            <li>[12] [13] [14] [26] [27] [28] <a href="https://www.nts.go.kr/nts/cm/cntnts/cntntsView.do" target="_blank" rel="noopener">국세청 &gt; 국세신고안내 &gt; 원천세 &gt; 근로소득 &gt; 세액공제</a></li>
+            <li>[15] [16] <a href="https://www.chosun.com/economy/money/2025/01/17/Q2JIXO4E65FVJLKTEKXE5I53HU/" target="_blank" rel="noopener">국세청 직원이 꼽았다, 연말정산 때 의외로 많이 놓치는 이 항목</a></li>
+            <li>[17] <a href="https://imnews.imbc.com/news/2025/econo/article/6786188_36737.html" target="_blank" rel="noopener">국세청, 연말정산 혜택 확대‥'양육·주택자금' 공제 혜택 필수 체크</a></li>
+            <li>[25] <a href="https://www.ytn.co.kr/_ln/0102_202512180834488704" target="_blank" rel="noopener">[경제]자녀 세액 공제 10만 원 ↑...13월의 월급 잘 챙기려면? | YTN</a></li>
+            <li>[29] <a href="https://www.kspnews.com/2497937" target="_blank" rel="noopener">국세청, 연말정산, 놓치지 말아야 할 포인트:케이에스피뉴스</a></li>
+            <li>[33] [34] <a href="https://www.koreatax.org/tax/taxpayers/work/new_92.html" target="_blank" rel="noopener">한국납세자연맹</a></li>
+            <li>[35] <a href="https://ai.bznav.com/contents/451902" target="_blank" rel="noopener">모든 세금에 원단위 절사가 적용되나요?</a></li>
+            <li>[36] 국세청, 『2025년 원천징수의무자를 위한 연말정산 신고안내』(PDF, 첨부파일: <a href="2025년 원천징수의무자를 위한 연말정산 신고안내.pdf">2025년 원천징수의무자를 위한 연말정산 신고안내.pdf</a>)</li>
+            <li>[37] 국세청, 『2024년 귀속 주요 공제 항목별 계산사례(게시용)』(HWP, 첨부파일: <a href="2024년 귀속 주요 공제 항목별 계산사례(게시용)_수정분.hwp">2024년 귀속 주요 공제 항목별 계산사례(게시용)_수정분.hwp</a>)</li>
+          </ol>
+          <p class="mini">PDF/HWP는 로컬 첨부파일이며 브라우저에서 열 수 없는 경우 다운로드 후 열람하세요.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-grid">
+      <div>
+        <h3>2025 연말정산 권장 사용액</h3>
+        <p class="mini">정책 변경 시 국세청 고시에 따라 업데이트가 필요합니다.</p>
+      </div>
+      <div class="footer-tags">
+        <span>소득공제</span>
+        <span>세액공제</span>
+        <span>환급 시뮬레이션</span>
+        <span>2025 개정</span>
+      </div>
+    </div>
+  </footer>
+
+  <template id="dependent-template">
+    <div class="dependent-row">
+      <label>
+        관계
+        <select data-field="relation">
+          <option value="spouse">배우자</option>
+          <option value="child">자녀</option>
+          <option value="grandchild">손자녀</option>
+          <option value="parent">부모</option>
+          <option value="grandparent">조부모</option>
+          <option value="sibling">형제자매</option>
+          <option value="other">기타</option>
+        </select>
+      </label>
+      <label>
+        나이
+        <input type="number" data-field="age" min="0" step="1" placeholder="예: 40" />
+      </label>
+      <label>
+        연간 소득금액
+        <input type="number" data-field="income" min="0" step="10000" placeholder="예: 0" />
+      </label>
+      <label class="checkbox">
+        <input type="checkbox" data-field="disabled" />
+        장애인 여부
+      </label>
+      <button type="button" class="btn tiny danger" data-action="remove">삭제</button>
+    </div>
+  </template>
+
+  <script src="assets/vendor/pdf.min.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

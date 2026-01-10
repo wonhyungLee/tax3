@@ -1,0 +1,1387 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TaxCore 2025 · 법인세 시뮬레이터</title>
+  <style>
+    :root {
+      --bg: radial-gradient(circle at 20% 20%, #1b4d7a 0, #0f2f4f 30%, #0b1d33 70%);
+      --panel: #0f1b2a;
+      --card: #152238;
+      --accent: #4ad6ff;
+      --accent-2: #ffb347;
+      --text: #edf2ff;
+      --muted: #9fb4d1;
+      --border: #223654;
+      --success: #6de0a0;
+      --warning: #ffdd77;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Pretendard", "Noto Sans KR", "Spoqa Han Sans Neo", "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+      padding: 32px 16px 48px;
+    }
+    .app {
+      width: min(1200px, 100%);
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      gap: 12px;
+    }
+    .title {
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+    .subtitle {
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 14px 10px;
+    }
+    h2 {
+      margin: 0 0 6px 0;
+      font-size: 18px;
+    }
+    .section-caption {
+      margin: 0 0 12px 0;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+    label {
+      font-size: 13px;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      gap: 6px;
+    }
+    input, select {
+      background: #0e1a2b;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 10px;
+      font-size: 14px;
+    }
+    input:focus, select:focus {
+      outline: 2px solid var(--accent);
+      border-color: transparent;
+    }
+    .flex {
+      display: flex;
+      gap: 10px;
+    }
+    .flex > .field { flex: 1; }
+    .actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-top: 8px;
+      flex-wrap: wrap;
+    }
+    button {
+      border: none;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.08s ease, box-shadow 0.12s ease;
+    }
+    button:hover { transform: translateY(-1px); }
+    .primary {
+      background: linear-gradient(135deg, #54d4ff, #4a9dff);
+      color: #0a1c2c;
+      box-shadow: 0 8px 18px rgba(74, 157, 255, 0.35);
+    }
+    .ghost {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .results {
+      margin-top: 18px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 12px;
+    }
+    .result-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+    }
+    .result-title {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    .result-value {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--accent);
+      line-height: 1.2;
+    }
+    .result-body {
+      margin-top: 6px;
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.4;
+      white-space: pre-line;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 8px;
+      background: rgba(74, 214, 255, 0.15);
+      color: var(--accent);
+      font-size: 12px;
+      margin-left: 6px;
+    }
+    .warning { color: var(--warning); }
+    .modules {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+    }
+    .module-card {
+      background: linear-gradient(145deg, rgba(21, 34, 56, 0.9), rgba(15, 27, 42, 0.9));
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      box-shadow: 0 10px 28px rgba(0,0,0,0.22);
+    }
+    .pill {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(74, 214, 255, 0.14);
+      color: var(--accent);
+      font-size: 12px;
+      margin-bottom: 6px;
+    }
+    .module-title {
+      font-weight: 700;
+      font-size: 15px;
+      margin: 0 0 4px 0;
+      color: var(--text);
+    }
+    .module-desc {
+      margin: 0;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+    @media (max-width: 640px) {
+      header { flex-direction: column; align-items: flex-start; }
+      .title { font-size: 24px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div>
+        <div class="title">TaxCore 2025 시뮬레이터<span class="badge">README 사양 기반</span></div>
+        <div class="subtitle">법인세 신고 절차(소득 조정 → 과세표준 → 산출세액 → 공제 → 최저한세)를 브라우저에서 즉시 확인하세요.</div>
+      </div>
+      <div class="actions">
+        <button class="ghost" id="loadSample">샘플 불러오기</button>
+        <button class="primary" id="runCalc">계산하기</button>
+      </div>
+    </header>
+
+    <div class="panel" style="margin-bottom: 16px;">
+      <div class="modules">
+        <div class="module-card">
+          <div class="pill">Module I</div>
+          <div class="module-title">기업 상태 · 신고유형</div>
+          <p class="module-desc">SME/일반, 벤처, 대기업 지분율로 최저한세율·접대비 기본 한도 결정.</p>
+        </div>
+        <div class="module-card">
+          <div class="pill">Module II</div>
+          <div class="module-title">익금/손금 조정</div>
+          <p class="module-desc">간주이자·임대료·초과유보, 접대비/감가상각/비업무용 비용 불산입.</p>
+        </div>
+        <div class="module-card">
+          <div class="pill">Module III</div>
+          <div class="module-title">과세표준</div>
+          <p class="module-desc">이월결손금 한도(중소 100%, 일반 80%) 및 유효기간 적용.</p>
+        </div>
+        <div class="module-card">
+          <div class="pill">Module IV</div>
+          <div class="module-title">산출세액 · 세액공제</div>
+          <p class="module-desc">누진세율 → R&D/투자 세액공제(한도 내) 순차 적용.</p>
+        </div>
+        <div class="module-card">
+          <div class="pill">Module V</div>
+          <div class="module-title">최저한세</div>
+          <p class="module-desc">산출세액-공제 vs 최저한세 중 큰 금액 선택, 추가 공제 제한.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="grid">
+        <div class="card">
+          <h2>기업 정보</h2>
+          <p class="section-caption">최저한세율과 접대비 기본 한도에 영향을 줍니다.</p>
+          <div class="field">
+            <label for="type">기업 유형</label>
+            <select id="type">
+              <option value="SME">중소기업 (SME)</option>
+              <option value="General">일반법인</option>
+            </select>
+          </div>
+          <div class="flex">
+            <div class="field">
+              <label for="venture">벤처기업 여부</label>
+              <select id="venture">
+                <option value="false">아니오</option>
+                <option value="true">예</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="largeCorpShare">대기업 지분율(0~1)</label>
+              <input id="largeCorpShare" type="number" step="0.01" inputmode="decimal" placeholder="0~1">
+            </div>
+          </div>
+          <div class="flex">
+            <div class="field">
+              <label for="equity">자본금(원)</label>
+              <input id="equity" type="number" inputmode="numeric">
+            </div>
+            <div class="field">
+              <label for="debt">부채(원)</label>
+              <input id="debt" type="number" inputmode="numeric">
+            </div>
+          </div>
+          <div class="field">
+            <label for="location">소재지</label>
+            <input id="location" type="text" placeholder="예: 서울, 부산">
+          </div>
+          <div class="field">
+            <label for="realEstateRental">부동산임대업 여부</label>
+            <select id="realEstateRental">
+              <option value="false">아니오</option>
+              <option value="true">예</option>
+            </select>
+          </div>
+          <div class="flex">
+            <div class="field">
+              <label for="filingYear">신고 연도</label>
+              <input id="filingYear" type="number" value="2025">
+            </div>
+            <div class="field">
+              <label for="rateTable">세율 테이블</label>
+              <select id="rateTable">
+                <option value="2025">2023~2025(1구간 9%)</option>
+                <option value="2018-2022">2018~2022(1구간 10%)</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="roundingMode">반올림/절사</label>
+              <select id="roundingMode">
+                <option value="round">반올림</option>
+                <option value="floor">절사(원단위)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>손익 기본</h2>
+          <p class="section-caption">P&L 기준 당기순이익과 매출 구성을 입력하세요.</p>
+          <div class="field">
+            <label for="netIncome">당기순이익(원)</label>
+            <input id="netIncome" type="number" inputmode="numeric">
+          </div>
+          <div class="flex">
+            <div class="field">
+              <label for="revGeneral">매출 - 일반</label>
+              <input id="revGeneral" type="number" inputmode="numeric">
+            </div>
+            <div class="field">
+              <label for="revRelated">매출 - 특수관계인</label>
+              <input id="revRelated" type="number" inputmode="numeric">
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>접대비 · 감가상각</h2>
+          <p class="section-caption">손금불산입 계산을 위해 증빙/한도를 입력합니다.</p>
+          <div class="flex">
+            <div class="field">
+              <label for="bpTotal">접대비 총액</label>
+              <input id="bpTotal" type="number" inputmode="numeric">
+            </div>
+            <div class="field">
+              <label for="bpNoProof">증빙 없음</label>
+              <input id="bpNoProof" type="number" inputmode="numeric">
+            </div>
+          </div>
+          <div class="flex">
+            <div class="field">
+              <label for="bpCultural">문화접대비</label>
+              <input id="bpCultural" type="number" inputmode="numeric">
+            </div>
+            <div class="field">
+              <label for="bpMarket">전통시장</label>
+              <input id="bpMarket" type="number" inputmode="numeric">
+            </div>
+          </div>
+          <div class="flex">
+            <div class="field">
+              <label for="vehCount">업무용승용차 대수</label>
+              <input id="vehCount" type="number" inputmode="numeric">
+            </div>
+            <div class="field">
+              <label for="vehDep">차량 감가상각</label>
+              <input id="vehDep" type="number" inputmode="numeric">
+            </div>
+          </div>
+          <div class="flex">
+            <div class="field">
+              <label for="depClaimed">일반 감가상각(계상)</label>
+              <input id="depClaimed" type="number" inputmode="numeric">
+            </div>
+            <div class="field">
+              <label for="depLimit">법정 한도 (없으면 공백)</label>
+              <input id="depLimit" type="number" inputmode="numeric">
+            </div>
+          </div>
+          <div class="field">
+            <label for="nonBusiness">비업무용 비용</label>
+            <input id="nonBusiness" type="number" inputmode="numeric">
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>익금산입 · 기타조정</h2>
+          <p class="section-caption">간주이자/임대료와 수동 조정액 입력.</p>
+          <div class="flex">
+            <div class="field">
+              <label for="advances">특수관계인 가지급금</label>
+              <input id="advances" type="number" inputmode="numeric">
+            </div>
+            <div class="field">
+              <label for="odRate">당좌차월 이자율 (예: 0.045)</label>
+              <input id="odRate" type="number" step="0.001">
+            </div>
+          </div>
+          <div class="flex">
+            <div class="field">
+              <label for="interestPaid">지급이자</label>
+              <input id="interestPaid" type="number" inputmode="numeric">
+            </div>
+            <div class="field">
+              <label for="deemedRentOverride">간주임대료 수동입력(없으면 0)</label>
+              <input id="deemedRentOverride" type="number" inputmode="numeric" value="0">
+            </div>
+          </div>
+          <div class="field">
+            <label for="excessRetainedOverride">초과유보소득 수동입력(없으면 0)</label>
+            <input id="excessRetainedOverride" type="number" inputmode="numeric" value="0">
+          </div>
+          <div class="flex">
+            <div class="field">
+              <label for="manualIncomeAdd">익금산입(+) 수동</label>
+              <input id="manualIncomeAdd" type="number" inputmode="numeric" value="0">
+            </div>
+            <div class="field">
+              <label for="manualIncomeExclude">익금불산입(-) 수동</label>
+              <input id="manualIncomeExclude" type="number" inputmode="numeric" value="0">
+            </div>
+          </div>
+          <div class="flex">
+            <div class="field">
+              <label for="manualExpenseDisallow">손금불산입(+) 수동</label>
+              <input id="manualExpenseDisallow" type="number" inputmode="numeric" value="0">
+            </div>
+            <div class="field">
+              <label for="manualExpenseAllow">손금산입(-) 수동</label>
+              <input id="manualExpenseAllow" type="number" inputmode="numeric" value="0">
+            </div>
+          </div>
+          <div class="flex">
+            <div class="field">
+              <label for="loss">이월결손금</label>
+              <input id="loss" type="number" inputmode="numeric">
+            </div>
+            <div class="field">
+              <label for="lossYear">결손 발생연도</label>
+              <input id="lossYear" type="number" value="2020">
+            </div>
+          </div>
+          <div class="field">
+            <label for="prepaidTax">기납부세액(원천징수/중간예납)</label>
+            <input id="prepaidTax" type="number" inputmode="numeric" value="0">
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>세액공제</h2>
+          <p class="section-caption">R&D 공제와 투자세액공제 입력.</p>
+          <div class="flex">
+            <div class="field">
+              <label for="rdCurrent">R&D 지출(당기)</label>
+              <input id="rdCurrent" type="number" inputmode="numeric">
+            </div>
+            <div class="field">
+              <label for="rdIncrement">R&D 증액분</label>
+              <input id="rdIncrement" type="number" inputmode="numeric">
+            </div>
+          </div>
+          <div class="field">
+            <label for="rdBaseRate">R&D 기본율(일반법인, 예: 0.015)</label>
+            <input id="rdBaseRate" type="number" step="0.001" placeholder="SME는 자동 25%">
+          </div>
+          <div class="flex">
+            <div class="field">
+              <label for="invCurrent">투자금액(당기)</label>
+              <input id="invCurrent" type="number" inputmode="numeric">
+            </div>
+            <div class="field">
+              <label for="invAvg">직전 3년 평균 투자</label>
+              <input id="invAvg" type="number" inputmode="numeric">
+            </div>
+          </div>
+          <div class="field">
+            <label for="otherCredit">기타 세액공제(최저한세 적용 대상)</label>
+            <input id="otherCredit" type="number" inputmode="numeric" value="0">
+          </div>
+          <div class="field">
+            <label for="foreignTaxCredit">외국납부세액 공제(한도 내)</label>
+            <input id="foreignTaxCredit" type="number" inputmode="numeric" value="0">
+          </div>
+          <div class="field">
+            <label for="exemptMinTaxCredit">최저한세 적용 제외 공제/감면</label>
+            <input id="exemptMinTaxCredit" type="number" inputmode="numeric" value="0">
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>기부금 조정</h2>
+          <p class="section-caption">법정(특별)·지정(일반) 기부금 이월액과 당기분을 입력하세요. (한도: 법정 소득금액의 50%, 지정 잔여 소득금액의 10%)</p>
+          <div class="flex">
+            <div class="field">
+              <label for="donationSpecialLimitRate">법정 한도율(기본 50%)</label>
+              <input id="donationSpecialLimitRate" type="number" step="0.01" value="0.5">
+            </div>
+            <div class="field">
+              <label for="donationGeneralLimitRate">지정 한도율(기본 10%)</label>
+              <input id="donationGeneralLimitRate" type="number" step="0.01" value="0.1">
+            </div>
+          </div>
+          <div class="flex">
+            <div class="field">
+              <label for="donationSpecialCarry">법정 기부금 이월액</label>
+              <input id="donationSpecialCarry" type="number" inputmode="numeric" value="0">
+            </div>
+            <div class="field">
+              <label for="donationSpecialCurrent">법정 기부금 당기</label>
+              <input id="donationSpecialCurrent" type="number" inputmode="numeric" value="0">
+            </div>
+          </div>
+          <div class="flex">
+            <div class="field">
+              <label for="donationGeneralCarry">지정 기부금 이월액</label>
+              <input id="donationGeneralCarry" type="number" inputmode="numeric" value="0">
+            </div>
+            <div class="field">
+              <label for="donationGeneralCurrent">지정 기부금 당기</label>
+              <input id="donationGeneralCurrent" type="number" inputmode="numeric" value="0">
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>특례 옵션</h2>
+          <p class="section-caption">외국법인/해운기업 등 특례 상황을 표시합니다.</p>
+          <div class="field">
+            <label for="residency">법인 거주성</label>
+            <select id="residency">
+              <option value="domestic">내국법인</option>
+              <option value="foreign">외국법인</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="shippingMode">해운기업 톤세 적용</label>
+            <select id="shippingMode">
+              <option value="none">적용 안 함</option>
+              <option value="tonnage">톤세(표준이익)로 과표 대체</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="shippingTonnageBase">해운 톤세 과세표준(입력 시 과표 대체)</label>
+            <input id="shippingTonnageBase" type="number" inputmode="numeric" value="0">
+          </div>
+          <div class="field">
+            <label>톤세 산식(선박별 톤수·운항일·단가)</label>
+            <div class="card" style="padding:10px; background:#0e1a2b; border:1px solid var(--border);">
+              <div class="field">
+                <label>선박 1: 톤수</label>
+                <input id="ship1Ton" type="number" inputmode="numeric" placeholder="순톤수">
+                <label>운항일</label>
+                <input id="ship1Days" type="number" inputmode="numeric" placeholder="일수">
+                <label>단가(원/톤·일)</label>
+                <input id="ship1Rate" type="number" inputmode="numeric" placeholder="단가">
+              </div>
+              <div class="field">
+                <label>선박 2: 톤수</label>
+                <input id="ship2Ton" type="number" inputmode="numeric">
+                <label>운항일</label>
+                <input id="ship2Days" type="number" inputmode="numeric">
+                <label>단가(원/톤·일)</label>
+                <input id="ship2Rate" type="number" inputmode="numeric">
+              </div>
+              <div class="field">
+                <label>선박 3: 톤수</label>
+                <input id="ship3Ton" type="number" inputmode="numeric">
+                <label>운항일</label>
+                <input id="ship3Days" type="number" inputmode="numeric">
+                <label>단가(원/톤·일)</label>
+                <input id="ship3Rate" type="number" inputmode="numeric">
+              </div>
+              <p class="section-caption">단가를 직접 입력해 표준이익을 산출합니다(예: 톤수×일수×단가).</p>
+            </div>
+          </div>
+          <div class="field">
+            <label for="fiscalMonths">사업연도 개월수(1~12, 단축사업연도 참고)</label>
+            <input id="fiscalMonths" type="number" min="1" max="12" value="12">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="results" id="results">
+      <div class="result-card">
+        <div class="result-title">안내</div>
+        <div class="result-value">입력을 채운 뒤 “계산하기”를 눌러주세요</div>
+        <div class="result-body">샘플 데이터를 불러와 구조를 확인할 수 있습니다.</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const samplePayload = {
+      filingYear: 2025,
+      rateTable: "2025",
+      residency: "domestic",
+      shippingMode: "none",
+      shippingTonnageBase: 0,
+      fiscalMonths: 12,
+      tonnageShips: [
+        { tonnage: 0, days: 0, rate: 0 },
+        { tonnage: 0, days: 0, rate: 0 },
+        { tonnage: 0, days: 0, rate: 0 }
+      ],
+      companyProfile: {
+        type: "SME",
+        isVenture: false,
+        location: "Seoul",
+        largeCorpOwnership: 0,
+        equity: 15000000000,
+        debt: 4000000000,
+        isRealEstateRental: false
+      },
+      roundingMode: "round",
+      financialData: {
+        netIncome: 5000000000,
+        revenue: {
+          general: 15000000000,
+          relatedParty: 2000000000
+        },
+        expenses: {
+          businessPromotion: {
+            total: 1200000000,
+            cultural: 200000000,
+            market: 80000000,
+            noProof: 50000000
+          },
+          vehicles: {
+            count: 3,
+            depreciation: 30000000
+          },
+          generalDepreciation: {
+            claimed: 100000000,
+            statutoryLimit: 120000000
+          },
+          nonBusiness: 20000000
+        },
+        advancesToRelated: 2000000000,
+        overdraftRate: 0.045,
+        interestPaid: 40000000,
+        deemedRentOverride: 0,
+        excessRetainedOverride: 0
+      },
+      adjustments: {
+        manualIncomeAdd: 0,
+        manualIncomeExclude: 0,
+        manualExpenseDisallow: 0,
+        manualExpenseAllow: 0,
+        lossCarryforward: {
+          totalAvailable: 1000000000,
+          originYear: 2022
+        },
+        prepaidTax: 0
+      },
+      donations: {
+        specialCarry: 0,
+        specialCurrent: 0,
+        generalCarry: 0,
+        generalCurrent: 0
+      },
+      credits: {
+        rd: {
+          current: 300000000,
+          increment: 100000000
+        },
+        investment: {
+          current: 500000000,
+          avgThreeYear: 300000000
+        },
+        other: 0,
+        foreignTax: 0,
+        exemptMinTax: 0
+      }
+    };
+
+    const byId = (id) => document.getElementById(id);
+    const toNumber = (val) => {
+      const num = Number(val);
+      return Number.isFinite(num) ? num : 0;
+    };
+    const formatKRW = (val) => Number(val || 0).toLocaleString("ko-KR");
+
+    function fillForm(payload) {
+      byId("type").value = payload.companyProfile.type;
+      byId("venture").value = String(Boolean(payload.companyProfile.isVenture));
+      byId("largeCorpShare").value = payload.companyProfile.largeCorpOwnership ?? "";
+      byId("equity").value = payload.companyProfile.equity ?? "";
+      byId("debt").value = payload.companyProfile.debt ?? "";
+      byId("location").value = payload.companyProfile.location ?? "";
+      byId("realEstateRental").value = String(Boolean(payload.companyProfile.isRealEstateRental));
+      byId("filingYear").value = payload.filingYear ?? 2025;
+      byId("rateTable").value = payload.rateTable ?? "2025";
+      byId("residency").value = payload.residency ?? "domestic";
+      byId("shippingMode").value = payload.shippingMode ?? "none";
+      byId("shippingTonnageBase").value = payload.shippingTonnageBase ?? 0;
+      byId("fiscalMonths").value = payload.fiscalMonths ?? 12;
+      byId("roundingMode").value = payload.roundingMode ?? "round";
+      const ships = payload.tonnageShips || [];
+      const shipFields = [
+        ["ship1Ton", "ship1Days", "ship1Rate"],
+        ["ship2Ton", "ship2Days", "ship2Rate"],
+        ["ship3Ton", "ship3Days", "ship3Rate"]
+      ];
+      shipFields.forEach((ids, idx) => {
+        const ship = ships[idx] || {};
+        byId(ids[0]).value = ship.tonnage ?? 0;
+        byId(ids[1]).value = ship.days ?? 0;
+        byId(ids[2]).value = ship.rate ?? 0;
+      });
+
+      byId("netIncome").value = payload.financialData.netIncome ?? "";
+      byId("revGeneral").value = payload.financialData.revenue.general ?? "";
+      byId("revRelated").value = payload.financialData.revenue.relatedParty ?? "";
+
+      const bp = payload.financialData.expenses.businessPromotion;
+      byId("bpTotal").value = bp.total ?? "";
+      byId("bpNoProof").value = bp.noProof ?? "";
+      byId("bpCultural").value = bp.cultural ?? "";
+      byId("bpMarket").value = bp.market ?? "";
+
+      const vehicles = payload.financialData.expenses.vehicles;
+      byId("vehCount").value = vehicles.count ?? "";
+      byId("vehDep").value = vehicles.depreciation ?? "";
+
+      const dep = payload.financialData.expenses.generalDepreciation || {};
+      byId("depClaimed").value = dep.claimed ?? "";
+      byId("depLimit").value = dep.statutoryLimit ?? "";
+      byId("nonBusiness").value = payload.financialData.expenses.nonBusiness ?? "";
+
+      byId("advances").value = payload.financialData.advancesToRelated ?? "";
+      byId("odRate").value = payload.financialData.overdraftRate ?? "";
+      byId("interestPaid").value = payload.financialData.interestPaid ?? "";
+      byId("deemedRentOverride").value = payload.financialData.deemedRentOverride ?? 0;
+      byId("excessRetainedOverride").value = payload.financialData.excessRetainedOverride ?? 0;
+
+      byId("manualIncomeAdd").value = payload.adjustments.manualIncomeAdd ?? 0;
+      byId("manualIncomeExclude").value = payload.adjustments.manualIncomeExclude ?? 0;
+      byId("manualExpenseDisallow").value = payload.adjustments.manualExpenseDisallow ?? 0;
+      byId("manualExpenseAllow").value = payload.adjustments.manualExpenseAllow ?? 0;
+      byId("loss").value = payload.adjustments.lossCarryforward.totalAvailable ?? "";
+      byId("lossYear").value = payload.adjustments.lossCarryforward.originYear ?? 2020;
+      byId("prepaidTax").value = payload.adjustments.prepaidTax ?? 0;
+      const donations = payload.donations || {};
+      byId("donationSpecialLimitRate").value = donations.specialLimitRate ?? 0.5;
+      byId("donationGeneralLimitRate").value = donations.generalLimitRate ?? 0.1;
+      byId("donationSpecialCarry").value = donations.specialCarry ?? 0;
+      byId("donationSpecialCurrent").value = donations.specialCurrent ?? 0;
+      byId("donationGeneralCarry").value = donations.generalCarry ?? 0;
+      byId("donationGeneralCurrent").value = donations.generalCurrent ?? 0;
+
+      byId("rdCurrent").value = payload.credits.rd.current ?? "";
+      byId("rdIncrement").value = payload.credits.rd.increment ?? "";
+      byId("rdBaseRate").value = payload.credits.rd.baseRate ?? "";
+
+      byId("invCurrent").value = payload.credits.investment.current ?? "";
+      byId("invAvg").value = payload.credits.investment.avgThreeYear ?? "";
+      byId("otherCredit").value = payload.credits.other ?? 0;
+      byId("foreignTaxCredit").value = payload.credits.foreignTax ?? 0;
+      byId("exemptMinTaxCredit").value = payload.credits.exemptMinTax ?? 0;
+    }
+
+    function readPayload() {
+      return {
+        filingYear: toNumber(byId("filingYear").value) || 2025,
+        rateTable: byId("rateTable").value || "2025",
+        roundingMode: byId("roundingMode").value || "round",
+        residency: byId("residency").value || "domestic",
+        shippingMode: byId("shippingMode").value || "none",
+        shippingTonnageBase: toNumber(byId("shippingTonnageBase").value),
+        fiscalMonths: toNumber(byId("fiscalMonths").value) || 12,
+        tonnageShips: [
+          {
+            tonnage: toNumber(byId("ship1Ton").value),
+            days: toNumber(byId("ship1Days").value),
+            rate: toNumber(byId("ship1Rate").value)
+          },
+          {
+            tonnage: toNumber(byId("ship2Ton").value),
+            days: toNumber(byId("ship2Days").value),
+            rate: toNumber(byId("ship2Rate").value)
+          },
+          {
+            tonnage: toNumber(byId("ship3Ton").value),
+            days: toNumber(byId("ship3Days").value),
+            rate: toNumber(byId("ship3Rate").value)
+          }
+        ],
+        companyProfile: {
+          type: byId("type").value,
+          isVenture: byId("venture").value === "true",
+          largeCorpOwnership: (() => {
+            const raw = byId("largeCorpShare").value;
+            const num = raw === "" ? null : Number(raw);
+            return Number.isFinite(num) ? num : null;
+          })(),
+          equity: toNumber(byId("equity").value),
+          debt: toNumber(byId("debt").value),
+          location: byId("location").value || "",
+          isRealEstateRental: byId("realEstateRental").value === "true"
+        },
+        financialData: {
+          netIncome: toNumber(byId("netIncome").value),
+          revenue: {
+            general: toNumber(byId("revGeneral").value),
+            relatedParty: toNumber(byId("revRelated").value)
+          },
+          expenses: {
+            businessPromotion: {
+              total: toNumber(byId("bpTotal").value),
+              cultural: toNumber(byId("bpCultural").value),
+              market: toNumber(byId("bpMarket").value),
+              noProof: toNumber(byId("bpNoProof").value)
+            },
+            vehicles: {
+              count: toNumber(byId("vehCount").value),
+              depreciation: toNumber(byId("vehDep").value)
+            },
+            generalDepreciation: {
+              claimed: toNumber(byId("depClaimed").value),
+              statutoryLimit: byId("depLimit").value === "" ? null : toNumber(byId("depLimit").value)
+            },
+            nonBusiness: toNumber(byId("nonBusiness").value)
+          },
+          advancesToRelated: toNumber(byId("advances").value),
+          overdraftRate: Number(byId("odRate").value || 0),
+          interestPaid: toNumber(byId("interestPaid").value),
+          deemedRentOverride: toNumber(byId("deemedRentOverride").value) || 0,
+          excessRetainedOverride: toNumber(byId("excessRetainedOverride").value) || 0
+        },
+        adjustments: {
+          manualIncomeAdd: toNumber(byId("manualIncomeAdd").value),
+          manualIncomeExclude: toNumber(byId("manualIncomeExclude").value),
+          manualExpenseDisallow: toNumber(byId("manualExpenseDisallow").value),
+          manualExpenseAllow: toNumber(byId("manualExpenseAllow").value),
+          lossCarryforward: {
+            totalAvailable: toNumber(byId("loss").value),
+            originYear: toNumber(byId("lossYear").value)
+          },
+          prepaidTax: toNumber(byId("prepaidTax").value)
+        },
+        donations: {
+          specialLimitRate: byId("donationSpecialLimitRate").value === "" ? 0.5 : Number(byId("donationSpecialLimitRate").value),
+          generalLimitRate: byId("donationGeneralLimitRate").value === "" ? 0.1 : Number(byId("donationGeneralLimitRate").value),
+          specialCarry: toNumber(byId("donationSpecialCarry").value),
+          specialCurrent: toNumber(byId("donationSpecialCurrent").value),
+          generalCarry: toNumber(byId("donationGeneralCarry").value),
+          generalCurrent: toNumber(byId("donationGeneralCurrent").value)
+        },
+        credits: {
+          rd: {
+            current: toNumber(byId("rdCurrent").value),
+            increment: toNumber(byId("rdIncrement").value),
+            baseRate: byId("rdBaseRate").value === "" ? null : Number(byId("rdBaseRate").value)
+          },
+          investment: {
+            current: toNumber(byId("invCurrent").value),
+            avgThreeYear: toNumber(byId("invAvg").value)
+          },
+          other: toNumber(byId("otherCredit").value),
+          foreignTax: toNumber(byId("foreignTaxCredit").value),
+          exemptMinTax: toNumber(byId("exemptMinTaxCredit").value)
+        }
+      };
+    }
+
+    // ------------------- Calculation logic -------------------
+    function normalizeEntityType(raw) {
+      const upper = (raw || "").toString().toUpperCase();
+      if (upper !== "SME" && upper !== "GENERAL") {
+        throw new Error("기업 유형은 SME 또는 General이어야 합니다.");
+      }
+      return upper === "SME" ? "SME" : "GENERAL";
+    }
+
+    function calculateDeemedInterest(overdraftRate, advances, interestPaid) {
+      const raw = (overdraftRate || 0) * (advances || 0) - (interestPaid || 0);
+      return Math.max(0, Math.round(raw));
+    }
+
+    function calculateDeemedRent(profile, financialData) {
+      if (financialData.deemedRentOverride) return financialData.deemedRentOverride;
+      if (!profile.isRealEstateRental) return 0;
+      if (profile.debt == null || profile.equity == null) return 0;
+      if (profile.debt <= 2 * profile.equity) return 0;
+      const excessDebt = profile.debt - 2 * profile.equity;
+      const proxyRate = financialData.overdraftRate || 0;
+      return Math.round(excessDebt * proxyRate);
+    }
+
+    function isLargeUnlisted(profile) {
+      if (profile.equity == null) return false;
+      return profile.equity > 50_000_000_000;
+    }
+
+    function progressiveRevenueLimit(revenue) {
+      const brackets = [
+        [10_000_000_000, 0.003],
+        [50_000_000_000, 0.002],
+        [null, 0.0003]
+      ];
+      let remaining = revenue;
+      let prevCap = 0;
+      let total = 0;
+      for (const [cap, rate] of brackets) {
+        const slice = cap === null ? remaining : Math.max(0, Math.min(remaining, cap - prevCap));
+        total += slice * rate;
+        remaining -= slice;
+        prevCap = cap ?? prevCap;
+        if (remaining <= 0) break;
+      }
+      return total;
+    }
+
+    function calculateBusinessPromotionLimit(entityType, bpInput, revenue) {
+      const baseLimit = entityType === "SME" ? 36_000_000 : 12_000_000;
+      const revenueLimitGeneral = progressiveRevenueLimit(revenue.general);
+      const revenueLimitRelated = 0.1 * progressiveRevenueLimit(revenue.relatedParty);
+      const revenueLimit = Math.round(revenueLimitGeneral + revenueLimitRelated);
+      const mainLimit = baseLimit + revenueLimit;
+      const culturalBonus = Math.round(Math.min(bpInput.cultural, mainLimit * 0.2));
+      const marketBonus = Math.round(Math.min(bpInput.market, mainLimit * 0.1));
+      const deductibleCap = mainLimit + culturalBonus + marketBonus;
+      const allowableBase = Math.max(0, bpInput.total - bpInput.noProof);
+      const deductible = Math.round(Math.min(allowableBase, deductibleCap));
+      const nonDeductible = bpInput.total - deductible;
+      return {
+        baseLimit,
+        revenueLimit,
+        culturalBonus,
+        marketBonus,
+        deductibleCap,
+        deductible,
+        nonDeductible
+      };
+    }
+
+    function calculateVehicleDepreciation(vehicles) {
+      const limit = (vehicles.count || 0) * 8_000_000;
+      const allowed = Math.min(vehicles.depreciation || 0, limit);
+      return {
+        allowed,
+        disallowed: (vehicles.depreciation || 0) - allowed,
+        limit
+      };
+    }
+
+    function calculateGeneralDepreciation(dep) {
+      if (dep.statutoryLimit == null) {
+        return { allowed: dep.claimed || 0, disallowed: 0, limit: dep.claimed || 0 };
+      }
+      const allowed = Math.min(dep.claimed || 0, dep.statutoryLimit);
+      return { allowed, disallowed: (dep.claimed || 0) - allowed, limit: dep.statutoryLimit };
+    }
+
+    function calculateRevenueAdjustments(profile, financialData) {
+      const deemedInterest = calculateDeemedInterest(
+        financialData.overdraftRate,
+        financialData.advancesToRelated,
+        financialData.interestPaid
+      );
+      const deemedRent = calculateDeemedRent(profile, financialData);
+      let excessRetained = 0;
+      if (financialData.excessRetainedOverride) {
+        excessRetained = financialData.excessRetainedOverride;
+      } else if (isLargeUnlisted(profile)) {
+        excessRetained = 0; // 구체식 부재 시 0 유지
+      }
+      const total = deemedInterest + deemedRent + excessRetained;
+      return { deemedInterest, deemedRent, excessRetained, total };
+    }
+
+    function calculateExpenseAdjustments(entityType, financialData) {
+      const bp = calculateBusinessPromotionLimit(
+        entityType,
+        financialData.expenses.businessPromotion,
+        financialData.revenue
+      );
+      const vehicle = calculateVehicleDepreciation(financialData.expenses.vehicles);
+      const generalDep = calculateGeneralDepreciation(financialData.expenses.generalDepreciation);
+      const nonBusiness = financialData.expenses.nonBusiness || 0;
+      const totalNonDeductible =
+        bp.nonDeductible + vehicle.disallowed + generalDep.disallowed + nonBusiness;
+      return { businessPromotion: bp, vehicle, generalDep, nonBusiness, totalNonDeductible };
+    }
+
+    function lossCapRate(entityType) {
+      return entityType === "SME" ? 1.0 : 0.8;
+    }
+
+    function lossExpired(loss, filingYear) {
+      const allowedYears = loss.originYear < 2020 ? 10 : 15;
+      return filingYear - loss.originYear >= allowedYears;
+    }
+
+    function rateTableForYear(rateTable, filingYear) {
+      const preset = (rateTable || "").toString();
+      if (preset === "2021" || preset === "2018-2022") {
+        return [
+          [200_000_000, 0.10, 0],
+          [20_000_000_000, 0.20, 20_000_000],
+          [300_000_000_000, 0.21, 420_000_000],
+          [null, 0.24, 9_420_000_000]
+        ];
+      }
+      // default 2023~2025 (README 기준)
+      return [
+        [200_000_000, 0.09, 0],
+        [20_000_000_000, 0.19, 20_000_000],
+        [300_000_000_000, 0.21, 420_000_000],
+        [null, 0.24, 9_420_000_000]
+      ];
+    }
+
+    function applyLossCarryforward(taxableBeforeLoss, loss, entityType, filingYear) {
+      if (taxableBeforeLoss <= 0) {
+        return { applied: 0, remaining: loss.totalAvailable, expired: lossExpired(loss, filingYear), allowedRate: lossCapRate(entityType) };
+      }
+      const expired = lossExpired(loss, filingYear);
+      if (expired) {
+        return { applied: 0, remaining: loss.totalAvailable, expired: true, allowedRate: lossCapRate(entityType) };
+      }
+      const capRate = lossCapRate(entityType);
+      const capAmount = taxableBeforeLoss * capRate;
+      const applied = Math.round(Math.min(loss.totalAvailable, capAmount));
+      const remaining = loss.totalAvailable - applied;
+      return { applied, remaining, expired: false, allowedRate: capRate };
+    }
+
+    function calculateProgressiveTax(taxBase, rateTable) {
+      for (const [cap, rate, deduction] of rateTable) {
+        if (cap === null || taxBase <= cap) {
+          return Math.round(taxBase * rate - deduction);
+        }
+      }
+      return 0;
+    }
+
+    function calculateRDCredit(rd, entityType) {
+      if (entityType === "SME") {
+        const baseCredit = rd.current * 0.25;
+        const incremental = rd.increment * 0.5;
+        return Math.max(baseCredit, incremental);
+      }
+      const baseRate = rd.baseRate == null ? 0.02 : Math.max(0, Math.min(rd.baseRate, 0.02));
+      const baseCredit = rd.current * baseRate;
+      const incremental = rd.increment * 0.25;
+      return Math.max(baseCredit, incremental);
+    }
+
+    function calculateInvestmentCredit(inv, entityType) {
+      const baseRate = entityType === "SME" ? 0.10 : 0.01;
+      const base = inv.current * baseRate;
+      const increase = Math.max(0, inv.current - inv.avgThreeYear);
+      const additional = increase * 0.03;
+      return base + additional;
+    }
+
+    function calculateDonations(baseIncome, donations) {
+      const specialTotal = (donations.specialCarry || 0) + (donations.specialCurrent || 0);
+      const generalTotal = (donations.generalCarry || 0) + (donations.generalCurrent || 0);
+      const base = Math.max(0, baseIncome);
+      const specialRate = donations.specialLimitRate == null ? 0.5 : Number(donations.specialLimitRate);
+      const generalRate = donations.generalLimitRate == null ? 0.1 : Number(donations.generalLimitRate);
+      // 법정기부금: 소득금액의 specialRate
+      const specialLimit = base * specialRate;
+      const allowedSpecial = Math.min(specialTotal, specialLimit);
+      const remainingBase = Math.max(0, base - allowedSpecial);
+      // 지정기부금: 법정기부금 손금산입 후 잔여 소득금액의 generalRate
+      const generalLimit = remainingBase * generalRate;
+      const allowedGeneral = Math.min(generalTotal, generalLimit);
+      const nonDeductible = specialTotal + generalTotal - allowedSpecial - allowedGeneral;
+      return {
+        allowedSpecial,
+        allowedGeneral,
+        nonDeductible,
+        specialLimit,
+        generalLimit
+      };
+    }
+
+    function calculateTonnageBase(payload) {
+      if (payload.shippingMode !== "tonnage") return 0;
+      if (payload.shippingTonnageBase && payload.shippingTonnageBase > 0) {
+        return payload.shippingTonnageBase;
+      }
+      const ships = payload.tonnageShips || [];
+      return ships.reduce((sum, ship) => {
+        const ton = ship.tonnage || 0;
+        const days = ship.days || 0;
+        const rate = ship.rate || 0;
+        return sum + ton * days * rate;
+      }, 0);
+    }
+
+    function calculateCredits(calculatedTax, credits, entityType) {
+      let remaining = calculatedTax;
+      const rdCreditRaw = calculateRDCredit(credits.rd, entityType);
+      const rdCredit = Math.round(Math.min(rdCreditRaw, remaining));
+      remaining -= rdCredit;
+      const invCreditRaw = calculateInvestmentCredit(credits.investment, entityType);
+      const investmentCredit = Math.round(Math.min(invCreditRaw, remaining));
+      remaining -= investmentCredit;
+      const otherCredit = Math.round(Math.min(credits.other || 0, remaining));
+      remaining -= otherCredit;
+      const foreignTaxCredit = Math.round(Math.min(credits.foreignTax || 0, remaining));
+      remaining -= foreignTaxCredit;
+
+      return {
+        rdCredit,
+        investmentCredit,
+        otherCredit,
+        foreignTaxCredit,
+        total: rdCredit + investmentCredit + otherCredit + foreignTaxCredit,
+        remainingAfterGeneralCredits: remaining
+      };
+    }
+
+    function minimumTaxRate(entityType, taxBase) {
+      if (entityType === "SME") return 0.07;
+      if (taxBase <= 10_000_000_000) return 0.10;
+      if (taxBase <= 100_000_000_000) return 0.12;
+      return 0.17;
+    }
+
+    function calculateMinimumTax(taxBase, entityType, roundingMode) {
+      const raw = taxBase * minimumTaxRate(entityType, taxBase);
+      if (roundingMode === "floor") return Math.floor(raw);
+      return Math.round(raw);
+    }
+
+    function computeTax(payload) {
+      const entityType = normalizeEntityType(payload.companyProfile.type);
+      const revenueAdj = calculateRevenueAdjustments(payload.companyProfile, payload.financialData);
+      const expenseAdj = calculateExpenseAdjustments(entityType, payload.financialData);
+      const brackets = rateTableForYear(payload.rateTable, payload.filingYear);
+      const rateLabel =
+        payload.rateTable === "2021" || payload.rateTable === "2018-2022"
+          ? "2018~2022 세율표(1구간 10%)"
+          : "2023~2025 세율표(1구간 9%)";
+      const roundingMode = payload.roundingMode || "round";
+
+      const manualAdditions =
+        (payload.adjustments.manualIncomeAdd || 0) +
+        (payload.adjustments.manualExpenseDisallow || 0);
+      const manualDeductions =
+        (payload.adjustments.manualIncomeExclude || 0) +
+        (payload.adjustments.manualExpenseAllow || 0);
+
+      const preDonationTaxable =
+        payload.financialData.netIncome +
+        revenueAdj.total +
+        expenseAdj.totalNonDeductible +
+        manualAdditions -
+        manualDeductions;
+      const donationResult = calculateDonations(preDonationTaxable, payload.donations || {});
+
+      const totalAdditions =
+        revenueAdj.total + expenseAdj.totalNonDeductible + donationResult.nonDeductible + manualAdditions;
+      const totalDeductions = manualDeductions;
+      let taxableBeforeLoss = payload.financialData.netIncome + totalAdditions - totalDeductions;
+
+      const tonnageBase = calculateTonnageBase(payload);
+      if (tonnageBase > 0) {
+        taxableBeforeLoss = tonnageBase;
+      }
+
+      const lossResult = applyLossCarryforward(
+        taxableBeforeLoss,
+        payload.adjustments.lossCarryforward,
+        entityType,
+        payload.filingYear
+      );
+
+      const taxBase = Math.max(0, taxableBeforeLoss - lossResult.applied);
+      const calculatedTax = calculateProgressiveTax(taxBase, brackets);
+      const creditResult = calculateCredits(calculatedTax, payload.credits, entityType);
+      const taxAfterCredits = Math.max(0, calculatedTax - creditResult.total);
+      const minimumTax = calculateMinimumTax(taxBase, entityType, roundingMode);
+      const preExemptTax = Math.max(taxAfterCredits, minimumTax);
+      const exemptMinTaxCredit = Math.round(
+        Math.min(payload.credits.exemptMinTax || 0, preExemptTax)
+      );
+      const finalTax = preExemptTax - exemptMinTaxCredit;
+      const prepaidTax = payload.adjustments.prepaidTax || 0;
+      const payableTax = finalTax - prepaidTax;
+
+      return {
+        entityType,
+        residency: payload.residency,
+        revenueAdj,
+        expenseAdj,
+        totalAdditions,
+        totalDeductions,
+        taxableBeforeLoss,
+        lossResult,
+        taxBase,
+        calculatedTax,
+        creditResult: { ...creditResult, exemptMinTaxCredit },
+        taxAfterCredits,
+        minimumTax,
+        finalTax,
+        prepaidTax,
+        payableTax,
+        rateLabel,
+        largeCorpOwnership: payload.companyProfile.largeCorpOwnership,
+        donationResult,
+        tonnageBase: tonnageBase
+      };
+    }
+
+    // ------------------- UI render -------------------
+    function renderResults(result) {
+      const container = byId("results");
+      container.innerHTML = "";
+
+      const payableText = result.payableTax >= 0
+        ? `${formatKRW(result.payableTax)} 원 납부`
+        : `${formatKRW(Math.abs(result.payableTax))} 원 환급`;
+
+      const bp = result.expenseAdj.businessPromotion;
+      const bpHeadroom = Math.max(0, (bp.deductibleCap || 0) - (bp.deductible || 0));
+      const creditHeadroom =
+        result.taxAfterCredits <= result.minimumTax
+          ? "최저한세 적용 중(추가 공제 효과 없음)"
+          : `산출세액 대비 공제 여지 약 ${formatKRW(result.taxAfterCredits - result.minimumTax)}원`;
+      const ownershipWarn =
+        result.entityType === "SME" &&
+        result.largeCorpOwnership != null &&
+        result.largeCorpOwnership >= 0.3;
+      const foreignWarn = result.residency === "foreign";
+      const tonnageInfo =
+        result.tonnageBase && result.tonnageBase > 0
+          ? `톤세 과표 적용: ${formatKRW(result.tonnageBase)}원`
+          : "";
+
+      const cards = [
+        {
+          title: "최종 납부세액",
+          value: `${formatKRW(result.finalTax)} 원`,
+          body: `세액공제 적용 후 금액과 최저한세 중 큰 금액을 선택합니다.`
+        },
+        {
+          title: "차감 납부/환급 예상",
+          value: `${payableText}`,
+          body: `기납부세액 ${formatKRW(result.prepaidTax)}원 반영`
+        },
+        {
+          title: "산출세액 ↔ 최저한세",
+          value: `${formatKRW(result.calculatedTax)} ↔ ${formatKRW(result.minimumTax)}`,
+          body: `세액공제 후 ${formatKRW(result.taxAfterCredits)}원, 최저한세 ${formatKRW(result.minimumTax)}원`
+        },
+        {
+          title: "과세표준",
+          value: `${formatKRW(result.taxBase)} 원`,
+          body: `이월결손금 적용 전 ${formatKRW(result.taxableBeforeLoss)}원, 적용액 ${formatKRW(result.lossResult.applied)}원`
+        },
+        {
+          title: "익금/손금 조정",
+          value: `가산 ${formatKRW(result.revenueAdj.total + result.expenseAdj.totalNonDeductible + (result.donationResult?.nonDeductible || 0))}원`,
+          body: `익금산입 ${formatKRW(result.revenueAdj.total)}원, 손금불산입 ${formatKRW(result.expenseAdj.totalNonDeductible)}원, 기부금 불산입 ${formatKRW(result.donationResult?.nonDeductible || 0)}원`
+        },
+        {
+          title: "접대비 한도",
+          value: `불산입 ${formatKRW(result.expenseAdj.businessPromotion.nonDeductible)}원`,
+          body: `한도 ${formatKRW(result.expenseAdj.businessPromotion.deductibleCap)}원 (기본 ${formatKRW(result.expenseAdj.businessPromotion.baseLimit)}, 매출 ${formatKRW(result.expenseAdj.businessPromotion.revenueLimit)}, 문화 ${formatKRW(result.expenseAdj.businessPromotion.culturalBonus)}, 전통 ${formatKRW(result.expenseAdj.businessPromotion.marketBonus)})`
+        },
+        {
+          title: "세액공제",
+          value: `합계 ${formatKRW(result.creditResult.total)}원`,
+          body: `R&D ${formatKRW(result.creditResult.rdCredit)}원, 투자 ${formatKRW(result.creditResult.investmentCredit)}원, 기타 ${formatKRW(result.creditResult.otherCredit)}원, 외국납부 ${formatKRW(result.creditResult.foreignTaxCredit)}원, 최저한세 제외 ${formatKRW(result.creditResult.exemptMinTaxCredit || 0)}원`
+        },
+        {
+          title: "추천/가이드",
+          value: `접대비 추가 가능 ${formatKRW(bpHeadroom)}원`,
+          body: `${creditHeadroom}\n증빙 없는 접대비는 한도와 무관하게 불산입됩니다.`
+        }
+      ];
+
+      cards.push({
+        title: "적용 세율표",
+        value: result.rateLabel || "2025 세율표",
+        body: "신고연도별 세율 선택 가능(1구간 세율 차이 반영)."
+      });
+
+      if (tonnageInfo) {
+        cards.push({
+          title: "톤세 적용",
+          value: tonnageInfo,
+          body: "선박 톤수·일수·단가 기반 과표를 사용했습니다."
+        });
+      }
+
+      if (ownershipWarn) {
+        cards.push({
+          title: "중소기업 요건 주의",
+          value: "대기업 지분 30% 이상",
+          body: "독립성 요건 위반 시 일반법인으로 간주될 수 있습니다."
+        });
+      }
+
+      if (foreignWarn) {
+        cards.push({
+          title: "외국법인 안내",
+          value: "국내원천소득만 과세",
+          body: "외국법인 선택 시 SME 특례 적용이 제한될 수 있습니다."
+        });
+      }
+
+      for (const c of cards) {
+        const div = document.createElement("div");
+        div.className = "result-card";
+        div.innerHTML = `
+          <div class="result-title">${c.title}</div>
+          <div class="result-value">${c.value}</div>
+          <div class="result-body">${c.body}</div>
+        `;
+        container.appendChild(div);
+      }
+
+      if (result.lossResult.expired) {
+        const warn = document.createElement("div");
+        warn.className = "result-card";
+        warn.innerHTML = `
+          <div class="result-title warning">이월결손금 경과</div>
+          <div class="result-value warning">만료된 결손금은 적용되지 않습니다.</div>
+          <div class="result-body">발생연도 기준 10년(2020 이전) / 15년(2020 이후) 초과 여부를 확인하세요.</div>
+        `;
+        container.appendChild(warn);
+      }
+    }
+
+    function runCalculation() {
+      try {
+        const payload = readPayload();
+        const result = computeTax(payload);
+        renderResults(result);
+      } catch (err) {
+        const container = byId("results");
+        container.innerHTML = `
+          <div class="result-card">
+            <div class="result-title warning">오류</div>
+            <div class="result-value warning">${err.message}</div>
+          </div>
+        `;
+      }
+    }
+
+    document.getElementById("runCalc").addEventListener("click", runCalculation);
+    document.getElementById("loadSample").addEventListener("click", () => {
+      fillForm(samplePayload);
+      runCalculation();
+    });
+
+    // 초기 상태
+    fillForm(samplePayload);
+    renderResults({
+      finalTax: 0,
+      calculatedTax: 0,
+      minimumTax: 0,
+      taxAfterCredits: 0,
+      taxBase: 0,
+      taxableBeforeLoss: 0,
+      revenueAdj: { total: 0 },
+      expenseAdj: { totalNonDeductible: 0, businessPromotion: { nonDeductible: 0, deductibleCap: 0, baseLimit: 0, revenueLimit: 0, culturalBonus: 0, marketBonus: 0 } },
+      lossResult: { applied: 0, expired: false },
+      creditResult: { total: 0, rdCredit: 0, investmentCredit: 0, otherCredit: 0, foreignTaxCredit: 0, exemptMinTaxCredit: 0 },
+      prepaidTax: 0,
+      payableTax: 0,
+      rateLabel: "세율표 선택",
+      entityType: "SME",
+      largeCorpOwnership: null,
+      donationResult: { nonDeductible: 0 },
+      residency: "domestic",
+      tonnageBase: 0,
+      roundingMode: "round",
+      donationSpecialLimitRate: 0.5,
+      donationGeneralLimitRate: 0.1
+    });
+  </script>
+</body>
+</html>

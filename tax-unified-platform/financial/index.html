@@ -1,0 +1,597 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>금융소득 종합과세 계산기</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&family=Space+Grotesk:wght@400;600&display=swap');
+    :root {
+      --bg: #0f172a;
+      --panel: #0b1224;
+      --card: #111a2f;
+      --muted: #cbd5e1;
+      --fg: #e2e8f0;
+      --accent: #10b981;
+      --accent-2: #f59e0b;
+      --border: #1e293b;
+      --shadow: 0 16px 40px rgba(0,0,0,0.35);
+      --radius: 14px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Manrope', 'Space Grotesk', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: radial-gradient(120% 120% at 20% 20%, rgba(16,185,129,0.12), transparent),
+                  radial-gradient(100% 100% at 80% 10%, rgba(245,158,11,0.15), transparent),
+                  var(--bg);
+      color: var(--fg);
+      min-height: 100vh;
+    }
+    header {
+      padding: 28px 24px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      backdrop-filter: blur(10px);
+      background: rgba(15,23,42,0.85);
+      z-index: 10;
+    }
+    h1 { margin: 0; font-size: 26px; letter-spacing: -0.02em; }
+    .badge { padding: 6px 12px; border-radius: 999px; background: rgba(16,185,129,0.18); color: var(--accent); font-weight: 700; font-size: 13px; }
+    .layout { display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; padding: 16px 24px 40px; }
+    @media (max-width: 1024px) { .layout { grid-template-columns: 1fr; } header { position: static; } }
+    section { background: linear-gradient(145deg, var(--panel), var(--card)); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px; }
+    section h2 { margin: 0 0 12px; font-size: 18px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+    label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
+    input, select, button { font: inherit; }
+    input, select { padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border); background: rgba(255,255,255,0.03); color: var(--fg); }
+    input:focus, select:focus { outline: 2px solid rgba(16,185,129,0.35); }
+    button { background: linear-gradient(135deg, var(--accent), #16a34a); border: none; border-radius: 12px; padding: 12px 16px; font-weight: 700; color: #0b1224; cursor: pointer; transition: transform 120ms ease, box-shadow 120ms ease; box-shadow: 0 10px 28px rgba(16,185,129,0.35); }
+    button.secondary { background: rgba(255,255,255,0.04); color: var(--fg); box-shadow: none; border: 1px solid var(--border); }
+    button:hover { transform: translateY(-1px); }
+    button:active { transform: translateY(0); }
+    .table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    .table th, .table td { border: 1px solid var(--border); padding: 8px; font-size: 13px; }
+    .pill { display: inline-block; padding: 4px 8px; border-radius: 999px; background: rgba(255,255,255,0.07); font-size: 12px; color: var(--muted); }
+    .result-card { padding: 12px; border-radius: 12px; border: 1px solid var(--border); background: rgba(16,185,129,0.08); }
+    .muted { color: var(--muted); }
+    .mono { font-family: 'Space Grotesk', monospace; }
+    .trace { background: rgba(255,255,255,0.03); border-radius: 10px; border: 1px solid var(--border); padding: 10px; font-size: 13px; white-space: pre-wrap; max-height: 360px; overflow: auto; }
+    .warn { color: #fbbf24; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <div class="badge">금융소득 종합과세 2024</div>
+      <h1>금융소득 종합과세 계산기 (비교과세)</h1>
+    </div>
+    <button id="calcBtn">계산 실행</button>
+  </header>
+
+  <div class="layout">
+    <div class="stack">
+      <section>
+        <h2>기본 설정</h2>
+        <div class="grid">
+          <label>귀속연도
+            <input id="taxYear" type="number" value="2024">
+          </label>
+          <label>금융소득 분리과세 한도
+            <input id="threshold" type="number" value="20000000">
+          </label>
+          <label>배당 Gross-up 비율
+            <input id="grossUpRate" type="number" value="0.1" placeholder="0.1 또는 10%">
+          </label>
+          <label>세액 반올림 단위
+            <input id="roundTax" type="number" value="1">
+          </label>
+          <label>납부세액 반올림 단위
+            <input id="roundPayable" type="number" value="10">
+          </label>
+          <label>임대 분리과세 한도(원)
+            <input id="rentalThreshold" type="number" value="20000000">
+          </label>
+          <label>임대 분리과세율(국세)
+            <input id="rentalSepRate" type="number" value="0.14" placeholder="0.14 또는 14%">
+          </label>
+          <label>임대 표준경비율
+            <input id="rentalStdRate" type="number" value="0.5" placeholder="0.5 또는 50%">
+          </label>
+        </div>
+        <div class="muted" style="margin-top:6px;">누진세율표: 6 / 15 / 24 / 35 / 38 / 40 / 42 / 45% (2024년).</div>
+      </section>
+
+      <section>
+        <div class="flex" style="justify-content: space-between; align-items: center; margin-bottom:8px;">
+          <h2 style="margin:0;">금융소득 항목 (이자/배당)</h2>
+          <button class="secondary" id="addFinancial">+ 항목 추가</button>
+        </div>
+        <table class="table" id="financialTable">
+          <thead>
+            <tr>
+              <th>유형</th>
+              <th>금액</th>
+              <th>원천세율(%)</th>
+              <th>원천</th>
+              <th>Gross-up</th>
+              <th>기납부세액/외국납부</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <div class="muted" style="margin-top:6px;">임대 유형을 선택하고 분리과세율을 비워두면 기본 14% 적용, 연 20,000,000원 초과분은 종합과세로 전환됩니다.</div>
+      </section>
+
+      <section>
+        <h2>기타 종합소득 / 소득공제</h2>
+        <div class="grid">
+          <label>집계 입력: 다른 종합소득금액(근로/사업 등)
+            <input id="otherIncomeGross" type="number" placeholder="예: 40000000">
+          </label>
+          <label>집계 입력: 소득공제 합계
+            <input id="incomeDeductions" type="number" placeholder="예: 10000000">
+          </label>
+        </div>
+        <div class="flex" style="justify-content: space-between; align-items: center; margin-top:10px;">
+          <div class="pill">항목별 입력(있으면 집계 대신 사용) · 단순경비율/분리과세 지원</div>
+          <button class="secondary" id="addOther">+ 기타소득 추가</button>
+        </div>
+        <table class="table" id="otherTable">
+          <thead>
+            <tr>
+              <th>유형</th>
+              <th>설명</th>
+              <th>금액</th>
+              <th>경비방식</th>
+              <th>경비율(%)</th>
+              <th>실제경비</th>
+              <th>분리과세율(선택)</th>
+              <th>기납부세액</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2>기납부세액(추가)</h2>
+        <div class="grid">
+          <label>국세(중간예납 등)
+            <input id="prepaidNational" type="number">
+          </label>
+          <label>지방세
+            <input id="prepaidLocal" type="number">
+          </label>
+          <label>기타 세액공제(자녀/연금 등)
+            <input id="otherTaxCredit" type="number" placeholder="예: 200000">
+          </label>
+        </div>
+      </section>
+    </div>
+
+    <div class="stack">
+      <section>
+        <h2>결과</h2>
+        <div id="resultPrimary" class="result-card">계산 버튼을 눌러 결과를 확인하세요.</div>
+        <div style="margin-top:12px;">
+          <div class="pill">경고</div>
+          <div id="resultWarnings" class="muted" style="margin-top:6px;"></div>
+        </div>
+        <div style="margin-top:12px;">
+          <div class="pill">Trace</div>
+          <div id="resultTrace" class="trace"></div>
+        </div>
+      </section>
+
+      <section>
+        <h2>계산 로직 요약</h2>
+        <ul style="margin:0; padding-left:18px; color:var(--muted); line-height:1.5;">
+          <li>금융소득 2천만원 한도까지 항목별 원천세율로 과세, 초과분은 종합과세 비교.</li>
+          <li>Gross-up 대상 배당의 초과분에 배당가산율을 적용, 배당세액공제는 가산금액 또는 한도 중 작은 값.</li>
+          <li>해외 금융소득이 있으면 종합과세 강제, 외국납부세액공제 한도를 단순 비례로 계산.</li>
+          <li>비교과세: 종합방식(한도 세액 + 누진세) vs 전액 분리과세 세액을 비교하여 큰 금액 선택.</li>
+          <li>지방소득세는 결정세액의 10%, 최종 납부세액은 10원 미만 절사.</li>
+        </ul>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    // --- 유틸 ---
+    const ensureNumber = (v) => Number.isFinite(Number(v)) ? Number(v) : 0;
+    const toKRW = (v) => Math.floor(ensureNumber(v));
+    const floorToUnit = (v, unit = 1) => (!unit || unit <= 1) ? Math.floor(v) : Math.floor(v / unit) * unit;
+    const normalizeRate = (v) => {
+      const num = ensureNumber(v);
+      if (num < 0) return 0;
+      return num > 1 ? num / 100 : num;
+    };
+    const clampRatio = (v, label, warnings) => {
+      if (v == null || !Number.isFinite(Number(v))) {
+        warnings?.push(`${label}는 숫자여야 합니다. 0으로 처리합니다.`);
+        return 0;
+      }
+      const num = Number(v);
+      if (num < 0) {
+        warnings?.push(`${label}는 음수일 수 없습니다. 0으로 조정합니다.`);
+        return 0;
+      }
+      return num > 1 ? num / 100 : num;
+    };
+
+    const DEFAULT_RULES = {
+      financialThreshold: 20_000_000,
+      grossUpRate: 0.1,
+      localRate: 0.1,
+      rentalSeparateThreshold: 20_000_000,
+      rentalSeparateRate: 0.14,
+      rentalStandardExpenseRate: 0.5,
+      progressiveRates: [
+        { threshold: 14_000_000, rate: 0.06, deduction: 0 },
+        { threshold: 50_000_000, rate: 0.15, deduction: 1_260_000 },
+        { threshold: 88_000_000, rate: 0.24, deduction: 5_760_000 },
+        { threshold: 150_000_000, rate: 0.35, deduction: 15_440_000 },
+        { threshold: 300_000_000, rate: 0.38, deduction: 19_940_000 },
+        { threshold: 500_000_000, rate: 0.40, deduction: 25_940_000 },
+        { threshold: 1_000_000_000, rate: 0.42, deduction: 35_940_000 },
+        { threshold: null, rate: 0.45, deduction: 65_940_000 },
+      ],
+    };
+
+    function computeProgressiveTax(base, brackets, roundingUnit = 1) {
+      const taxable = Math.max(ensureNumber(base), 0);
+      let bracketUsed = brackets[brackets.length - 1];
+      for (const b of brackets) {
+        if (b.threshold === null || taxable <= b.threshold) { bracketUsed = b; break; }
+      }
+      const tax = taxable * bracketUsed.rate - bracketUsed.deduction;
+      return { tax: floorToUnit(tax, roundingUnit), taxable, bracketUsed };
+    }
+
+    function allocateThreshold(financialIncomes, threshold) {
+      let remaining = threshold;
+      return financialIncomes.map((item) => {
+        const amount = toKRW(item.amount);
+        const take = Math.max(Math.min(remaining, amount), 0);
+        const excess = Math.max(amount - take, 0);
+        remaining -= take;
+        return { ...item, amount, thresholdPortion: take, excessPortion: excess };
+      });
+    }
+
+    function computeOtherIncome(otherIncome = {}, rules) {
+      const warnings = [];
+      const items = Array.isArray(otherIncome.items) ? otherIncome.items : [];
+      if (!items.length) {
+        const gross = toKRW(otherIncome.gross);
+        const deductions = toKRW(otherIncome.deductions);
+        return { gross, deductions, taxable: Math.max(gross - deductions, 0), separateTax: 0, prepaid: 0, warnings };
+      }
+      let grossSum = 0, expenseSum = 0, taxable = 0, separateTax = 0, prepaid = 0;
+      let rentalSeparateUsed = 0, rentalSeparateExcess = 0;
+      const rentalThreshold = rules?.rentalSeparateThreshold ?? DEFAULT_RULES.rentalSeparateThreshold;
+      const rentalSepRateDefault = normalizeRate(rules?.rentalSeparateRate ?? DEFAULT_RULES.rentalSeparateRate);
+      const rentalStdExpenseRate = rules?.rentalStandardExpenseRate ?? DEFAULT_RULES.rentalStandardExpenseRate ?? 0.5;
+      for (const item of items) {
+        const gross = toKRW(item.amount);
+        grossSum += gross;
+        const mode = (item.expenseMode || 'standard').toLowerCase();
+        const isRental = (item.type || '').toLowerCase() === 'rental';
+        const rate = clampRatio(item.expenseRate ?? (isRental ? rentalStdExpenseRate : 0), 'expenseRate', warnings);
+        const actual = toKRW(item.expenseAmount);
+        const expense = mode === 'actual' ? Math.min(actual, gross) : Math.min(Math.floor(gross * rate), gross);
+        expenseSum += expense;
+        const taxableItem = Math.max(gross - expense, 0);
+        let sepRate = item.separate ? normalizeRate(item.separateRate ?? item.withholdingRate ?? 0) : 0;
+        if (isRental && sepRate === 0 && item.separate) sepRate = rentalSepRateDefault;
+        if (sepRate > 0) {
+          let sepAmount = taxableItem;
+          if (isRental && rentalThreshold > 0) {
+            const remaining = Math.max(rentalThreshold - rentalSeparateUsed, 0);
+            sepAmount = Math.min(remaining, taxableItem);
+            const toComp = taxableItem - sepAmount;
+            if (toComp > 0) {
+              rentalSeparateExcess += toComp;
+              taxable += toComp;
+              warnings.push('임대 분리과세 한도(20,000,000) 초과분은 종합과세로 전환됩니다.');
+            }
+            rentalSeparateUsed += sepAmount;
+          }
+          separateTax += sepAmount * sepRate;
+        } else taxable += taxableItem;
+        prepaid += toKRW(item.prepaidTax);
+      }
+      return { gross: grossSum, deductions: expenseSum, taxable, separateTax, prepaid, rentalSeparateUsed, rentalSeparateExcess, warnings };
+    }
+
+    function calculateTax(input = {}) {
+      const warnings = [];
+      const threshold = input.settings?.financialThreshold ?? DEFAULT_RULES.financialThreshold;
+      const grossUpRate = input.settings?.grossUpRate ?? DEFAULT_RULES.grossUpRate;
+      const roundingTax = input.settings?.rounding?.tax ?? 1;
+      const roundingPayable = input.settings?.rounding?.payable ?? 10;
+      const progressiveRates = input.settings?.progressiveRates ?? DEFAULT_RULES.progressiveRates;
+
+      const financial = Array.isArray(input.financialIncomes) ? input.financialIncomes : [];
+      const allocated = allocateThreshold(financial, threshold);
+
+      const otherIncomeResult = computeOtherIncome(input.otherIncome, settings);
+      warnings.push(...otherIncomeResult.warnings);
+      const otherTaxableBase = otherIncomeResult.taxable;
+
+      const financialTotal = allocated.reduce((s, f) => s + f.amount, 0);
+      const separateFinancialTax = allocated.reduce((s, f) => s + f.amount * normalizeRate(f.withholdingRate || 0.14), 0);
+      const thresholdTax = allocated.reduce((s, f) => s + f.thresholdPortion * normalizeRate(f.withholdingRate || 0.14), 0);
+      const thresholdUsed = allocated.reduce((s, f) => s + f.thresholdPortion, 0);
+
+      let excessFinancial = 0, grossUpBase = 0, foreignIncome = 0, foreignTaxPaid = 0, prepaidWithholding = 0, forceComprehensive = false;
+      for (const f of allocated) {
+        const rate = normalizeRate(f.withholdingRate || 0.14);
+        excessFinancial += f.excessPortion;
+        if (f.grossUpEligible) grossUpBase += f.excessPortion;
+        const source = (f.source || 'domestic').toLowerCase();
+        if (source === 'foreign') {
+          foreignIncome += f.amount;
+          foreignTaxPaid += toKRW(f.prepaidTax);
+          forceComprehensive = true;
+        }
+        prepaidWithholding += toKRW(f.prepaidTax ?? f.amount * rate);
+      }
+
+      const grossUpAmount = toKRW(grossUpBase * grossUpRate);
+      const comprehensiveTaxableBase = Math.max(otherTaxableBase + excessFinancial + grossUpAmount, 0);
+      const progComp = computeProgressiveTax(comprehensiveTaxableBase, progressiveRates, roundingTax);
+      const progOther = computeProgressiveTax(otherTaxableBase, progressiveRates, roundingTax);
+
+      const separateOtherTax = otherIncomeResult.separateTax;
+
+      const methodATax = thresholdTax + progComp.tax + separateOtherTax;
+      const methodBTax = separateFinancialTax + progOther.tax + separateOtherTax;
+
+      let chosenMethod = 'separate';
+      let chosenTaxBeforeCredits = methodBTax;
+      let comparisonNote = '2천만원 이하 → 분리과세';
+      if (financialTotal > threshold || forceComprehensive) {
+        chosenMethod = methodATax >= methodBTax ? 'comprehensive' : 'separate';
+        chosenTaxBeforeCredits = Math.max(methodATax, methodBTax);
+        comparisonNote = `비교과세: 종합 ${Math.round(methodATax)} / 분리 ${Math.round(methodBTax)}`;
+      }
+
+      let dividendCredit = 0;
+      if (grossUpAmount > 0 && (financialTotal > threshold || forceComprehensive)) {
+        const financialWithholdingTax = separateFinancialTax;
+        const creditLimit = Math.max(progComp.tax - (progOther.tax + financialWithholdingTax), 0);
+        dividendCredit = Math.min(grossUpAmount, creditLimit);
+      }
+
+      let foreignTaxCredit = 0;
+      if (foreignIncome > 0) {
+        const totalIncomeForRatio = Math.max(otherIncomeResult.gross + excessFinancial, 1);
+        const ratio = Math.min(foreignIncome / totalIncomeForRatio, 1);
+        const creditLimit = chosenTaxBeforeCredits * ratio;
+        foreignTaxCredit = Math.min(creditLimit, foreignTaxPaid);
+      }
+
+      const otherTaxCredit = toKRW(input.taxCredits?.other);
+
+      const nationalTax = floorToUnit(Math.max(chosenTaxBeforeCredits - dividendCredit - foreignTaxCredit - otherTaxCredit, 0), roundingTax);
+      const localIncomeTax = floorToUnit(nationalTax * DEFAULT_RULES.localRate, roundingTax);
+
+      const prepaidNational = toKRW(input.prepaid?.national) + prepaidWithholding;
+      const prepaidLocal = toKRW(input.prepaid?.local);
+      const totalPayableRaw = nationalTax + localIncomeTax - prepaidNational - prepaidLocal;
+      const totalPayable = floorToUnit(totalPayableRaw, roundingPayable);
+
+      return {
+        chosenMethod,
+        comparisonNote,
+        financialTotal,
+        thresholdUsed,
+        excessFinancial,
+        grossUpAmount,
+        progressive: { comprehensive: progComp, otherOnly: progOther },
+        taxes: { methodATax, methodBTax, chosenTaxBeforeCredits, dividendCredit, foreignTaxCredit, otherTaxCredit, nationalTax, localIncomeTax, separateOtherTax, totalPayable },
+        prepaid: { prepaidNational, prepaidLocal, prepaidWithholding, prepaidOther: otherIncomeResult.prepaid },
+        rental: { separateUsed: otherIncomeResult.rentalSeparateUsed, separateExcess: otherIncomeResult.rentalSeparateExcess, threshold: DEFAULT_RULES.rentalSeparateThreshold },
+        trace: [
+          { step: 'Financial split', financialTotal, thresholdUsed, excessFinancial, grossUpBase, grossUpAmount, thresholdTax, separateFinancialTax, separateOtherTax },
+          { step: 'Progressive', comprehensiveTaxableBase, progressiveComprehensive: progComp.tax, otherTaxableBase, progressiveOtherOnly: progOther.tax },
+          { step: 'Comparison', chosenMethod, chosenTaxBeforeCredits, methodATax, methodBTax, dividendCredit, foreignTaxCredit, otherTaxCredit, nationalTax, localIncomeTax, prepaidNational, prepaidLocal, totalPayable },
+        ],
+        warnings,
+      };
+    }
+
+    // --- UI helpers ---
+    const byId = (id) => document.getElementById(id);
+    const parseNum = (id) => ensureNumber(byId(id).value || 0);
+    const optionalRate = (id) => {
+      const raw = byId(id).value;
+      if (raw === '') return undefined;
+      const num = Number(raw);
+      if (!Number.isFinite(num)) return undefined;
+      return num > 1 ? num / 100 : num;
+    };
+
+    function addFinancialRow() {
+      const tbody = byId('financialTable').querySelector('tbody');
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>
+          <select>
+            <option value="interest">이자</option>
+            <option value="dividend">배당</option>
+          </select>
+        </td>
+        <td><input type="number" placeholder="금액"></td>
+        <td><input type="number" placeholder="14 또는 0.14"></td>
+        <td>
+          <select>
+            <option value="domestic">국내</option>
+            <option value="foreign">해외</option>
+          </select>
+        </td>
+        <td style="text-align:center;"><input type="checkbox"></td>
+        <td><input type="number" placeholder="원천/외국납부세액"></td>
+      `;
+      tbody.appendChild(tr);
+    }
+
+    function addOtherRow() {
+      const tbody = byId('otherTable').querySelector('tbody');
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>
+          <select>
+            <option value="other">기타</option>
+            <option value="rental">임대</option>
+          </select>
+        </td>
+        <td><input type="text" placeholder="설명/메모"></td>
+        <td><input type="number" placeholder="금액"></td>
+        <td>
+          <select>
+            <option value="standard">단순(경비율)</option>
+            <option value="actual">실제경비</option>
+          </select>
+        </td>
+        <td><input type="number" placeholder="예: 60 또는 0.6"></td>
+        <td><input type="number" placeholder="실제 경비"></td>
+        <td><input type="number" placeholder="분리과세율(%)"></td>
+        <td><input type="number" placeholder="기납부세액"></td>
+      `;
+      tbody.appendChild(tr);
+    }
+
+    function buildPayload() {
+      const rows = [...byId('financialTable').querySelectorAll('tbody tr')];
+      const financial = rows.map((tr) => {
+        const [typeSel, amt, rate, sourceSel, grossChk, prepaid] = tr.querySelectorAll('select,input');
+        return {
+          type: typeSel.value,
+          amount: ensureNumber(amt.value),
+          withholdingRate: ensureNumber(rate.value || 0.14),
+          source: sourceSel.value,
+          grossUpEligible: grossChk.checked && typeSel.value === 'dividend',
+          prepaidTax: ensureNumber(prepaid.value),
+          foreignTaxPaid: sourceSel.value === 'foreign' ? ensureNumber(prepaid.value) : undefined,
+        };
+      }).filter((f) => f.amount > 0);
+
+      const otherRows = [...byId('otherTable').querySelectorAll('tbody tr')];
+      const otherItems = otherRows.map((tr) => {
+        const [typeSel, desc, amt, mode, rate, actual, sepRate, prepaid] = tr.querySelectorAll('input,select');
+        const sepVal = ensureNumber(sepRate.value);
+        return {
+          type: typeSel.value,
+          description: desc.value,
+          amount: ensureNumber(amt.value),
+          expenseMode: mode.value,
+          expenseRate: ensureNumber(rate.value || 0),
+          expenseAmount: ensureNumber(actual.value || 0),
+          separate: sepVal > 0,
+          separateRate: sepVal > 1 ? sepVal / 100 : sepVal,
+          prepaidTax: ensureNumber(prepaid.value || 0),
+        };
+      }).filter((r) => r.amount > 0);
+
+      return {
+        financialIncomes: financial,
+        otherIncome: {
+          gross: parseNum('otherIncomeGross'),
+          deductions: parseNum('incomeDeductions'),
+          items: otherItems,
+        },
+        taxCredits: {
+          other: parseNum('otherTaxCredit'),
+        },
+        prepaid: {
+          national: parseNum('prepaidNational'),
+          local: parseNum('prepaidLocal'),
+        },
+        settings: {
+          taxYear: ensureNumber(byId('taxYear').value) || 2024,
+          financialThreshold: parseNum('threshold') || DEFAULT_RULES.financialThreshold,
+          grossUpRate: optionalRate('grossUpRate') ?? DEFAULT_RULES.grossUpRate,
+          rentalSeparateThreshold: parseNum('rentalThreshold') || DEFAULT_RULES.rentalSeparateThreshold,
+          rentalSeparateRate: optionalRate('rentalSepRate') ?? DEFAULT_RULES.rentalSeparateRate,
+          rentalStandardExpenseRate: optionalRate('rentalStdRate') ?? DEFAULT_RULES.rentalStandardExpenseRate,
+          rounding: { tax: parseNum('roundTax') || 1, payable: parseNum('roundPayable') || 10 },
+        },
+      };
+    }
+
+    function formatKRW(n) { return n.toLocaleString('ko-KR'); }
+
+    function render(result) {
+      const primary = byId('resultPrimary');
+      const warningsEl = byId('resultWarnings');
+      const traceEl = byId('resultTrace');
+
+      const r = result;
+      const rental = r.rental || {};
+      primary.innerHTML = `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:center;">
+          <div>
+            <div class="pill">선택된 방식</div>
+            <div class="mono" style="font-size:17px;font-weight:700;">${r.chosenMethod === 'comprehensive' ? '종합과세' : '분리과세'} · ${r.comparisonNote}</div>
+          </div>
+          <div>
+            <div class="pill">국세 결정세액</div>
+            <div class="mono" style="font-size:20px;font-weight:700;">₩ ${formatKRW(r.taxes.nationalTax)}</div>
+          </div>
+          <div>
+            <div class="pill">지방소득세 (10%)</div>
+            <div class="mono" style="font-size:18px;font-weight:700;">₩ ${formatKRW(r.taxes.localIncomeTax)}</div>
+          </div>
+          <div>
+            <div class="pill">최종 납부(환급)세액</div>
+            <div class="mono" style="font-size:22px;font-weight:700;color:${r.taxes.totalPayable >= 0 ? 'var(--accent)' : '#38bdf8'};">
+              ₩ ${formatKRW(r.taxes.totalPayable)} ${r.taxes.totalPayable < 0 ? '(환급)' : ''}
+            </div>
+          </div>
+          <div>
+            <div class="pill">금융소득 합계 / 초과분</div>
+            <div class="mono" style="font-size:15px;">${formatKRW(r.financialTotal)} / 초과 ${formatKRW(r.excessFinancial)} · Gross-up ${formatKRW(r.grossUpAmount)}</div>
+          </div>
+          <div>
+            <div class="pill">공제/크레딧</div>
+            <div class="mono" style="font-size:15px;">배당공제 ₩${formatKRW(r.taxes.dividendCredit || 0)} · 외국납부공제 ₩${formatKRW(r.taxes.foreignTaxCredit || 0)} · 기타 ₩${formatKRW(r.taxes.otherTaxCredit || 0)}</div>
+          </div>
+          <div>
+            <div class="pill">기타소득 단순/분리 과세</div>
+            <div class="mono" style="font-size:15px;">분리과세세액 ₩${formatKRW(r.taxes.separateOtherTax || 0)}</div>
+          </div>
+          <div>
+            <div class="pill">임대 분리과세 한도</div>
+            <div class="mono" style="font-size:15px;">사용 ₩${formatKRW(rental.separateUsed || 0)} / 한도 ₩${formatKRW(rental.threshold || 0)} · 초과 ₩${formatKRW(rental.separateExcess || 0)}</div>
+          </div>
+        </div>
+      `;
+
+      const warnText = r.warnings && r.warnings.length ? r.warnings : ['경고 없음'];
+      warningsEl.innerHTML = warnText.map((w) => `<span class="warn">• ${w}</span>`).join('<br>');
+      traceEl.textContent = JSON.stringify(r.trace, null, 2);
+    }
+
+    // --- bootstrap ---
+    byId('addFinancial').onclick = addFinancialRow;
+    byId('addOther').onclick = addOtherRow;
+    byId('calcBtn').onclick = () => {
+      const payload = buildPayload();
+      const result = calculateTax(payload);
+      render(result);
+    };
+
+    // 기본 행 2개 추가
+    addFinancialRow();
+    addFinancialRow();
+    addOtherRow();
+  </script>
+</body>
+</html>
