@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>세금 계산 공유 카드</title>
+  <meta property="og:title" content="세금 계산 공유 카드">
+  <meta property="og:description" content="연말정산 · 법인세 · 금융소득 종합과세 결과를 카드로 공유합니다.">
+  <meta property="og:type" content="website">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: radial-gradient(140% 160% at 15% 10%, rgba(16, 185, 129, 0.18), transparent),
+            radial-gradient(120% 120% at 80% 0%, rgba(59, 130, 246, 0.22), transparent),
+            #0a0f1c;
+      --panel: #0f172a;
+      --border: #1f2b45;
+      --muted: #cbd5e1;
+      --text: #e2e8f0;
+      --accent: #22c55e;
+      --shadow: 0 16px 46px rgba(0, 0, 0, 0.35);
+      --radius: 16px;
+      --font-heading: 'Space Grotesk', 'Noto Sans KR', system-ui, -apple-system, sans-serif;
+      --font-body: 'Noto Sans KR', 'Space Grotesk', system-ui, -apple-system, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 24px 14px;
+    }
+    .card {
+      width: min(720px, 100%);
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.03), rgba(34, 197, 94, 0.08));
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      box-shadow: var(--shadow);
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--muted);
+      font-size: 12px;
+    }
+    h1 { margin: 8px 0 10px; font-family: var(--font-heading); letter-spacing: -0.01em; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+    .metric {
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.04);
+    }
+    .metric span { display: block; color: var(--muted); font-size: 13px; }
+    .metric strong { display: block; margin-top: 6px; font-size: 20px; font-family: var(--font-heading); }
+    .muted { color: var(--muted); }
+    .actions { margin-top: 12px; display: flex; gap: 10px; flex-wrap: wrap; }
+    button {
+      border: 1px solid transparent;
+      border-radius: 12px;
+      padding: 11px 14px;
+      font-weight: 700;
+      cursor: pointer;
+      color: #0a0f1c;
+      background: linear-gradient(135deg, var(--accent), #16a34a);
+      box-shadow: 0 12px 24px rgba(34, 197, 94, 0.32);
+    }
+    button.ghost {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+      box-shadow: none;
+    }
+    @media (max-width: 680px) { body { align-items: flex-start; } }
+  </style>
+</head>
+<body>
+  <section class="card">
+    <p class="pill">OG 공유 카드</p>
+    <h1>세금 계산 결과</h1>
+    <div class="grid">
+      <div class="metric">
+        <span>연말정산</span>
+        <strong id="og-yearend">입력 없음</strong>
+      </div>
+      <div class="metric">
+        <span>법인세</span>
+        <strong id="og-corporate">입력 없음</strong>
+      </div>
+      <div class="metric">
+        <span>금융/종합소득</span>
+        <strong id="og-financial">입력 없음</strong>
+      </div>
+    </div>
+    <div class="metric" style="margin-top:10px;">
+      <span>메모/전략</span>
+      <strong id="og-note">공유된 메모 없음</strong>
+    </div>
+    <p class="muted" style="margin:10px 0 0;">링크에 포함된 값만 표시되며 별도 서버 저장은 없습니다. 페이지 스크린샷을 OG 카드로 사용할 수 있습니다.</p>
+    <div class="actions">
+      <button id="copy-link">링크 복사</button>
+      <button class="ghost" id="copy-text">텍스트만 복사</button>
+    </div>
+  </section>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const data = {
+      yearend: params.get('yearend') || '입력 없음',
+      corporate: params.get('corporate') || '입력 없음',
+      financial: params.get('financial') || '입력 없음',
+      note: params.get('note') || '공유된 메모 없음',
+    };
+
+    document.getElementById('og-yearend').textContent = data.yearend;
+    document.getElementById('og-corporate').textContent = data.corporate;
+    document.getElementById('og-financial').textContent = data.financial;
+    document.getElementById('og-note').textContent = data.note;
+
+    document.getElementById('copy-link')?.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        document.getElementById('copy-link').textContent = '복사 완료';
+        setTimeout(() => (document.getElementById('copy-link').textContent = '링크 복사'), 1400);
+      } catch (err) {
+        console.error(err);
+      }
+    });
+
+    document.getElementById('copy-text')?.addEventListener('click', async () => {
+      const text = `연말정산: ${data.yearend}\n법인세: ${data.corporate}\n금융/종합소득: ${data.financial}\n메모: ${data.note}`;
+      try {
+        await navigator.clipboard.writeText(text);
+        document.getElementById('copy-text').textContent = '복사 완료';
+        setTimeout(() => (document.getElementById('copy-text').textContent = '텍스트만 복사'), 1400);
+      } catch (err) {
+        console.error(err);
+      }
+    });
+  </script>
+</body>
+</html>

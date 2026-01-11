@@ -23,6 +23,200 @@
       </div>
     </header>
 
+    <section class="upgrade">
+      <div class="section-head">
+        <div>
+          <p class="pill">실시간 업그레이드</p>
+          <h2>원본 엔진을 그대로 쓰면서 입력·전략·공유 강화</h2>
+          <p class="muted">연말정산/법인세/종합소득세 엔진을 그대로 불러온 뒤 빠른 입력 패널, 실시간 요약, 전략 추천, 커뮤니티와 OG 공유 기능을 추가했습니다.</p>
+        </div>
+        <div class="upgrade-actions">
+          <a class="btn primary" href="#control">빠른 입력 패널</a>
+          <a class="btn ghost" href="#live">실시간 요약</a>
+        </div>
+      </div>
+      <div class="upgrade-grid">
+        <article class="card highlight">
+          <div class="pill">정확도</div>
+          <h3>원본 엔진을 직접 제어</h3>
+          <p>탭 안에서 실행되는 원본 계산기(연말정산/법인세/금융소득) 입력란을 그대로 활용해 정확도를 유지합니다.</p>
+        </article>
+        <article class="card highlight">
+          <div class="pill">실시간</div>
+          <h3>입력 ↔ 세액 즉시 반영</h3>
+          <p>빠른 입력 패널에서 수정하면 iframe 속 계산기가 즉시 계산하고, 결과 요약/전략이 실시간 업데이트됩니다.</p>
+        </article>
+        <article class="card highlight">
+          <div class="pill">공유/커뮤니티</div>
+          <h3>OG 카드와 익명 게시판</h3>
+          <p>계산 결과를 OG 스타일 카드 링크로 만들고, 익명 게시판에서 고민을 공유하도록 추가했습니다.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="control" id="control">
+      <div class="control-head">
+        <div>
+          <p class="pill">빠른 입력 · 동기화</p>
+          <h2>원본 계산기를 그대로 조종하며 입력하기</h2>
+          <p class="muted">총급여·카드·과세소득·금융소득을 간단히 넣으면 해당 탭의 입력 칸에 직접 채워지고 계산까지 자동 실행됩니다.</p>
+        </div>
+        <div class="control-actions">
+          <label class="toggle">
+            <input type="checkbox" id="live-sync" checked />
+            <span>실시간 반영</span>
+          </label>
+          <button class="btn ghost" id="reset-quick">입력 초기화</button>
+        </div>
+      </div>
+      <div class="control-grid">
+        <article class="control-card" data-engine="yearend">
+          <div class="control-card-head">
+            <span class="pill">연말정산 엔진</span>
+            <span class="status-dot" data-engine-status="yearend">대기</span>
+          </div>
+          <label>총급여(과세)
+            <input type="number" data-sync-target="yearend#gross_salary" placeholder="60,000,000" inputmode="numeric" />
+          </label>
+          <label>신용카드 사용액
+            <input type="number" data-sync-target="yearend#credit_card_spend" placeholder="10,000,000" inputmode="numeric" />
+          </label>
+          <label>기납부 소득세
+            <input type="number" data-sync-target="yearend#withheld_income_tax" placeholder="3,500,000" inputmode="numeric" />
+          </label>
+          <label>기납부 지방소득세
+            <input type="number" data-sync-target="yearend#withheld_local_tax" placeholder="350,000" inputmode="numeric" />
+          </label>
+          <p class="mini">연말정산 탭 안의 동일 ID 입력을 직접 채워 원본 계산 로직을 실행합니다.</p>
+        </article>
+
+        <article class="control-card" data-engine="corporate">
+          <div class="control-card-head">
+            <span class="pill">법인세 엔진</span>
+            <span class="status-dot" data-engine-status="corporate">대기</span>
+          </div>
+          <label>과세소득(법인세 과표)
+            <input type="number" data-sync-target="corporate#netIncome" placeholder="120,000,000" inputmode="numeric" />
+          </label>
+          <label>매출(일반)
+            <input type="number" data-sync-target="corporate#revGeneral" placeholder="300,000,000" inputmode="numeric" />
+          </label>
+          <label>접대비 입력
+            <input type="number" data-sync-target="corporate#bpTotal" placeholder="5,000,000" inputmode="numeric" />
+          </label>
+          <label>기납부세액
+            <input type="number" data-sync-target="corporate#prepaidTax" placeholder="0" inputmode="numeric" />
+          </label>
+          <p class="mini">필드가 채워지면 TaxCore 스크립트를 호출해 세액/최저한세를 재계산합니다.</p>
+        </article>
+
+        <article class="control-card" data-engine="financial">
+          <div class="control-card-head">
+            <span class="pill">종합소득세(금융)</span>
+            <span class="status-dot" data-engine-status="financial">대기</span>
+          </div>
+          <label>이자/배당 합계
+            <input type="number" data-sync-target="financial:interest" placeholder="24,000,000" inputmode="numeric" />
+          </label>
+          <label>배당(Gross-up 대상)
+            <input type="number" data-sync-target="financial:dividend" placeholder="6,000,000" inputmode="numeric" />
+          </label>
+          <label>종합소득(다른 소득)
+            <input type="number" data-sync-target="financial#otherIncomeGross" placeholder="40,000,000" inputmode="numeric" />
+          </label>
+          <label>기납부 국세/지방세
+            <div class="split">
+              <input type="number" data-sync-target="financial#prepaidNational" placeholder="0" inputmode="numeric" />
+              <input type="number" data-sync-target="financial#prepaidLocal" placeholder="0" inputmode="numeric" />
+            </div>
+          </label>
+          <p class="mini">첫 번째/두 번째 금융소득 행과 집계 입력, 기납부세액을 채운 뒤 계산 버튼을 자동 누릅니다.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="live" id="live">
+      <div class="live-head">
+        <div>
+          <p class="pill">실시간 결과 · 전략</p>
+          <h2>세액 흐름을 즉시 확인하고 제안 받기</h2>
+          <p class="muted">각 탭의 계산 결과를 읽어 환급/추납, 과세표준, 카드 추가 필요액을 한눈에 보여줍니다.</p>
+        </div>
+        <div class="live-actions">
+          <button class="btn ghost" id="refresh-live">수동 새로고침</button>
+          <a class="btn primary" href="#share">OG 카드 만들기</a>
+        </div>
+      </div>
+      <div class="live-grid">
+        <article class="live-card">
+          <div class="live-title">
+            <span>연말정산</span>
+            <span class="status-dot" data-engine-status="yearend"></span>
+          </div>
+          <div class="live-metric">
+            <span>환급/추납</span>
+            <strong data-live-yearend="refund">대기</strong>
+          </div>
+          <div class="live-metric">
+            <span>과세표준</span>
+            <strong data-live-yearend="taxable">-</strong>
+          </div>
+          <div class="live-metric">
+            <span>카드 추가 필요액</span>
+            <strong data-live-yearend="cardNeed">-</strong>
+          </div>
+        </article>
+
+        <article class="live-card">
+          <div class="live-title">
+            <span>법인세</span>
+            <span class="status-dot" data-engine-status="corporate"></span>
+          </div>
+          <div class="live-metric">
+            <span>최종 납부세액</span>
+            <strong data-live-corporate="finalTax">대기</strong>
+          </div>
+          <div class="live-metric">
+            <span>납부/환급 예상</span>
+            <strong data-live-corporate="payable">-</strong>
+          </div>
+          <div class="live-metric">
+            <span>과세표준</span>
+            <strong data-live-corporate="taxBase">-</strong>
+          </div>
+        </article>
+
+        <article class="live-card">
+          <div class="live-title">
+            <span>종합소득세(금융)</span>
+            <span class="status-dot" data-engine-status="financial"></span>
+          </div>
+          <div class="live-metric">
+            <span>비교과세 결과</span>
+            <strong data-live-financial="primary">대기</strong>
+          </div>
+          <div class="live-metric">
+            <span>경고</span>
+            <strong data-live-financial="warnings">-</strong>
+          </div>
+          <div class="live-metric">
+            <span>기타소득/공제</span>
+            <strong data-live-financial="other">-</strong>
+          </div>
+        </article>
+      </div>
+
+      <div class="strategy">
+        <div>
+          <p class="pill">세액 절감 제안</p>
+          <h3>입력 값과 결과를 바탕으로 자동 추천</h3>
+        </div>
+        <ul id="strategy-list">
+          <li>엔진을 불러온 뒤 입력하면 실시간 제안이 나타납니다.</li>
+        </ul>
+      </div>
+    </section>
+
     <section class="quick">
       <article class="card">
         <div>
@@ -81,7 +275,7 @@
             <a class="btn ghost" href="yearend/index.html" target="_blank" rel="noreferrer">새 창에서 열기</a>
           </div>
           <div class="frame-wrap">
-            <iframe src="yearend/index.html" title="연말정산" loading="lazy"></iframe>
+            <iframe src="yearend/index.html" title="연말정산" loading="lazy" id="frame-yearend"></iframe>
           </div>
         </div>
 
@@ -95,7 +289,7 @@
             <a class="btn ghost" href="corporate/index.html" target="_blank" rel="noreferrer">새 창에서 열기</a>
           </div>
           <div class="frame-wrap">
-            <iframe src="corporate/index.html" title="법인세" loading="lazy"></iframe>
+            <iframe src="corporate/index.html" title="법인세" loading="lazy" id="frame-corporate"></iframe>
           </div>
         </div>
 
@@ -109,9 +303,66 @@
             <a class="btn ghost" href="financial/index.html" target="_blank" rel="noreferrer">새 창에서 열기</a>
           </div>
           <div class="frame-wrap">
-            <iframe src="financial/index.html" title="종합소득세" loading="lazy"></iframe>
+            <iframe src="financial/index.html" title="종합소득세" loading="lazy" id="frame-financial"></iframe>
           </div>
         </div>
+      </div>
+    </section>
+
+    <section class="community" id="share">
+      <div class="community-grid">
+        <article class="card ad-card" id="coupang-card">
+          <p class="pill">쿠팡 파트너스</p>
+          <h3>정리템·증빙템 바로가기</h3>
+          <p class="muted">파트너스 링크를 그대로 넣을 수 있는 슬롯입니다. 기본 링크를 원하는 파트너스 URL로 교체하면 클릭을 유도할 수 있습니다.</p>
+          <div class="ad-grid">
+            <a class="ad-item" data-partner-url="https://www.coupang.com/np/search?q=%EC%97%B0%EB%A7%90%EC%A0%95%EC%82%B0" target="_blank" rel="sponsored noopener">영수증/서류 정리템</a>
+            <a class="ad-item" data-partner-url="https://www.coupang.com/np/search?q=%EC%84%B8%ED%8F%89%EC%A6%9D" target="_blank" rel="sponsored noopener">세금 관련 도서</a>
+            <a class="ad-item" data-partner-url="https://www.coupang.com/np/search?q=%EA%B3%A0%EC%A7%80%EA%B3%A0%EC%A7%80" target="_blank" rel="sponsored noopener">가계부/보관함</a>
+          </div>
+          <p class="mini">실제 파트너스 코드가 있다면 <code>data-partner-url</code>을 교체하세요.</p>
+        </article>
+
+        <article class="card board-card">
+          <p class="pill">익명 게시판</p>
+          <h3>세금 고민을 나누는 익명 커뮤니티</h3>
+          <p class="muted">근로/법인/금융소득별로 태그를 달아 질문·팁을 올리고, 로컬에만 저장되는 익명 피드백을 남길 수 있습니다.</p>
+          <div class="board-actions">
+            <a class="btn primary" href="board/index.html">게시판 열기</a>
+            <a class="btn ghost" href="#control">계산 후 글 올리기</a>
+          </div>
+          <ul class="list small">
+            <li>닉네임 없이 작성 · 브라우저 로컬 저장</li>
+            <li>카테고리/검색/공감 지원</li>
+            <li>계산 결과를 복사해 붙여넣기 가능</li>
+          </ul>
+        </article>
+
+        <article class="card share-card">
+          <p class="pill">OG 공유 카드</p>
+          <h3>계산 결과를 링크/카드로 공유하기</h3>
+          <p class="muted">실시간 요약 값을 자동 채워서 <code>share.html</code> 카드 링크를 생성합니다.</p>
+          <div class="share-fields">
+            <label>연말정산 환급/추납
+              <input type="text" id="share-yearend" readonly placeholder="자동 채움" />
+            </label>
+            <label>법인세 납부/환급
+              <input type="text" id="share-corporate" readonly placeholder="자동 채움" />
+            </label>
+            <label>금융소득 비교과세 요약
+              <input type="text" id="share-financial" readonly placeholder="자동 채움" />
+            </label>
+            <label>메모/한줄 전략
+              <input type="text" id="share-note" placeholder="예: 카드 200만 더 사용 후 환급 유지" />
+            </label>
+          </div>
+          <div class="share-actions">
+            <button class="btn primary" id="build-share">공유 카드 링크 생성</button>
+            <input type="text" id="share-url" readonly placeholder="share.html?..." />
+            <button class="btn ghost" id="copy-share">복사</button>
+          </div>
+          <p class="mini">링크를 복사해 친구/동료와 공유하면 OG 스타일 카드로 보여집니다.</p>
+        </article>
       </div>
     </section>
 

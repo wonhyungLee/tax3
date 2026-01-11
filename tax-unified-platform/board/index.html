@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>익명 세금 게시판</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: radial-gradient(140% 160% at 15% 10%, rgba(16, 185, 129, 0.18), transparent),
+            radial-gradient(120% 120% at 80% 0%, rgba(59, 130, 246, 0.22), transparent),
+            #0a0f1c;
+      --panel: #0f172a;
+      --border: #1f2b45;
+      --muted: #cbd5e1;
+      --text: #e2e8f0;
+      --accent: #22c55e;
+      --shadow: 0 16px 46px rgba(0, 0, 0, 0.35);
+      --radius: 16px;
+      --font-heading: 'Space Grotesk', 'Noto Sans KR', system-ui, -apple-system, sans-serif;
+      --font-body: 'Noto Sans KR', 'Space Grotesk', system-ui, -apple-system, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+    }
+    .shell { max-width: 1100px; margin: 0 auto; padding: 24px 18px 80px; }
+    .hero {
+      background: linear-gradient(135deg, rgba(17, 24, 39, 0.9), rgba(12, 20, 35, 0.9));
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      box-shadow: var(--shadow);
+      margin-bottom: 16px;
+    }
+    .hero h1 { margin: 6px 0; font-family: var(--font-heading); }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .muted { color: var(--muted); }
+    .mini { color: var(--muted); font-size: 13px; margin: 4px 0 0; }
+    .card {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+    label { display: flex; flex-direction: column; gap: 6px; color: var(--muted); font-size: 14px; }
+    input, select, textarea, button { font: inherit; }
+    input, select, textarea {
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text);
+    }
+    textarea { min-height: 110px; resize: vertical; }
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+    button {
+      border: 1px solid transparent;
+      border-radius: 12px;
+      padding: 11px 14px;
+      font-weight: 700;
+      cursor: pointer;
+      color: #0a0f1c;
+      background: linear-gradient(135deg, var(--accent), #16a34a);
+      box-shadow: 0 12px 24px rgba(34, 197, 94, 0.32);
+    }
+    button.ghost {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+      box-shadow: none;
+    }
+    .filters { display: flex; gap: 8px; flex-wrap: wrap; margin: 14px 0; }
+    .filters input, .filters select { flex: 1; min-width: 180px; }
+    .post {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.03);
+      box-shadow: var(--shadow);
+    }
+    .post-head { display: flex; justify-content: space-between; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 10px; border: 1px solid var(--border); color: var(--text); font-size: 12px; }
+    .category { background: rgba(34, 197, 94, 0.12); border-color: rgba(34, 197, 94, 0.3); }
+    .mood { background: rgba(59, 130, 246, 0.12); border-color: rgba(59, 130, 246, 0.3); }
+    .post-body { margin: 8px 0; line-height: 1.6; white-space: pre-wrap; }
+    .post-meta { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; color: var(--muted); font-size: 13px; }
+    .post-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+    .hint { border: 1px dashed var(--border); padding: 10px 12px; border-radius: 12px; background: rgba(255, 255, 255, 0.02); }
+    @media (max-width: 720px) { .filters { flex-direction: column; } }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="hero">
+      <p class="pill">익명 게시판</p>
+      <h1>세금 고민을 나누세요</h1>
+      <p class="muted">로그인 없이 로컬에 저장됩니다. 연말정산/법인세/금융소득 결과를 복사해 붙여 넣고 질문하거나 팁을 공유하세요.</p>
+    </header>
+
+    <section class="card">
+      <div class="grid">
+        <label>분류
+          <select id="category">
+            <option value="연말정산">연말정산</option>
+            <option value="법인세">법인세</option>
+            <option value="금융/종합소득">금융/종합소득</option>
+            <option value="기타">기타</option>
+          </select>
+        </label>
+        <label>분위기
+          <select id="mood">
+            <option value="질문">질문</option>
+            <option value="팁">팁</option>
+            <option value="급함">급함</option>
+            <option value="검토요청">검토요청</option>
+          </select>
+        </label>
+        <label>제목
+          <input type="text" id="title" placeholder="예: 카드 사용액을 어디에 넣나요?" />
+        </label>
+      </div>
+      <label>내용
+        <textarea id="body" placeholder="닉네임 없이도 작성됩니다. 계산 결과나 상황을 적어주세요."></textarea>
+      </label>
+      <label>계산 결과/메모
+        <textarea id="calc" placeholder="연말정산 환급 120만원 예상 · 카드 추가 필요 80만원 등"></textarea>
+        <p class="mini">실시간 요약을 복사해 붙여넣어도 됩니다.</p>
+      </label>
+      <div class="actions">
+        <button id="submit">게시하기</button>
+        <button class="ghost" id="reset">초기화</button>
+      </div>
+      <div class="hint mini">💡 서버로 전송되지 않으며, 브라우저에만 저장됩니다. 중요한 개인정보는 입력하지 마세요.</div>
+    </section>
+
+    <div class="filters">
+      <input type="text" id="search" placeholder="검색어 (제목/내용/계산 결과)" />
+      <select id="filter-category">
+        <option value="all">전체</option>
+        <option value="연말정산">연말정산</option>
+        <option value="법인세">법인세</option>
+        <option value="금융/종합소득">금융/종합소득</option>
+        <option value="기타">기타</option>
+      </select>
+      <select id="filter-mood">
+        <option value="all">전체 분위기</option>
+        <option value="질문">질문</option>
+        <option value="팁">팁</option>
+        <option value="급함">급함</option>
+        <option value="검토요청">검토요청</option>
+      </select>
+      <button class="ghost" id="clear-filters">필터 초기화</button>
+    </div>
+
+    <section id="board-list" class="grid"></section>
+  </main>
+
+  <script>
+    const STORAGE_KEY = 'tax3-board-v1';
+    const id = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()));
+
+    const loadPosts = () => {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        return raw ? JSON.parse(raw) : [];
+      } catch (err) {
+        console.error(err);
+        return [];
+      }
+    };
+
+    let posts = loadPosts();
+
+    const savePosts = () => {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(posts));
+    };
+
+    const renderPosts = () => {
+      const list = document.getElementById('board-list');
+      if (!list) return;
+      const search = document.getElementById('search')?.value?.toLowerCase() || '';
+      const filterCategory = document.getElementById('filter-category')?.value || 'all';
+      const filterMood = document.getElementById('filter-mood')?.value || 'all';
+
+      const filtered = posts
+        .filter((p) => (filterCategory === 'all' ? true : p.category === filterCategory))
+        .filter((p) => (filterMood === 'all' ? true : p.mood === filterMood))
+        .filter(
+          (p) =>
+            !search ||
+            p.title.toLowerCase().includes(search) ||
+            p.body.toLowerCase().includes(search) ||
+            p.calc.toLowerCase().includes(search)
+        )
+        .sort((a, b) => b.createdAt - a.createdAt);
+
+      if (!filtered.length) {
+        list.innerHTML = '<div class="card"><p class="muted">작성된 글이 없습니다. 첫 글을 남겨보세요.</p></div>';
+        return;
+      }
+
+      list.innerHTML = filtered
+        .map(
+          (p) => `
+        <article class="post">
+          <div class="post-head">
+            <div>
+              <span class="badge category">${p.category}</span>
+              <span class="badge mood">${p.mood}</span>
+            </div>
+            <div class="muted">${new Date(p.createdAt).toLocaleString('ko-KR')}</div>
+          </div>
+          <h3 style="margin:6px 0;">${p.title || '제목 없음'}</h3>
+          <div class="post-body">${p.body || '내용 없음'}</div>
+          ${p.calc ? `<div class="hint"><strong>계산/메모</strong><div class="muted">${p.calc}</div></div>` : ''}
+          <div class="post-meta">
+            <span>공감 ${p.likes || 0}</span>
+            <span>복사 가능</span>
+          </div>
+          <div class="post-actions">
+            <button class="ghost" data-like="${p.id}">공감</button>
+            <button class="ghost" data-copy="${p.id}">내용 복사</button>
+          </div>
+        </article>
+      `
+        )
+        .join('');
+
+      list.querySelectorAll('[data-like]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const target = posts.find((p) => p.id === btn.dataset.like);
+          if (!target) return;
+          target.likes = (target.likes || 0) + 1;
+          savePosts();
+          renderPosts();
+        });
+      });
+
+      list.querySelectorAll('[data-copy]').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const target = posts.find((p) => p.id === btn.dataset.copy);
+          if (!target) return;
+          const text = `${target.title}\n\n${target.body}\n\n계산/메모: ${target.calc || '없음'}`;
+          try {
+            await navigator.clipboard.writeText(text);
+            btn.textContent = '복사됨';
+            setTimeout(() => (btn.textContent = '내용 복사'), 1200);
+          } catch (err) {
+            console.error(err);
+          }
+        });
+      });
+    };
+
+    document.getElementById('submit')?.addEventListener('click', () => {
+      const category = document.getElementById('category')?.value || '연말정산';
+      const mood = document.getElementById('mood')?.value || '질문';
+      const title = document.getElementById('title')?.value.trim() || '';
+      const body = document.getElementById('body')?.value.trim() || '';
+      const calc = document.getElementById('calc')?.value.trim() || '';
+      if (!body) return;
+
+      posts.unshift({
+        id: id(),
+        category,
+        mood,
+        title,
+        body,
+        calc,
+        likes: 0,
+        createdAt: Date.now(),
+      });
+      savePosts();
+      renderPosts();
+      document.getElementById('body').value = '';
+      document.getElementById('calc').value = '';
+      document.getElementById('title').value = '';
+    });
+
+    document.getElementById('reset')?.addEventListener('click', () => {
+      ['title', 'body', 'calc'].forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+      });
+    });
+
+    document.getElementById('clear-filters')?.addEventListener('click', () => {
+      const search = document.getElementById('search');
+      const cat = document.getElementById('filter-category');
+      const mood = document.getElementById('filter-mood');
+      if (search) search.value = '';
+      if (cat) cat.value = 'all';
+      if (mood) mood.value = 'all';
+      renderPosts();
+    });
+
+    ['search', 'filter-category', 'filter-mood'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('input', renderPosts);
+      if (el) el.addEventListener('change', renderPosts);
+    });
+
+    renderPosts();
+  </script>
+</body>
+</html>
