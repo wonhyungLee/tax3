@@ -1,0 +1,64 @@
+:root {
+  /* Brand palette */
+  --primary: #e23b3b; /* TurboTax 스타일 포인트 레드 */
+  --secondary: #2fb36a; /* H&R Block 계열 그린 */
+  --accent: #5b7cfa; /* Japan Tax Calculator 계열 보라 */
+  --teal: #14b8a6; /* 청록 포인트 */
+  --amber: #f6c560;
+  --success: #16a34a;
+  --warning: #f59e0b;
+  --error: #ef4444;
+
+  /* Data viz */
+  --bar-1: #22d3ee;
+  --bar-2: #7c3aed;
+  --bar-3: #f4d35e;
+
+  /* Base light theme */
+  --bg: #f6f8fb;
+  --bg-pattern: radial-gradient(120% 120% at 20% 15%, rgba(226, 59, 59, 0.08), transparent),
+    radial-gradient(120% 120% at 80% 10%, rgba(20, 184, 166, 0.08), transparent),
+    linear-gradient(180deg, #f8fafc 0%, #eef2f7 70%, #e8edf5 100%);
+  --surface: #ffffff;
+  --surface-strong: #f2f5fb;
+  --surface-soft: #eef2f7;
+  --panel: rgba(255, 255, 255, 0.82);
+  --panel-strong: rgba(255, 255, 255, 0.94);
+  --text: #0f172a;
+  --muted: #475569;
+  --border: #d6deeb;
+  --shadow: 0 18px 46px rgba(15, 23, 42, 0.12);
+  --glow-primary: 0 0 0 1px rgba(226, 59, 59, 0.16);
+  --radius: 16px;
+  --font-heading: 'Space Grotesk', 'Noto Sans KR', system-ui, -apple-system, sans-serif;
+  --font-body: 'Noto Sans KR', 'Space Grotesk', system-ui, -apple-system, sans-serif;
+}
+
+[data-theme='dark'] {
+  --bg: #050914;
+  --bg-pattern: radial-gradient(140% 160% at 15% 10%, rgba(35, 147, 114, 0.22), transparent),
+    radial-gradient(120% 120% at 80% 0%, rgba(91, 124, 250, 0.22), transparent),
+    #050914;
+  --surface: #0c1427;
+  --surface-strong: #0d172d;
+  --surface-soft: #0b1224;
+  --panel: rgba(12, 20, 39, 0.94);
+  --panel-strong: rgba(10, 16, 32, 0.98);
+  --text: #e2e8f0;
+  --muted: #94a3b8;
+  --border: #1f2b45;
+  --shadow: 0 18px 46px rgba(0, 0, 0, 0.36);
+  --glow-primary: 0 0 0 1px rgba(226, 59, 59, 0.32);
+}
+
+.theme-light-only {
+  display: none;
+}
+
+[data-theme='light'] .theme-light-only {
+  display: inline-flex;
+}
+
+[data-theme='dark'] .theme-dark-only {
+  display: inline-flex;
+}

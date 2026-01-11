@@ -7,15 +7,46 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles/colors.css">
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles/responsive.css">
 </head>
-<body>
+<body data-theme="light">
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true"></div>
+      <div>
+        <strong>Tax Unified</strong>
+        <div class="mini">연말정산 · 법인세 · 금융소득</div>
+      </div>
+    </div>
+    <nav class="nav-links" aria-label="주요 섹션">
+      <a href="#control">빠른 입력</a>
+      <a href="#live">실시간 요약</a>
+      <a href="#flow">계산 흐름</a>
+      <a href="#share">공유/커뮤니티</a>
+      <a href="#deploy">배포</a>
+    </nav>
+    <div class="topbar-actions">
+      <button class="btn ghost" id="open-modal" type="button">주민세 계산법</button>
+      <button class="btn chip" id="theme-toggle" type="button" aria-pressed="false">
+        <span class="theme-light-only" aria-hidden="true">🌞</span>
+        <span class="theme-dark-only" aria-hidden="true">🌙</span>
+        테마
+      </button>
+    </div>
+  </header>
   <main class="shell">
     <header class="hero">
       <div>
         <p class="pill">Full Engines · 하나의 도메인</p>
         <h1>연말정산 · 법인세 · 종합소득세를 한 화면에서</h1>
         <p class="lede">각 계산기의 원본 엔진과 입력 필드를 그대로 가져와 탭으로 전환하며 쓸 수 있는 통합 플랫폼입니다. 아래 카드에서 바로 열거나 탭으로 전환하세요.</p>
+        <div class="hero-badges">
+          <span class="pill">WCAG 대비 강화</span>
+          <span class="pill">라이트/다크 테마</span>
+          <span class="pill">고정 요약 사이드바</span>
+        </div>
       </div>
       <div class="hero-actions">
         <a class="btn ghost" href="https://github.com/wonhyungLee/tax3" target="_blank" rel="noreferrer">GitHub 열기</a>
@@ -75,16 +106,28 @@
             <span class="pill">연말정산 엔진</span>
             <span class="status-dot" data-engine-status="yearend">대기</span>
           </div>
-          <label>총급여(과세)
+          <label>
+            <span class="label-row">총급여(과세)
+              <span class="tooltip" data-tooltip="근로소득원천징수영수증의 과세 대상 금액을 입력하세요.">?</span>
+            </span>
             <input type="number" data-sync-target="yearend#gross_salary" placeholder="60,000,000" inputmode="numeric" />
           </label>
-          <label>신용카드 사용액
+          <label>
+            <span class="label-row">신용카드 사용액
+              <span class="tooltip" data-tooltip="전통시장/대중교통이 있다면 개별 입력도 함께 채우세요.">?</span>
+            </span>
             <input type="number" data-sync-target="yearend#credit_card_spend" placeholder="10,000,000" inputmode="numeric" />
           </label>
-          <label>기납부 소득세
+          <label>
+            <span class="label-row">기납부 소득세
+              <span class="tooltip" data-tooltip="원천징수영수증의 기납부 국세 금액을 입력합니다.">?</span>
+            </span>
             <input type="number" data-sync-target="yearend#withheld_income_tax" placeholder="3,500,000" inputmode="numeric" />
           </label>
-          <label>기납부 지방소득세
+          <label>
+            <span class="label-row">기납부 지방소득세
+              <span class="tooltip" data-tooltip="지방소득세는 국세의 10% 비율을 확인해 입력합니다.">?</span>
+            </span>
             <input type="number" data-sync-target="yearend#withheld_local_tax" placeholder="350,000" inputmode="numeric" />
           </label>
           <p class="mini">연말정산 탭 안의 동일 ID 입력을 직접 채워 원본 계산 로직을 실행합니다.</p>
@@ -95,16 +138,28 @@
             <span class="pill">법인세 엔진</span>
             <span class="status-dot" data-engine-status="corporate">대기</span>
           </div>
-          <label>과세소득(법인세 과표)
+          <label>
+            <span class="label-row">과세소득(법인세 과표)
+              <span class="tooltip" data-tooltip="일반 과세소득 금액을 먼저 입력한 뒤 세액 계산을 실행합니다.">?</span>
+            </span>
             <input type="number" data-sync-target="corporate#netIncome" placeholder="120,000,000" inputmode="numeric" />
           </label>
-          <label>매출(일반)
+          <label>
+            <span class="label-row">매출(일반)
+              <span class="tooltip" data-tooltip="특별 세율 구간이면 매출 구성을 나눠 입력하세요.">?</span>
+            </span>
             <input type="number" data-sync-target="corporate#revGeneral" placeholder="300,000,000" inputmode="numeric" />
           </label>
-          <label>접대비 입력
+          <label>
+            <span class="label-row">접대비 입력
+              <span class="tooltip" data-tooltip="문화·전통시장 가중치가 있으면 카드 내 개별 항목을 함께 조정하세요.">?</span>
+            </span>
             <input type="number" data-sync-target="corporate#bpTotal" placeholder="5,000,000" inputmode="numeric" />
           </label>
-          <label>기납부세액
+          <label>
+            <span class="label-row">기납부세액
+              <span class="tooltip" data-tooltip="중간예납·원천징수세액 등 기납부 금액을 합산합니다.">?</span>
+            </span>
             <input type="number" data-sync-target="corporate#prepaidTax" placeholder="0" inputmode="numeric" />
           </label>
           <p class="mini">필드가 채워지면 TaxCore 스크립트를 호출해 세액/최저한세를 재계산합니다.</p>
@@ -115,16 +170,28 @@
             <span class="pill">종합소득세(금융)</span>
             <span class="status-dot" data-engine-status="financial">대기</span>
           </div>
-          <label>이자/배당 합계
+          <label>
+            <span class="label-row">이자/배당 합계
+              <span class="tooltip" data-tooltip="금융소득명세 합계금액(국내/해외 구분)을 합산 입력합니다.">?</span>
+            </span>
             <input type="number" data-sync-target="financial:interest" placeholder="24,000,000" inputmode="numeric" />
           </label>
-          <label>배당(Gross-up 대상)
+          <label>
+            <span class="label-row">배당(Gross-up 대상)
+              <span class="tooltip" data-tooltip="배당소득 Gross-up 적용 시 체크하면 세액공제가 반영됩니다.">?</span>
+            </span>
             <input type="number" data-sync-target="financial:dividend" placeholder="6,000,000" inputmode="numeric" />
           </label>
-          <label>종합소득(다른 소득)
+          <label>
+            <span class="label-row">종합소득(다른 소득)
+              <span class="tooltip" data-tooltip="사업/근로 등 다른 종합소득 과표 금액을 입력합니다.">?</span>
+            </span>
             <input type="number" data-sync-target="financial#otherIncomeGross" placeholder="40,000,000" inputmode="numeric" />
           </label>
-          <label>기납부 국세/지방세
+          <label>
+            <span class="label-row">기납부 국세/지방세
+              <span class="tooltip" data-tooltip="배당·이자 원천징수 국세/지방세를 각각 입력합니다.">?</span>
+            </span>
             <div class="split">
               <input type="number" data-sync-target="financial#prepaidNational" placeholder="0" inputmode="numeric" />
               <input type="number" data-sync-target="financial#prepaidLocal" placeholder="0" inputmode="numeric" />
@@ -147,73 +214,159 @@
           <a class="btn primary" href="#share">OG 카드 만들기</a>
         </div>
       </div>
-      <div class="live-grid">
-        <article class="live-card">
-          <div class="live-title">
-            <span>연말정산</span>
-            <span class="status-dot" data-engine-status="yearend"></span>
-          </div>
-          <div class="live-metric">
-            <span>환급/추납</span>
-            <strong data-live-yearend="refund">대기</strong>
-          </div>
-          <div class="live-metric">
-            <span>과세표준</span>
-            <strong data-live-yearend="taxable">-</strong>
-          </div>
-          <div class="live-metric">
-            <span>카드 추가 필요액</span>
-            <strong data-live-yearend="cardNeed">-</strong>
-          </div>
-        </article>
+      <div class="live-layout">
+        <div class="live-main">
+          <div class="live-grid">
+            <article class="live-card">
+              <div class="live-title">
+                <span>연말정산</span>
+                <span class="status-dot" data-engine-status="yearend"></span>
+              </div>
+              <div class="live-metric">
+                <span>환급/추납</span>
+                <strong data-live-yearend="refund">대기</strong>
+              </div>
+              <div class="live-metric">
+                <span>과세표준</span>
+                <strong data-live-yearend="taxable">-</strong>
+              </div>
+              <div class="live-metric">
+                <span>카드 추가 필요액</span>
+                <strong data-live-yearend="cardNeed">-</strong>
+              </div>
+            </article>
 
-        <article class="live-card">
-          <div class="live-title">
-            <span>법인세</span>
-            <span class="status-dot" data-engine-status="corporate"></span>
-          </div>
-          <div class="live-metric">
-            <span>최종 납부세액</span>
-            <strong data-live-corporate="finalTax">대기</strong>
-          </div>
-          <div class="live-metric">
-            <span>납부/환급 예상</span>
-            <strong data-live-corporate="payable">-</strong>
-          </div>
-          <div class="live-metric">
-            <span>과세표준</span>
-            <strong data-live-corporate="taxBase">-</strong>
-          </div>
-        </article>
+            <article class="live-card">
+              <div class="live-title">
+                <span>법인세</span>
+                <span class="status-dot" data-engine-status="corporate"></span>
+              </div>
+              <div class="live-metric">
+                <span>최종 납부세액</span>
+                <strong data-live-corporate="finalTax">대기</strong>
+              </div>
+              <div class="live-metric">
+                <span>납부/환급 예상</span>
+                <strong data-live-corporate="payable">-</strong>
+              </div>
+              <div class="live-metric">
+                <span>과세표준</span>
+                <strong data-live-corporate="taxBase">-</strong>
+              </div>
+            </article>
 
-        <article class="live-card">
-          <div class="live-title">
-            <span>종합소득세(금융)</span>
-            <span class="status-dot" data-engine-status="financial"></span>
+            <article class="live-card">
+              <div class="live-title">
+                <span>종합소득세(금융)</span>
+                <span class="status-dot" data-engine-status="financial"></span>
+              </div>
+              <div class="live-metric">
+                <span>비교과세 결과</span>
+                <strong data-live-financial="primary">대기</strong>
+              </div>
+              <div class="live-metric">
+                <span>경고</span>
+                <strong data-live-financial="warnings">-</strong>
+              </div>
+              <div class="live-metric">
+                <span>기타소득/공제</span>
+                <strong data-live-financial="other">-</strong>
+              </div>
+            </article>
           </div>
-          <div class="live-metric">
-            <span>비교과세 결과</span>
-            <strong data-live-financial="primary">대기</strong>
-          </div>
-          <div class="live-metric">
-            <span>경고</span>
-            <strong data-live-financial="warnings">-</strong>
-          </div>
-          <div class="live-metric">
-            <span>기타소득/공제</span>
-            <strong data-live-financial="other">-</strong>
-          </div>
-        </article>
-      </div>
 
-      <div class="strategy">
-        <div>
-          <p class="pill">세액 절감 제안</p>
-          <h3>입력 값과 결과를 바탕으로 자동 추천</h3>
+          <div class="legend" aria-label="데이터 시각화 색상">
+            <span><span class="swatch" style="background: var(--bar-1);"></span>보험·연금</span>
+            <span><span class="swatch" style="background: var(--bar-2);"></span>과세표준/공제</span>
+            <span><span class="swatch" style="background: var(--bar-3);"></span>지방세/기타</span>
+          </div>
+
+          <div class="strategy">
+            <div>
+              <p class="pill">세액 절감 제안</p>
+              <h3>입력 값과 결과를 바탕으로 자동 추천</h3>
+            </div>
+            <ul id="strategy-list">
+              <li>엔진을 불러온 뒤 입력하면 실시간 제안이 나타납니다.</li>
+            </ul>
+          </div>
         </div>
-        <ul id="strategy-list">
-          <li>엔진을 불러온 뒤 입력하면 실시간 제안이 나타납니다.</li>
-        </ul>
+
+        <aside class="summary-sidebar" aria-labelledby="summary-title">
+          <div class="summary-title">
+            <h4 id="summary-title">고정 요약</h4>
+            <span class="pill">실시간</span>
+          </div>
+          <div class="summary-metric">
+            <div class="summary-label">
+              <span>연말정산</span>
+              <span class="status-dot" data-engine-status="yearend"></span>
+            </div>
+            <div class="summary-value" data-summary="yearend-refund">대기</div>
+            <p class="mini" data-summary-note="yearend">환급/추납 추적</p>
+          </div>
+          <div class="summary-metric">
+            <div class="summary-label">
+              <span>법인세</span>
+              <span class="status-dot" data-engine-status="corporate"></span>
+            </div>
+            <div class="summary-value" data-summary="corporate-payable">-</div>
+            <p class="mini" data-summary-note="corporate">납부/환급, 과표 흐름</p>
+          </div>
+          <div class="summary-metric">
+            <div class="summary-label">
+              <span>금융소득</span>
+              <span class="status-dot" data-engine-status="financial"></span>
+            </div>
+            <div class="summary-value" data-summary="financial-primary">-</div>
+            <p class="mini" data-summary-note="financial">비교과세 결과/경고</p>
+          </div>
+          <div class="bar-legend">
+            <span class="bar-chip bar1">보험·연금</span>
+            <span class="bar-chip bar2">소득/공제</span>
+            <span class="bar-chip bar3">지방세</span>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="flow" id="flow">
+      <div class="section-head">
+        <div>
+          <p class="pill">계산 흐름 시각화</p>
+          <h2>입력 → 공제 → 과세표준 → 세액 → 결과</h2>
+          <p class="muted">각 단계별 색상을 따라 현재 위치와 다음 단계를 확인하세요.</p>
+        </div>
+        <a class="btn ghost" href="#control">입력 패널로 이동</a>
+      </div>
+      <div class="flow-chart">
+        <div class="flow-steps" id="flow-steps">
+          <div class="flow-step active" data-step="input">
+            <div class="flow-pill" style="background: var(--bar-1);">Step 1 · 입력</div>
+            <strong>입력</strong>
+            <span class="mini">총급여·매출·이자/배당 금액을 빠른 입력 패널에 채워 주세요.</span>
+          </div>
+          <div class="flow-step" data-step="deduction">
+            <div class="flow-pill" style="background: var(--bar-2);">Step 2 · 공제</div>
+            <strong>공제/가산</strong>
+            <span class="mini">카드/연금/접대비/경비를 채워 공제 한도와 가산세를 반영합니다.</span>
+          </div>
+          <div class="flow-step" data-step="taxbase">
+            <div class="flow-pill" style="background: var(--bar-3);">Step 3 · 과세표준</div>
+            <strong>과세표준</strong>
+            <span class="mini">원본 엔진에서 산출된 과세표준과 비교과세 결과를 읽어옵니다.</span>
+          </div>
+          <div class="flow-step" data-step="tax">
+            <div class="flow-pill" style="background: var(--primary); color: #fff;">Step 4 · 세액</div>
+            <strong>세액 계산</strong>
+            <span class="mini">국세/지방세, Gross-up, 최저한세를 포함해 세액 흐름을 계산합니다.</span>
+          </div>
+          <div class="flow-step" data-step="result">
+            <div class="flow-pill" style="background: var(--secondary);">Step 5 · 결과</div>
+            <strong>환급/추납</strong>
+            <span class="mini">환급/추납·비교과세 결과를 요약하고 공유 카드에 전달합니다.</span>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -262,6 +415,11 @@
         <button class="tab-btn active" data-tab="yearend">연말정산</button>
         <button class="tab-btn" data-tab="corporate">법인세</button>
         <button class="tab-btn" data-tab="financial">종합소득세(금융)</button>
+      </div>
+      <div class="accordion-bar" aria-label="모바일 계산기 선택">
+        <button class="accordion-btn" data-tab-accordion="yearend" aria-expanded="true">연말정산 열기</button>
+        <button class="accordion-btn" data-tab-accordion="corporate" aria-expanded="false">법인세 열기</button>
+        <button class="accordion-btn" data-tab-accordion="financial" aria-expanded="false">종합소득세(금융) 열기</button>
       </div>
 
       <div class="tab-panels">
@@ -379,6 +537,25 @@
       </ol>
     </section>
   </main>
+
+  <div class="modal-backdrop" id="info-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal">
+      <div class="modal-head">
+        <h3 id="modal-title">주민세 계산법</h3>
+        <button class="close-modal" type="button" data-close-modal aria-label="닫기">×</button>
+      </div>
+      <p class="muted">주민세는 산출세액의 10%를 기본으로 하며, 일부 감면·비과세 항목은 지자체 규정에 따릅니다.</p>
+      <ul class="list small">
+        <li>연말정산/법인세 결과의 국세 산출세액 × 10%를 기본 지방소득세로 반영합니다.</li>
+        <li>과세표준 구간별 감면이 있는 경우 해당 지자체 공지와 납부서 기준을 확인하세요.</li>
+        <li>지방교육세 등 부가세가 붙는 경우는 별도 계산 탭(원본 엔진)에서 확인할 수 있습니다.</li>
+      </ul>
+      <div class="modal-actions">
+        <button class="btn ghost" type="button" data-close-modal>닫기</button>
+        <button class="btn primary" type="button" data-close-modal>확인</button>
+      </div>
+    </div>
+  </div>
 
   <script src="app.js"></script>
 </body>

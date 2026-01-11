@@ -1,3 +1,51 @@
+const rootEl = document.documentElement;
+const bodyEl = document.body;
+const themeToggleBtn = document.getElementById('theme-toggle');
+
+const setTheme = (mode) => {
+  const next = mode === 'dark' ? 'dark' : 'light';
+  rootEl?.setAttribute('data-theme', next);
+  bodyEl?.setAttribute('data-theme', next);
+  if (themeToggleBtn) {
+    themeToggleBtn.setAttribute('aria-pressed', next === 'dark' ? 'true' : 'false');
+  }
+  try {
+    localStorage.setItem('tax-theme', next);
+  } catch (_) {
+    /* localStorage unavailable */
+  }
+};
+
+const savedTheme = (() => {
+  try {
+    return localStorage.getItem('tax-theme');
+  } catch (_) {
+    return null;
+  }
+})();
+setTheme(savedTheme || bodyEl?.dataset.theme || 'light');
+
+themeToggleBtn?.addEventListener('click', () => {
+  const current = rootEl?.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+  setTheme(current === 'dark' ? 'light' : 'dark');
+});
+
+const modal = document.getElementById('info-modal');
+const openModalBtn = document.getElementById('open-modal');
+const closeModal = () => modal?.classList.remove('open');
+const openModal = () => modal?.classList.add('open');
+
+openModalBtn?.addEventListener('click', openModal);
+modal?.addEventListener('click', (e) => {
+  if (e.target === modal) closeModal();
+});
+document.querySelectorAll('[data-close-modal]').forEach((btn) =>
+  btn.addEventListener('click', closeModal)
+);
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeModal();
+});
+
 // 탭 전환: 각 탭은 원본 엔진을 포함한 iframe을 보여줍니다.
 const switchTab = (tab) => {
   const targetBtn = document.querySelector(`.tab-btn[data-tab="${tab}"]`);
@@ -6,6 +54,10 @@ const switchTab = (tab) => {
   document.querySelectorAll('.tab-panel').forEach((panel) =>
     panel.classList.toggle('active', panel.id === `tab-${tab}`)
   );
+  document.querySelectorAll('[data-tab-accordion]').forEach((btn) => {
+    const isActive = btn.dataset.tabAccordion === tab;
+    btn.setAttribute('aria-expanded', isActive ? 'true' : 'false');
+  });
 };
 
 document.querySelectorAll('.tab-btn').forEach((btn) => {
@@ -14,6 +66,10 @@ document.querySelectorAll('.tab-btn').forEach((btn) => {
 
 document.querySelectorAll('[data-tab-jump]').forEach((btn) => {
   btn.addEventListener('click', () => switchTab(btn.dataset.tabJump));
+});
+
+document.querySelectorAll('[data-tab-accordion]').forEach((btn) => {
+  btn.addEventListener('click', () => switchTab(btn.dataset.tabAccordion));
 });
 
 // --------------- 실시간 제어/요약 -----------------
@@ -236,6 +292,67 @@ const updateLiveUI = (snap) => {
   setText('[data-live-financial="other"]', snap.financial?.other || '-');
 };
 
+const updateSummary = (snap) => {
+  const setValue = (key, value) => {
+    const el = document.querySelector(`[data-summary="${key}"]`);
+    if (el) el.textContent = value || '—';
+  };
+  const setNote = (key, value) => {
+    const el = document.querySelector(`[data-summary-note="${key}"]`);
+    if (el && value) el.textContent = value;
+  };
+
+  setValue('yearend-refund', snap.yearend?.refund || '대기');
+  setNote(
+    'yearend',
+    snap.yearend?.refundLabel
+      ? `${snap.yearend.refundLabel} · 카드 추가 ${snap.yearend.cardNeed || '-'}`
+      : '환급/추납 추적'
+  );
+
+  setValue('corporate-payable', snap.corporate?.payable || '-');
+  setNote(
+    'corporate',
+    snap.corporate?.taxBase ? `과세표준 ${snap.corporate.taxBase}` : '납부/환급, 과표 흐름'
+  );
+
+  setValue('financial-primary', snap.financial?.primary || '-');
+  setNote('financial', snap.financial?.warnings || '비교과세 결과/경고');
+};
+
+const setFlowStage = (stage) => {
+  document.querySelectorAll('[data-step]').forEach((step) => {
+    step.classList.toggle('active', step.dataset.step === stage);
+  });
+};
+
+const deriveFlowStage = (snap) => {
+  const hasInput = Array.from(document.querySelectorAll('[data-sync-target]')).some(
+    (el) => el.value !== ''
+  );
+  if (!hasInput) return 'input';
+
+  const hasDeduction =
+    parseNumber(snap.yearend?.cardNeed || '') > 0 ||
+    parseNumber(snap.corporate?.taxBase || '') > 0 ||
+    parseNumber(snap.financial?.other || '') > 0;
+  if (!hasDeduction) return 'deduction';
+
+  const hasTaxBase =
+    (snap.yearend?.taxable && snap.yearend.taxable !== '-') ||
+    (snap.corporate?.taxBase && snap.corporate.taxBase !== '-') ||
+    (snap.financial?.other && snap.financial.other !== '-');
+  if (!hasTaxBase) return 'taxbase';
+
+  const hasTax =
+    (snap.yearend?.refund && snap.yearend.refund !== '대기') ||
+    (snap.corporate?.payable && snap.corporate.payable !== '-') ||
+    (snap.financial?.primary && snap.financial.primary !== '대기');
+  if (!hasTax) return 'tax';
+
+  return 'result';
+};
+
 const buildStrategies = (snap) => {
   const tips = [];
   const additional = parseNumber(snap.yearend?.cardNeed || '');
@@ -288,6 +405,8 @@ const refreshLive = () => {
   updateLiveUI(snap);
   buildStrategies(snap);
   updateShareFields(snap);
+  updateSummary(snap);
+  setFlowStage(deriveFlowStage(snap));
 };
 
 document.getElementById('refresh-live')?.addEventListener('click', refreshLive);
