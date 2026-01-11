@@ -181,6 +181,7 @@ const summarySidebar = document.querySelector('.summary-sidebar');
 const summaryToggle = document.getElementById('toggle-summary');
 const chartBars = document.getElementById('chart-bars');
 const chartTooltip = document.getElementById('chart-tooltip');
+const frameGuards = document.querySelectorAll('[data-frame-guard]');
 
 Object.entries(frames).forEach(([engine, frame]) => {
   if (!frame) return;
@@ -205,12 +206,21 @@ const setStatus = (engine, state = '') => {
   });
 };
 
+const toggleFrameGuard = (engine, visible) => {
+  frameGuards.forEach((guard) => {
+    if (guard.dataset.frameGuard === engine) {
+      guard.classList.toggle('visible', visible);
+    }
+  });
+};
+
 const ensureFrameLoaded = (engine) => {
   const frame = frames[engine];
   if (!frame || frameLoaded[engine]) return;
   const src = frameSources[engine];
   if (src) {
     setStatus(engine, 'warn');
+    toggleFrameGuard(engine, true);
     frame.setAttribute('src', src);
     frameLoaded[engine] = true;
   }
@@ -240,16 +250,36 @@ summaryToggle?.addEventListener('click', () => setSummaryCollapsed(!summarySideb
 window.addEventListener('resize', handleAutoCollapse);
 handleAutoCollapse();
 
+frameGuards.forEach((guard) => {
+  const engine = guard.dataset.frameGuard;
+  guard.querySelectorAll('[data-frame-load]').forEach((btn) => {
+    btn.addEventListener('click', () => ensureFrameLoaded(engine));
+  });
+});
+
+Object.keys(frames).forEach((engine) => {
+  if (!frameReady[engine]) {
+    setTimeout(() => {
+      if (!frameReady[engine]) toggleFrameGuard(engine, true);
+    }, 4000);
+  }
+});
+
 Object.entries(frames).forEach(([engine, frame]) => {
   if (!frame) return;
   frame.addEventListener('load', () => {
     frameLoaded[engine] = true;
     frameReady[engine] = true;
     setStatus(engine, 'ready');
+    toggleFrameGuard(engine, false);
     if (document.getElementById('live-sync')?.checked) {
       syncAll(engine);
     }
     refreshLive();
+  });
+  frame.addEventListener('error', () => {
+    setStatus(engine, 'error');
+    toggleFrameGuard(engine, true);
   });
 });
 
@@ -724,6 +754,9 @@ setInterval(refreshLive, 2000);
 const shareUrl = document.getElementById('share-url');
 const buildShareButton = document.getElementById('build-share');
 const copyShareButton = document.getElementById('copy-share');
+
+// 초기 프레임 로드 (연말정산 우선)
+ensureFrameLoaded('yearend');
 
 const buildShareLink = () => {
   const params = new URLSearchParams();
