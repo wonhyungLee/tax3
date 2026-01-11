@@ -9,6 +9,7 @@ body {
   color: var(--text);
   font-family: var(--font-body);
   line-height: 1.6;
+  filter: contrast(var(--contrast-filter, 1));
 }
 
 a {
@@ -93,6 +94,21 @@ a {
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.contrast-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface-strong);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 8px 10px;
+}
+
+.contrast-control input[type='range'] {
+  accent-color: var(--primary);
+  width: 120px;
 }
 
 .pill {
@@ -348,6 +364,15 @@ a {
   box-shadow: var(--shadow);
 }
 
+[data-collapsible='true'] .control-card-head {
+  cursor: pointer;
+}
+
+[data-collapsed='true'] {
+  max-height: 54px;
+  overflow: hidden;
+}
+
 [data-theme='dark'] .control-card {
   background: linear-gradient(145deg, rgba(255, 255, 255, 0.03), rgba(20, 184, 166, 0.1));
 }
@@ -524,6 +549,80 @@ a {
   color: var(--text);
 }
 
+.chart-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  box-shadow: var(--shadow);
+  margin-top: 12px;
+}
+
+[data-theme='dark'] .chart-card {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.chart-bars {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+  height: 180px;
+  margin-top: 10px;
+  position: relative;
+}
+
+.chart-bar {
+  flex: 1;
+  position: relative;
+  border-radius: 12px 12px 6px 6px;
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.chart-bar-fill {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  border-radius: 10px 10px 4px 4px;
+  background: linear-gradient(135deg, var(--bar-1), var(--accent));
+  height: 20%;
+  transition: height 0.2s ease, opacity 0.2s ease;
+  opacity: 0.9;
+}
+
+.chart-bar[data-kind='corporate'] .chart-bar-fill {
+  background: linear-gradient(135deg, var(--bar-2), var(--primary));
+}
+
+.chart-bar[data-kind='financial'] .chart-bar-fill {
+  background: linear-gradient(135deg, var(--bar-3), var(--secondary));
+}
+
+.chart-bar label {
+  position: absolute;
+  bottom: 6px;
+  left: 8px;
+  font-size: 12px;
+  color: var(--text);
+}
+
+.chart-tooltip {
+  position: absolute;
+  padding: 8px 10px;
+  background: var(--panel-strong);
+  color: var(--text);
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  pointer-events: none;
+  font-size: 13px;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+  z-index: 50;
+}
+
 .summary-sidebar {
   position: sticky;
   top: 76px;
@@ -532,6 +631,15 @@ a {
   border-radius: var(--radius);
   padding: 12px;
   box-shadow: var(--shadow);
+  transition: max-height 0.2s ease, opacity 0.2s ease, transform 0.2s ease;
+  max-height: 720px;
+}
+
+.summary-sidebar.collapsed {
+  max-height: 64px;
+  overflow: hidden;
+  opacity: 0.92;
+  transform: translateY(2px);
 }
 
 .summary-title {
@@ -539,6 +647,15 @@ a {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 10px;
+}
+
+.summary-toggle {
+  border: 1px solid var(--border);
+  background: var(--surface-soft);
+  border-radius: 10px;
+  padding: 6px 10px;
+  cursor: pointer;
+  color: var(--muted);
 }
 
 .summary-metric {
@@ -845,6 +962,7 @@ iframe {
   border-radius: 12px;
   padding: 10px;
   background: var(--surface-soft);
+  opacity: 0.8;
 }
 
 .flow-step .flow-pill {
@@ -859,6 +977,14 @@ iframe {
 .flow-step.active {
   border-color: var(--primary);
   box-shadow: var(--glow-primary);
+  background: linear-gradient(135deg, rgba(226, 59, 59, 0.14), rgba(91, 124, 250, 0.12));
+  opacity: 1;
+}
+
+.flow-step.complete {
+  border-color: var(--secondary);
+  background: linear-gradient(135deg, rgba(47, 179, 106, 0.12), rgba(20, 184, 166, 0.1));
+  opacity: 1;
 }
 
 .flow-step .mini {

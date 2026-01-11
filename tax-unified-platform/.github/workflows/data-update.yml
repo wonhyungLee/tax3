@@ -1,0 +1,26 @@
+name: Tax Data Update
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 5 * * 0' # 매주 일요일 14:00 KST
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tax-unified-platform
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run data update script
+        env:
+          TAX_DATA_URL: ${{ secrets.TAX_DATA_URL }}
+        run: |
+          chmod +x scripts/update-tax-data.sh
+          scripts/update-tax-data.sh
+
+      - name: Show updated files
+        run: git status --short

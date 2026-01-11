@@ -6,6 +6,12 @@
   .summary-sidebar {
     position: relative;
     top: 0;
+    max-height: none;
+  }
+
+  .summary-sidebar[data-auto-collapse='true'] {
+    max-height: 82px;
+    overflow: hidden;
   }
 }
 

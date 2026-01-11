@@ -1,6 +1,48 @@
 const rootEl = document.documentElement;
 const bodyEl = document.body;
 const themeToggleBtn = document.getElementById('theme-toggle');
+const contrastSlider = document.getElementById('contrast-slider');
+const a11yModal = document.getElementById('a11y-modal');
+const openA11yBtn = document.getElementById('open-a11y');
+const SESSION_KEY = 'tax-session';
+
+const logEvent = (type, detail = {}) => {
+  console.debug(`[log:${type}]`, detail);
+  try {
+    const raw = localStorage.getItem('tax-logs');
+    const list = raw ? JSON.parse(raw) : [];
+    list.push({ type, detail, ts: Date.now() });
+    while (list.length > 50) list.shift();
+    localStorage.setItem('tax-logs', JSON.stringify(list));
+  } catch (_) {
+    /* ignore logging failures */
+  }
+};
+
+window.addEventListener('error', (e) =>
+  logEvent('error', { message: e.message, source: e.filename || '', line: e.lineno })
+);
+
+const initSentry = () => {
+  const dsn = window.SENTRY_DSN || document.querySelector('meta[name="sentry-dsn"]')?.content;
+  if (!dsn) return;
+  const script = document.createElement('script');
+  script.src = 'https://browser.sentry-cdn.com/7.103.0/bundle.tracing.min.js';
+  script.crossOrigin = 'anonymous';
+  script.referrerPolicy = 'origin';
+  script.onload = () => {
+    if (!window.Sentry) return;
+    const integrations = window.Sentry.BrowserTracing ? [new window.Sentry.BrowserTracing()] : [];
+    window.Sentry.init({
+      dsn,
+      integrations,
+      tracesSampleRate: 0.2,
+    });
+    logEvent('sentry_init');
+  };
+  document.head.appendChild(script);
+};
+initSentry();
 
 const setTheme = (mode) => {
   const next = mode === 'dark' ? 'dark' : 'light';
@@ -14,6 +56,7 @@ const setTheme = (mode) => {
   } catch (_) {
     /* localStorage unavailable */
   }
+  logEvent('theme', { theme: next });
 };
 
 const savedTheme = (() => {
@@ -28,6 +71,34 @@ setTheme(savedTheme || bodyEl?.dataset.theme || 'light');
 themeToggleBtn?.addEventListener('click', () => {
   const current = rootEl?.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
   setTheme(current === 'dark' ? 'light' : 'dark');
+});
+
+const setContrast = (value) => {
+  const ratio = Math.max(0.8, Math.min(1.3, value));
+  rootEl?.style.setProperty('--contrast-filter', ratio.toString());
+  try {
+    localStorage.setItem('tax-contrast', ratio.toString());
+  } catch (_) {
+    /* ignore */
+  }
+  logEvent('contrast', { ratio });
+};
+
+const savedContrast = (() => {
+  try {
+    return parseFloat(localStorage.getItem('tax-contrast'));
+  } catch (_) {
+    return null;
+  }
+})();
+if (savedContrast && contrastSlider) {
+  contrastSlider.value = Math.round(savedContrast * 100);
+  setContrast(savedContrast);
+}
+
+contrastSlider?.addEventListener('input', () => {
+  const val = Number(contrastSlider.value || 100) / 100;
+  setContrast(val);
 });
 
 const modal = document.getElementById('info-modal');
@@ -46,6 +117,16 @@ window.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') closeModal();
 });
 
+const closeA11y = () => a11yModal?.classList.remove('open');
+const openA11y = () => a11yModal?.classList.add('open');
+openA11yBtn?.addEventListener('click', openA11y);
+a11yModal?.addEventListener('click', (e) => {
+  if (e.target === a11yModal) closeA11y();
+});
+document.querySelectorAll('[data-close-a11y]').forEach((btn) => btn.addEventListener('click', closeA11y));
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeA11y();
+});
 // 탭 전환: 각 탭은 원본 엔진을 포함한 iframe을 보여줍니다.
 const switchTab = (tab) => {
   const targetBtn = document.querySelector(`.tab-btn[data-tab="${tab}"]`);
@@ -58,6 +139,8 @@ const switchTab = (tab) => {
     const isActive = btn.dataset.tabAccordion === tab;
     btn.setAttribute('aria-expanded', isActive ? 'true' : 'false');
   });
+  ensureFrameLoaded(tab);
+  logEvent('tab_switch', { tab });
 };
 
 document.querySelectorAll('.tab-btn').forEach((btn) => {
@@ -92,6 +175,24 @@ const frames = {
 };
 
 const frameReady = { yearend: false, corporate: false, financial: false };
+const frameLoaded = { yearend: false, corporate: false, financial: false };
+const frameSources = {};
+const summarySidebar = document.querySelector('.summary-sidebar');
+const summaryToggle = document.getElementById('toggle-summary');
+const chartBars = document.getElementById('chart-bars');
+const chartTooltip = document.getElementById('chart-tooltip');
+
+Object.entries(frames).forEach(([engine, frame]) => {
+  if (!frame) return;
+  const src = frame.getAttribute('src');
+  if (src) {
+    frameSources[engine] = src;
+    if (engine !== 'yearend') {
+      frame.removeAttribute('src'); // lazy load for secondary engines
+    }
+  }
+});
+
 const calcTimers = {};
 
 const setStatus = (engine, state = '') => {
@@ -104,9 +205,45 @@ const setStatus = (engine, state = '') => {
   });
 };
 
+const ensureFrameLoaded = (engine) => {
+  const frame = frames[engine];
+  if (!frame || frameLoaded[engine]) return;
+  const src = frameSources[engine];
+  if (src) {
+    setStatus(engine, 'warn');
+    frame.setAttribute('src', src);
+    frameLoaded[engine] = true;
+  }
+};
+
+const setSummaryCollapsed = (collapsed, manual = true) => {
+  if (!summarySidebar) return;
+  summarySidebar.classList.toggle('collapsed', collapsed);
+  summaryToggle?.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+  summaryToggle && (summaryToggle.textContent = collapsed ? '펼치기' : '접기');
+  if (manual) logEvent('summary_toggle', { collapsed });
+};
+
+const handleAutoCollapse = () => {
+  const shouldCollapse = window.innerWidth < 1200;
+  if (summarySidebar) {
+    summarySidebar.dataset.autoCollapse = shouldCollapse ? 'true' : 'false';
+  }
+  if (shouldCollapse) {
+    setSummaryCollapsed(true, false);
+  } else {
+    setSummaryCollapsed(false, false);
+  }
+};
+
+summaryToggle?.addEventListener('click', () => setSummaryCollapsed(!summarySidebar?.classList.contains('collapsed')));
+window.addEventListener('resize', handleAutoCollapse);
+handleAutoCollapse();
+
 Object.entries(frames).forEach(([engine, frame]) => {
   if (!frame) return;
   frame.addEventListener('load', () => {
+    frameLoaded[engine] = true;
     frameReady[engine] = true;
     setStatus(engine, 'ready');
     if (document.getElementById('live-sync')?.checked) {
@@ -216,8 +353,35 @@ const syncAll = (engine) => {
   inputs.forEach((input) => syncQuickInput(input));
 };
 
+const collapsibleCards = document.querySelectorAll('.control-card[data-collapsible="true"]');
+const applyCardCollapse = () => {
+  const collapse = window.innerWidth < 720;
+  collapsibleCards.forEach((card) => {
+    card.dataset.collapsed = collapse ? 'true' : 'false';
+  });
+};
+
+collapsibleCards.forEach((card) => {
+  const head = card.querySelector('.control-card-head');
+  if (!head) return;
+  head.addEventListener('click', () => {
+    const next = card.dataset.collapsed !== 'true';
+    card.dataset.collapsed = next ? 'true' : 'false';
+  });
+});
+
+window.addEventListener('resize', applyCardCollapse);
+applyCardCollapse();
+
 const autoSync = document.getElementById('live-sync');
 const quickInputs = document.querySelectorAll('[data-sync-target]');
+const advancedPanel = document.getElementById('advanced-panel');
+const advancedInputs = document.querySelectorAll('[data-advanced]');
+const toggleAdvancedBtn = document.getElementById('toggle-advanced');
+const saveSessionBtn = document.getElementById('save-session');
+const loadSessionBtn = document.getElementById('load-session');
+const clearSessionBtn = document.getElementById('clear-session');
+
 quickInputs.forEach((input) => {
   input.addEventListener('input', () => {
     if (!autoSync || autoSync.checked) {
@@ -230,8 +394,103 @@ document.getElementById('reset-quick')?.addEventListener('click', () => {
   quickInputs.forEach((input) => {
     input.value = '';
   });
+  advancedInputs.forEach((input) => {
+    input.value = '';
+  });
   refreshLive();
 });
+
+const toggleAdvanced = () => {
+  if (!advancedPanel || !toggleAdvancedBtn) return;
+  const isHidden = advancedPanel.hasAttribute('hidden');
+  if (isHidden) {
+    advancedPanel.removeAttribute('hidden');
+  } else {
+    advancedPanel.setAttribute('hidden', 'true');
+  }
+  toggleAdvancedBtn.textContent = isHidden ? '고급 입력 닫기' : '고급 입력 열기';
+  logEvent('advanced_toggle', { open: isHidden });
+};
+
+toggleAdvancedBtn?.addEventListener('click', toggleAdvanced);
+
+const readSession = () => {
+  const quick = {};
+  quickInputs.forEach((input) => {
+    quick[input.dataset.syncTarget] = input.value;
+  });
+  const advanced = {};
+  advancedInputs.forEach((input) => {
+    advanced[input.dataset.advanced] = input.value;
+  });
+  return {
+    quick,
+    advanced,
+    theme: rootEl?.getAttribute('data-theme') || 'light',
+    contrast: rootEl?.style.getPropertyValue('--contrast-filter') || getComputedStyle(rootEl).getPropertyValue('--contrast-filter'),
+    ts: Date.now(),
+  };
+};
+
+const applySession = (data) => {
+  if (!data) return;
+  Object.entries(data.quick || {}).forEach(([target, value]) => {
+    const input = document.querySelector(`[data-sync-target="${target}"]`);
+    if (input) {
+      input.value = value;
+      if (!autoSync || autoSync.checked) {
+        syncQuickInput(input);
+      }
+    }
+  });
+  Object.entries(data.advanced || {}).forEach(([key, value]) => {
+    const input = document.querySelector(`[data-advanced="${key}"]`);
+    if (input) input.value = value;
+  });
+  if (data.advanced && Object.keys(data.advanced).length && advancedPanel?.hasAttribute('hidden')) {
+    toggleAdvanced();
+  }
+  if (data.theme) setTheme(data.theme);
+  if (data.contrast) setContrast(parseFloat(data.contrast));
+  refreshLive();
+};
+
+const saveSession = () => {
+  try {
+    const payload = readSession();
+    localStorage.setItem(SESSION_KEY, JSON.stringify(payload));
+    logEvent('session_save', { ts: payload.ts });
+    alert('계산이 저장되었습니다.');
+  } catch (err) {
+    console.error(err);
+  }
+};
+
+const loadSession = () => {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (!raw) return alert('저장된 계산이 없습니다.');
+    const data = JSON.parse(raw);
+    applySession(data);
+    logEvent('session_load', { ts: data.ts });
+  } catch (err) {
+    console.error(err);
+  }
+};
+
+const clearSession = () => {
+  try {
+    localStorage.removeItem(SESSION_KEY);
+    alert('저장 데이터를 삭제했습니다.');
+    logEvent('session_clear');
+  } catch (err) {
+    console.error(err);
+  }
+};
+
+saveSessionBtn?.addEventListener('click', saveSession);
+loadSessionBtn?.addEventListener('click', loadSession);
+clearSessionBtn?.addEventListener('click', clearSession);
 
 const readYearendSnapshot = () => {
   const doc = frames.yearend?.contentDocument;
@@ -320,9 +579,58 @@ const updateSummary = (snap) => {
   setNote('financial', snap.financial?.warnings || '비교과세 결과/경고');
 };
 
+const updateChart = (snap) => {
+  if (!chartBars) return;
+  const values = {
+    yearend: Math.abs(parseNumber(snap.yearend?.refund || '')),
+    corporate: Math.abs(parseNumber(snap.corporate?.payable || '')),
+    financial: Math.abs(
+      parseNumber(snap.financial?.other || '') || parseNumber(snap.financial?.primary || '')
+    ),
+  };
+  const max = Math.max(values.yearend, values.corporate, values.financial, 1);
+  chartBars.querySelectorAll('.chart-bar').forEach((bar) => {
+    const kind = bar.dataset.kind;
+    const val = values[kind] || 0;
+    const percent = Math.max(6, Math.min(100, (val / max) * 100));
+    const fill = bar.querySelector('.chart-bar-fill');
+    if (fill) {
+      fill.style.height = `${percent}%`;
+      fill.style.opacity = val === 0 ? '0.35' : '0.9';
+    }
+    bar.dataset.value = val.toString();
+    bar.dataset.percent = Math.round(percent).toString();
+  });
+};
+
+const showChartTooltip = (bar, event) => {
+  if (!chartTooltip) return;
+  const value = Number(bar.dataset.value || 0);
+  const percent = bar.dataset.percent || '0';
+  chartTooltip.textContent = `${value.toLocaleString('ko-KR')}원 · ${percent}%`;
+  const parentRect = chartBars.getBoundingClientRect();
+  chartTooltip.style.opacity = '1';
+  chartTooltip.style.left = `${event.clientX - parentRect.left - 30}px`;
+  chartTooltip.style.top = `${event.clientY - parentRect.top - 40}px`;
+};
+
+const hideChartTooltip = () => {
+  if (chartTooltip) chartTooltip.style.opacity = '0';
+};
+
+chartBars?.querySelectorAll('.chart-bar').forEach((bar) => {
+  bar.addEventListener('mousemove', (e) => showChartTooltip(bar, e));
+  bar.addEventListener('mouseenter', (e) => showChartTooltip(bar, e));
+  bar.addEventListener('mouseleave', hideChartTooltip);
+});
+
+const flowOrder = ['input', 'deduction', 'taxbase', 'tax', 'result'];
 const setFlowStage = (stage) => {
+  const idx = flowOrder.indexOf(stage);
   document.querySelectorAll('[data-step]').forEach((step) => {
+    const stepIdx = flowOrder.indexOf(step.dataset.step);
     step.classList.toggle('active', step.dataset.step === stage);
+    step.classList.toggle('complete', stepIdx > -1 && stepIdx < idx);
   });
 };
 
@@ -406,6 +714,7 @@ const refreshLive = () => {
   buildStrategies(snap);
   updateShareFields(snap);
   updateSummary(snap);
+  updateChart(snap);
   setFlowStage(deriveFlowStage(snap));
 };
 
@@ -445,8 +754,40 @@ copyShareButton?.addEventListener('click', async () => {
     await navigator.clipboard.writeText(shareUrl.value);
     copyShareButton.textContent = '복사 완료';
     setTimeout(() => (copyShareButton.textContent = '복사'), 1500);
+    logEvent('share_copy', { url: shareUrl.value });
   } catch (err) {
     console.error(err);
+  }
+});
+
+const downloadButton = document.getElementById('download-result');
+const webShareButton = document.getElementById('web-share');
+
+downloadButton?.addEventListener('click', () => {
+  buildShareLink();
+  logEvent('download', { url: shareUrl?.value });
+  window.print();
+});
+
+webShareButton?.addEventListener('click', async () => {
+  buildShareLink();
+  const url = shareUrl?.value || window.location.href;
+  const text = `세금 계산 결과를 공유합니다: ${url}`;
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: '통합 세금 플랫폼', text, url });
+      logEvent('web_share', { url });
+    } catch (err) {
+      console.error(err);
+    }
+  } else {
+    try {
+      await navigator.clipboard.writeText(url);
+      alert('공유 링크를 클립보드에 복사했습니다.');
+      logEvent('web_share_copy', { url });
+    } catch (err) {
+      console.error(err);
+    }
   }
 });
 
