@@ -182,15 +182,13 @@ const summaryToggle = document.getElementById('toggle-summary');
 const chartBars = document.getElementById('chart-bars');
 const chartTooltip = document.getElementById('chart-tooltip');
 const frameGuards = document.querySelectorAll('[data-frame-guard]');
+const frameRetryTimers = {};
 
 Object.entries(frames).forEach(([engine, frame]) => {
   if (!frame) return;
   const src = frame.getAttribute('src');
   if (src) {
     frameSources[engine] = src;
-    if (engine !== 'yearend') {
-      frame.removeAttribute('src'); // lazy load for secondary engines
-    }
   }
 });
 
@@ -214,16 +212,22 @@ const toggleFrameGuard = (engine, visible) => {
   });
 };
 
-const ensureFrameLoaded = (engine) => {
+const reloadFrame = (engine, bust = false) => {
   const frame = frames[engine];
-  if (!frame || frameLoaded[engine]) return;
   const src = frameSources[engine];
-  if (src) {
-    setStatus(engine, 'warn');
-    toggleFrameGuard(engine, true);
-    frame.setAttribute('src', src);
-    frameLoaded[engine] = true;
-  }
+  if (!frame || !src) return;
+  const nextSrc = bust ? `${src}${src.includes('?') ? '&' : '?'}t=${Date.now()}` : src;
+  frameReady[engine] = false;
+  frameLoaded[engine] = true;
+  setStatus(engine, 'warn');
+  toggleFrameGuard(engine, true);
+  frame.setAttribute('src', nextSrc);
+  logEvent('frame_reload', { engine, bust });
+};
+
+const ensureFrameLoaded = (engine) => {
+  if (frameReady[engine]) return;
+  reloadFrame(engine);
 };
 
 const setSummaryCollapsed = (collapsed, manual = true) => {
@@ -259,9 +263,11 @@ frameGuards.forEach((guard) => {
 
 Object.keys(frames).forEach((engine) => {
   if (!frameReady[engine]) {
-    setTimeout(() => {
-      if (!frameReady[engine]) toggleFrameGuard(engine, true);
-    }, 4000);
+    frameRetryTimers[engine] = setTimeout(() => {
+      if (!frameReady[engine]) {
+        reloadFrame(engine, true);
+      }
+    }, 5000);
   }
 });
 
@@ -757,6 +763,8 @@ const copyShareButton = document.getElementById('copy-share');
 
 // 초기 프레임 로드 (연말정산 우선)
 ensureFrameLoaded('yearend');
+ensureFrameLoaded('corporate');
+ensureFrameLoaded('financial');
 
 const buildShareLink = () => {
   const params = new URLSearchParams();
