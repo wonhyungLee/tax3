@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "vite",
-    "build": "vite build && npm run copy-static",
-    "preview": "vite preview",
+    "dev": "node ./node_modules/vite/bin/vite.js",
+    "build": "node ./node_modules/vite/bin/vite.js build && npm run copy-static",
+    "preview": "node ./node_modules/vite/bin/vite.js preview",
     "copy-static": "mkdir -p dist && cp -R yearend dist/ && cp -R corporate dist/ && cp -R financial dist/ && cp -R board dist/ && cp share.html dist/",
     "test:e2e": "BASE_URL=${BASE_URL:-http://localhost:4173} playwright test",
     "test": "npm run test:e2e"
