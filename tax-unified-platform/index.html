@@ -9,8 +9,18 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
   </head>
-  <body>
-    <div id="root"></div>
+  <body data-theme="light">
+    <div id="root">
+      <main style="max-width: 960px; margin: 40px auto; padding: 0 18px; color: #e5e7eb; font-family: 'Noto Sans KR', 'Space Grotesk', system-ui;">
+        <h1 style="margin: 0 0 12px;">Tax Unified</h1>
+        <p style="margin: 0 0 16px; color: #94a3b8;">스크립트 로딩에 문제가 있으면 아래 버튼으로 계산기를 바로 여세요.</p>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+          <a href="/yearend/index.html" style="padding: 12px; border-radius: 12px; border: 1px solid #1f2b45; background: rgba(255,255,255,0.04); text-decoration: none; color: inherit;">연말정산</a>
+          <a href="/corporate/index.html" style="padding: 12px; border-radius: 12px; border: 1px solid #1f2b45; background: rgba(255,255,255,0.04); text-decoration: none; color: inherit;">법인세</a>
+          <a href="/financial/index.html" style="padding: 12px; border-radius: 12px; border: 1px solid #1f2b45; background: rgba(255,255,255,0.04); text-decoration: none; color: inherit;">금융소득 종합과세</a>
+        </div>
+      </main>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
