@@ -19,6 +19,8 @@ const formatKRW = (n) => Number(n || 0).toLocaleString('ko-KR');
 
 const partnerId = import.meta.env.VITE_COUPANG_PARTNER_ID || 'AF7397099';
 const buildAdLink = (keyword) => `https://link.coupang.com/a/${partnerId}?search=${encodeURIComponent(keyword)}`;
+const coupangProxy = import.meta.env.VITE_COUPANG_PROXY_URL || '';
+const bestCategoryId = 1016; // 가전디지털
 
 const adProducts = [
   {
@@ -134,16 +136,43 @@ function ChatWizard() {
     ].join(' · ');
   };
 
-  const showAds = () => {
-    const ads = adProducts.map((ad) => ({ ...ad, link: buildAdLink(ad.keyword) }));
-    pushBot('쿠팡 파트너스 추천 상품입니다. 필요한 경우 새 창에서 열립니다.', { ads });
+  const fallbackAds = () => adProducts.map((ad) => ({ ...ad, link: buildAdLink(ad.keyword) }));
+
+  const normalizeAd = (item) => ({
+    title: item.title || item.productName || item.name,
+    desc: item.desc || item.description || item.productDescription || '가전디지털 인기 상품',
+    price: item.price || item.salePrice || item.salesPrice,
+    image: item.image || item.imageUrl || item.productImage || adProducts[0].image,
+    link: item.deeplink || item.link || item.url || buildAdLink('가전디지털'),
+  });
+
+  const fetchCoupangAds = async (categoryId = bestCategoryId) => {
+    if (!coupangProxy) return fallbackAds();
+    try {
+      const res = await fetch(`${coupangProxy}/products/bestcategories/${categoryId}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const items = Array.isArray(data) ? data : data.data || [];
+      const ads = items.slice(0, 4).map(normalizeAd).filter((a) => a.title && a.link);
+      if (ads.length) return ads;
+    } catch (err) {
+      console.error('coupang fetch error', err);
+    }
+    return fallbackAds();
+  };
+
+  const showAds = (contextMessage) => {
+    fetchCoupangAds().then((ads) => {
+      pushBot(contextMessage || '쿠팡 파트너스 추천 상품입니다. 필요한 경우 새 창에서 열립니다.', { ads });
+    });
   };
 
   const showContextAds = (context) => {
     const keyword = calcKeyword(context || calculator);
-    const matched = adProducts.filter((ad) => ad.keyword && keyword && keyword.includes(ad.keyword));
-    const ads = (matched.length ? matched : adProducts).map((ad) => ({ ...ad, link: buildAdLink(ad.keyword) }));
-    pushBot('동의해 주셔서 감사해요. 대화 내용을 참고한 추천 상품입니다.', { ads });
+    fetchCoupangAds(bestCategoryId).then((ads) => {
+      const filtered = ads.filter((ad) => keyword ? (ad.title?.includes(keyword) || ad.desc?.includes(keyword)) : true);
+      pushBot('동의해 주셔서 감사해요. 대화 내용을 참고한 추천 상품입니다.', { ads: filtered.length ? filtered : ads });
+    });
   };
 
   const requestConsent = (context) => {
