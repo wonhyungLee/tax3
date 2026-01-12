@@ -6,7 +6,7 @@
     "dev": "vite",
     "build": "vite build && npm run copy-static",
     "preview": "vite preview",
-    "copy-static": "copyfiles -u 1 \"yearend/**\" \"corporate/**\" \"financial/**\" \"board/**\" dist && copyfiles \"share.html\" dist",
+    "copy-static": "mkdir -p dist && cp -R yearend dist/ && cp -R corporate dist/ && cp -R financial dist/ && cp -R board dist/ && cp share.html dist/",
     "test:e2e": "BASE_URL=${BASE_URL:-http://localhost:4173} playwright test",
     "test": "npm run test:e2e"
   },

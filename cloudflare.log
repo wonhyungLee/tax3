@@ -1,0 +1,72 @@
+2026-01-12T03:33:26.665407Z	Cloning repository...
+2026-01-12T03:33:27.474232Z	From https://github.com/wonhyungLee/tax3
+2026-01-12T03:33:27.47471Z	 * branch            e455475bb1248b9eaefda24302308b6057a83cf1 -> FETCH_HEAD
+2026-01-12T03:33:27.47481Z	
+2026-01-12T03:33:27.515261Z	HEAD is now at e455475 Fix copy-static for Cloudflare build
+2026-01-12T03:33:27.515715Z	
+2026-01-12T03:33:27.58619Z	
+2026-01-12T03:33:27.586734Z	Using v2 root directory strategy
+2026-01-12T03:33:27.605675Z	Success: Finished cloning repository files
+2026-01-12T03:33:29.348842Z	Checking for configuration in a Wrangler configuration file (BETA)
+2026-01-12T03:33:29.349325Z	
+2026-01-12T03:33:30.453842Z	No wrangler.toml file found. Continuing.
+2026-01-12T03:33:30.520081Z	Detected the following tools from environment: npm@10.9.2, nodejs@22.16.0
+2026-01-12T03:33:30.520737Z	Installing project dependencies: npm install --progress=false
+2026-01-12T03:33:38.918542Z	npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+2026-01-12T03:33:38.935513Z	npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+2026-01-12T03:33:40.080502Z	
+2026-01-12T03:33:40.080707Z	added 110 packages, and audited 111 packages in 9s
+2026-01-12T03:33:40.080792Z	
+2026-01-12T03:33:40.080944Z	10 packages are looking for funding
+2026-01-12T03:33:40.081043Z	  run `npm fund` for details
+2026-01-12T03:33:40.086822Z	
+2026-01-12T03:33:40.087065Z	2 moderate severity vulnerabilities
+2026-01-12T03:33:40.087162Z	
+2026-01-12T03:33:40.087327Z	To address all issues (including breaking changes), run:
+2026-01-12T03:33:40.087423Z	  npm audit fix --force
+2026-01-12T03:33:40.087506Z	
+2026-01-12T03:33:40.088033Z	Run `npm audit` for details.
+2026-01-12T03:33:40.111013Z	Executing user command: npm install && npm run build && npm run copy-static
+2026-01-12T03:33:41.159827Z	
+2026-01-12T03:33:41.16006Z	added 1 package, and audited 112 packages in 732ms
+2026-01-12T03:33:41.160228Z	
+2026-01-12T03:33:41.160369Z	10 packages are looking for funding
+2026-01-12T03:33:41.16048Z	  run `npm fund` for details
+2026-01-12T03:33:41.172661Z	
+2026-01-12T03:33:41.172862Z	2 moderate severity vulnerabilities
+2026-01-12T03:33:41.172947Z	
+2026-01-12T03:33:41.173003Z	To address all issues (including breaking changes), run:
+2026-01-12T03:33:41.173061Z	  npm audit fix --force
+2026-01-12T03:33:41.173113Z	
+2026-01-12T03:33:41.173164Z	Run `npm audit` for details.
+2026-01-12T03:33:41.555607Z	
+2026-01-12T03:33:41.555819Z	> tax-unified-platform@1.0.0 build
+2026-01-12T03:33:41.555954Z	> vite build && npm run copy-static
+2026-01-12T03:33:41.556105Z	
+2026-01-12T03:33:41.787355Z	[33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
+2026-01-12T03:33:41.816119Z	[36mvite v5.4.21 [32mbuilding for production...[36m[39m
+2026-01-12T03:33:41.877209Z	transforming...
+2026-01-12T03:33:42.592353Z	[32m✓[39m 34 modules transformed.
+2026-01-12T03:33:42.707992Z	rendering chunks...
+2026-01-12T03:33:42.714764Z	computing gzip size...
+2026-01-12T03:33:42.721737Z	[2mdist/[22m[32mindex.html                 [39m[1m[2m  0.78 kB[22m[1m[22m[2m │ gzip:  0.48 kB[22m
+2026-01-12T03:33:42.722043Z	[2mdist/[22m[2massets/[22m[35mindex-bYa6cEIi.css  [39m[1m[2m  4.07 kB[22m[1m[22m[2m │ gzip:  1.43 kB[22m
+2026-01-12T03:33:42.722211Z	[2mdist/[22m[2massets/[22m[36mindex-DtFPXLBZ.js   [39m[1m[2m171.33 kB[22m[1m[22m[2m │ gzip: 56.60 kB[22m
+2026-01-12T03:33:42.72238Z	[32m✓ built in 879ms[39m
+2026-01-12T03:33:42.912216Z	
+2026-01-12T03:33:42.912471Z	> tax-unified-platform@1.0.0 copy-static
+2026-01-12T03:33:42.912668Z	> copyfiles -u 1 "yearend/**" "corporate/**" "financial/**" "board/**" dist && copyfiles "share.html" dist
+2026-01-12T03:33:42.912789Z	
+2026-01-12T03:33:43.015262Z	/opt/buildhome/repo/tax-unified-platform/node_modules/copyfiles/index.js:31
+2026-01-12T03:33:43.015622Z	    throw new Error('cant go up that far');
+2026-01-12T03:33:43.01583Z	    ^
+2026-01-12T03:33:43.015946Z	
+2026-01-12T03:33:43.016036Z	Error: cant go up that far
+2026-01-12T03:33:43.016121Z	    at dealWith (/opt/buildhome/repo/tax-unified-platform/node_modules/copyfiles/index.js:31:11)
+2026-01-12T03:33:43.016195Z	    at /opt/buildhome/repo/tax-unified-platform/node_modules/copyfiles/index.js:114:39
+2026-01-12T03:33:43.016275Z	    at FSReqCallback.oncomplete (node:fs:199:5)
+2026-01-12T03:33:43.016366Z	
+2026-01-12T03:33:43.016474Z	Node.js v22.16.0
+2026-01-12T03:33:43.03655Z	Failed: Error while executing user command. Exited with error code: 1
+2026-01-12T03:33:43.04567Z	Failed: build command exited with code: 1
+2026-01-12T03:33:44.154981Z	Failed: error occurred while running build command
