@@ -62,6 +62,7 @@
     .mono { font-family: 'Space Grotesk', monospace; }
     .trace { background: rgba(255,255,255,0.03); border-radius: 10px; border: 1px solid var(--border); padding: 10px; font-size: 13px; white-space: pre-wrap; max-height: 360px; overflow: auto; }
     .warn { color: #fbbf24; font-weight: 600; }
+    .callout { border: 1px solid var(--border); background: rgba(16,185,129,0.08); border-radius: 12px; padding: 12px; margin: 12px 0; }
   </style>
 </head>
 <body>
@@ -72,6 +73,14 @@
     </div>
     <button id="calcBtn">계산 실행</button>
   </header>
+
+  <div class="callout">
+    <strong>비교과세 핵심</strong>
+    <p class="muted" style="margin:6px 0;">
+      금융소득이 2천만원을 넘으면 종합과세(한도 초과분 + 누진세)와 전액 분리과세 금액을 비교해 더 큰 세액을 적용합니다.
+      결과 카드에 종합/분리 세액과 선택된 방식을 항상 표시하니, 두 방식의 차이를 바로 확인하세요.
+    </p>
+  </div>
 
   <div class="layout">
     <div class="stack">
