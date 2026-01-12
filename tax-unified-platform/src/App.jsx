@@ -21,9 +21,27 @@ const partnerId = import.meta.env.VITE_COUPANG_PARTNER_ID || 'AF7397099';
 const buildAdLink = (keyword) => `https://link.coupang.com/a/${partnerId}?search=${encodeURIComponent(keyword)}`;
 
 const adProducts = [
-  { title: '연말정산 준비 파일 세트', desc: '서류 정리를 위한 라벨/바인더 구성', price: 12900, keyword: '연말정산 바인더' },
-  { title: '세무 기초 가이드', desc: '비교과세와 공제를 쉽게 풀어쓴 도서', price: 15800, keyword: '세금 가이드북' },
-  { title: '문서 스캐너 앱 구독', desc: '모바일로 영수증/증빙을 빠르게 저장', price: 9900, keyword: '문서 스캐너' },
+  {
+    title: '연말정산 준비 파일 세트',
+    desc: '서류 정리를 위한 라벨/바인더 구성',
+    price: 12900,
+    keyword: '연말정산',
+    image: 'https://via.placeholder.com/320x200.png?text=%EC%97%B0%EB%A7%90%EC%A0%95%EC%82%B0+%EB%B0%94%EC%9D%B4%EB%8D%94',
+  },
+  {
+    title: '세무 기초 가이드',
+    desc: '비교과세와 공제를 쉽게 풀어쓴 도서',
+    price: 15800,
+    keyword: '가이드',
+    image: 'https://via.placeholder.com/320x200.png?text=%EC%84%B8%EB%AC%B4+%EA%B0%80%EC%9D%B4%EB%93%9C',
+  },
+  {
+    title: '문서 스캐너 앱 구독',
+    desc: '모바일로 영수증/증빙을 빠르게 저장',
+    price: 9900,
+    keyword: '스캐너',
+    image: 'https://via.placeholder.com/320x200.png?text=%EB%AC%B8%EC%84%9C+%EC%8A%A4%EC%BA%90%EB%84%88',
+  },
 ];
 
 const ChatBubble = ({ role, text, links = [], ads = [] }) => (
@@ -43,6 +61,7 @@ const ChatBubble = ({ role, text, links = [], ads = [] }) => (
         <div className="ads">
           {ads.map((ad) => (
             <a key={ad.title} href={ad.link} target="_blank" rel="noreferrer" className="ad-card">
+              {ad.image && <img className="ad-img" src={ad.image} alt={ad.title} />}
               <div className="ad-title">{ad.title}</div>
               <div className="ad-desc">{ad.desc}</div>
               <div className="ad-price">₩ {formatKRW(ad.price)}</div>
@@ -75,9 +94,18 @@ function ChatWizard() {
   const [docReady, setDocReady] = useState([]);
   const [answers, setAnswers] = useState({ financialIncome: '', otherIncome: '', grossUpRate: 0.1 });
   const [step, setStep] = useState('select');
+  const [consent, setConsent] = useState(false);
+  const [awaitingConsent, setAwaitingConsent] = useState(false);
+  const [pendingAdContext, setPendingAdContext] = useState(null);
   const { steps, index, pct } = useProgress(calculator, step);
   const [inputText, setInputText] = useState('');
   const calculatorLinks = calculators.map((c) => ({ label: `${c.name} 열기`, href: c.route }));
+  const calcKeyword = (ctx) => {
+    if (ctx === 'yearend') return '연말정산';
+    if (ctx === 'corporate') return '법인';
+    if (ctx === 'financial') return '금융소득';
+    return ctx || '';
+  };
 
   const pushMessage = (payload) => setMessages((prev) => [...prev, payload]);
   const pushBot = (text, extra = {}) => pushMessage({ role: 'bot', text, ...extra });
@@ -111,11 +139,27 @@ function ChatWizard() {
     pushBot('쿠팡 파트너스 추천 상품입니다. 필요한 경우 새 창에서 열립니다.', { ads });
   };
 
+  const showContextAds = (context) => {
+    const keyword = calcKeyword(context || calculator);
+    const matched = adProducts.filter((ad) => ad.keyword && keyword && keyword.includes(ad.keyword));
+    const ads = (matched.length ? matched : adProducts).map((ad) => ({ ...ad, link: buildAdLink(ad.keyword) }));
+    pushBot('동의해 주셔서 감사해요. 대화 내용을 참고한 추천 상품입니다.', { ads });
+  };
+
+  const requestConsent = (context) => {
+    setAwaitingConsent(true);
+    setPendingAdContext(context || null);
+    pushBot('대화 기록을 참고해 상품을 추천해도 될까요? "동의" 또는 "거부"라고 답해주세요.');
+  };
+
   const resetFlow = () => {
     setCalculator(null);
     setDocReady([]);
     setAnswers({ financialIncome: '', otherIncome: '', grossUpRate: 0.1 });
     setStep('select');
+    setConsent(false);
+    setAwaitingConsent(false);
+    setPendingAdContext(null);
     setMessages([
       { role: 'bot', text: '메신저처럼 대화하며 계산을 안내합니다. 자료 준비 → 금액 입력 → 결과/링크 순서로 진행해요.' },
       { role: 'bot', text: '연말정산 · 법인세 · 금융소득 중 무엇을 계산할까요?' },
@@ -143,7 +187,8 @@ function ChatWizard() {
     const links = selected ? [{ label: `${selected.name} 열기`, href: selected.route }, ...calculatorLinks] : calculatorLinks;
     pushBot('바로 계산기를 열 수 있어요. 필요한 페이지를 선택해 주세요.', { links });
     setStep(next);
-    showAds();
+    if (consent) showContextAds(selected?.id);
+    else requestConsent(selected?.id);
   };
 
   const parseNumeric = (text) => {
@@ -163,8 +208,27 @@ function ChatWizard() {
       return;
     }
 
-    if (lower.includes('광고') || lower.includes('추천') || lower.includes('쇼핑')) {
+    if (awaitingConsent && (lower.includes('동의') || lower.includes('허용'))) {
+      setConsent(true);
+      setAwaitingConsent(false);
+      pushBot('동의해 주셔서 감사합니다. 맞춤 추천을 준비할게요.');
+      showContextAds(pendingAdContext);
+      setPendingAdContext(null);
+      return;
+    }
+    if (awaitingConsent && (lower.includes('거부') || lower.includes('안 해') || lower.includes('싫'))) {
+      setConsent(false);
+      setAwaitingConsent(false);
+      setPendingAdContext(null);
+      pushBot('네, 동의 없이 기록은 사용하지 않고 일반 추천만 제공합니다.');
       showAds();
+      return;
+    }
+
+    if (lower.includes('광고') || lower.includes('추천') || lower.includes('쇼핑') || lower.includes('로그')) {
+      if (consent) showContextAds(calculator);
+      else requestConsent(calculator);
+      return;
     }
 
     if (step === 'select') {
@@ -231,6 +295,7 @@ function ChatWizard() {
   };
 
   const quickReplies = () => {
+    if (awaitingConsent) return ['동의', '거부'];
     if (step === 'select') return ['연말정산', '법인세', '금융소득', '광고 추천'];
     if (step === 'docs') return ['준비 완료', '간소화 PDF 있음', '배당 원천징수내역 준비', '광고 추천'];
     if (step === 'financialIncome') return ['금융 24000000 기타 40000000 gross 0.1', '조언', '광고 추천'];

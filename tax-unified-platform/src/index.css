@@ -164,6 +164,14 @@ a { color: inherit; text-decoration: none; }
   transition: transform 120ms ease, box-shadow 120ms ease;
 }
 
+.ad-img {
+  width: 100%;
+  border-radius: 10px;
+  margin-bottom: 8px;
+  object-fit: cover;
+  background: #0d1527;
+}
+
 .ad-card:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(0,0,0,0.25); }
 .ad-title { font-weight: 700; margin-bottom: 4px; }
 .ad-desc { color: var(--muted); font-size: 14px; margin-bottom: 8px; }
