@@ -22,7 +22,8 @@
     </div>
     <nav class="nav-links" aria-label="주요 섹션">
       <a href="#calculators">계산기 선택</a>
-      <a href="#deploy">배포</a>
+      <a href="#faq">FAQ</a>
+      <a href="#contact">문의</a>
     </nav>
     <div class="topbar-actions">
       <button class="btn ghost" id="open-modal" type="button">주민세 계산법</button>
@@ -41,38 +42,30 @@
   <main class="shell">
     <header class="hero">
       <div>
-        <p class="pill">Full Engines · 하나의 도메인</p>
-        <h1>연말정산 · 법인세 · 종합소득세를 한 화면에서</h1>
-        <p class="lede">각 계산기의 원본 엔진과 입력 필드를 그대로 가져와 탭으로 전환하며 쓸 수 있는 통합 플랫폼입니다. 아래 카드에서 바로 열거나 탭으로 전환하세요.</p>
-        <div class="hero-badges">
-          <span class="pill">WCAG 대비 강화</span>
-          <span class="pill">라이트/다크 테마</span>
-          <span class="pill">고정 요약 사이드바</span>
-        </div>
+        <p class="pill">원본 엔진 그대로</p>
+        <h1>연말정산 · 법인세 · 금융소득 계산 바로가기</h1>
+        <p class="lede">필요한 계산기만 별도 페이지에서 실행합니다. 불필요한 기능과 배포 안내는 모두 제거해, 계산에만 집중할 수 있도록 구성했습니다.</p>
       </div>
       <div class="hero-actions">
-        <a class="btn ghost" href="https://github.com/wonhyungLee/tax3" target="_blank" rel="noreferrer">GitHub 열기</a>
-        <a class="btn primary" href="#deploy">배포 가이드</a>
+        <a class="btn primary" href="yearend/index.html">연말정산 열기</a>
+        <a class="btn ghost" href="corporate/index.html">법인세 열기</a>
+        <a class="btn ghost" href="financial/index.html">금융소득 열기</a>
       </div>
     </header>
 
     <section class="calc-intro" id="calculators">
       <div class="section-head">
         <div>
-          <p class="pill">가벼운 인터페이스</p>
-          <h2>각 계산기는 별도 페이지에서 집중해서 사용하세요</h2>
-          <p class="muted">한 화면에 모든 엔진을 동시에 띄우지 않습니다. 세 가지 계산기 페이지를 각각 열어 필요한 작업만 빠르게 완료할 수 있습니다.</p>
-        </div>
-        <div class="upgrade-actions">
-          <a class="btn primary" href="yearend/index.html">연말정산 바로 열기</a>
-          <a class="btn ghost" href="corporate/index.html">법인세 바로 열기</a>
+          <p class="pill">계산기 바로가기</p>
+          <h2>필요한 계산기만 열어서 바로 계산하세요</h2>
+          <p class="muted">각 계산기는 별도 페이지로 분리되어 가볍게 로드됩니다. 한 번에 하나씩 실행하는 구조로 성능과 가독성을 확보했습니다.</p>
         </div>
       </div>
       <div class="calculator-grid">
         <article class="card">
           <p class="pill">연말정산</p>
           <h3>근로소득 환급/추가납부</h3>
-          <p class="muted">카드·연금·주택·의료·교육·기부금 등 전 항목을 포함한 원본 엔진을 별도 페이지로 제공합니다.</p>
+          <p class="muted">카드·연금·주택·의료·교육·기부금 전 항목을 포함한 원본 엔진.</p>
           <div class="card-actions">
             <a class="btn primary" href="yearend/index.html">페이지 열기</a>
             <a class="btn ghost" href="yearend/index.html" target="_blank" rel="noreferrer">새 창</a>
@@ -81,7 +74,7 @@
         <article class="card">
           <p class="pill">법인세</p>
           <h3>TaxCore 2025 시뮬레이터</h3>
-          <p class="muted">접대비 한도·감가상각·익금/손금 조정·최저한세를 별도 화면에서 집중 입력하세요.</p>
+          <p class="muted">접대비 한도·감가상각·익금/손금 조정·최저한세 포함.</p>
           <div class="card-actions">
             <a class="btn primary" href="corporate/index.html">페이지 열기</a>
             <a class="btn ghost" href="corporate/index.html" target="_blank" rel="noreferrer">새 창</a>
@@ -90,7 +83,7 @@
         <article class="card">
           <p class="pill">종합소득세(금융)</p>
           <h3>비교과세 · Gross-up · 해외소득</h3>
-          <p class="muted">2천만원 한도 비교과세, 배당 Gross-up/외국납부세액공제를 개별 페이지에서 계산합니다.</p>
+          <p class="muted">2천만원 한도 비교과세, 배당 Gross-up/외국납부세액공제 로직 포함.</p>
           <div class="card-actions">
             <a class="btn primary" href="financial/index.html">페이지 열기</a>
             <a class="btn ghost" href="financial/index.html" target="_blank" rel="noreferrer">새 창</a>
@@ -99,36 +92,12 @@
       </div>
     </section>
 
-    <section class="note">
-      <p>📌 각 계산기는 독립 페이지로 분리되어 모바일에서도 가볍게 로드됩니다. 여러 엔진을 동시에 띄워두지 않으므로, 필요한 계산기를 선택해 집중할 수 있습니다.</p>
+    <section class="note" id="faq">
+      <p><strong>FAQ.</strong> 각 계산기는 서로 독립적이며, 입력값은 브라우저에만 저장됩니다. 계산 과정에서 서버 전송이 없으니 안심하고 사용하세요.</p>
     </section>
 
-    <section class="calc-intro">
-      <div class="section-head">
-        <div>
-          <p class="pill">벤치마크 관찰</p>
-          <h2>국세청 미리계산기·TurboTax·Japan Tax Calculator 비교</h2>
-          <p class="muted">트래픽이 많은 세금 미리 계산하기 사이트처럼 단일 흐름과 명확한 CTA만 남기고, 불필요한 동시 표시를 제거했습니다.</p>
-        </div>
-      </div>
-      <ul class="list small">
-        <li>TurboTax 스타일의 단계별 진행: 한 번에 한 계산기만 열어 집중도와 성능을 확보.</li>
-        <li>Japan Tax Calculator처럼 가벼운 카드/CTA 위주 레이아웃으로 스크롤 부담 최소화.</li>
-        <li>국세청 미리계산기처럼 “페이지 열기”만 제공해 iframe 로딩 실패나 CORS 문제를 피함.</li>
-      </ul>
-    </section>
-
-    <section class="deploy" id="deploy">
-      <div>
-        <p class="pill">배포 가이드</p>
-        <h2>GitHub → Cloudflare Pages</h2>
-        <p class="muted">정적 사이트라 빌드 없이 배포 가능합니다. 하위 폴더는 각각 원본 엔진을 포함합니다.</p>
-      </div>
-      <ol>
-        <li>루트에 <code>index.html</code>, <code>styles.css</code>, <code>app.js</code>, 그리고 <code>yearend</code>/<code>corporate</code>/<code>financial</code> 폴더가 있는 상태로 GitHub에 올립니다.</li>
-        <li>Cloudflare Pages: Build command 없음, Output directory <code>/</code>.</li>
-        <li>배포 후 탭별 임베드와 “새 창에서 열기” 버튼이 모두 작동하는지 확인합니다.</li>
-      </ol>
+    <section class="note" id="contact">
+      <p><strong>문의.</strong> 계산기 오류나 개선 제안이 있으면 GitHub 이슈나 이메일로 알려 주세요. 사용자 피드백을 반영해 엔진 업데이트와 UI 개선을 지속합니다.</p>
     </section>
   </main>
 
