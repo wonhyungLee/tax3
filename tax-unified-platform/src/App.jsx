@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react';
-import { Link, Routes, Route } from 'react-router-dom';
+import { Link, Routes, Route, useNavigate } from 'react-router-dom';
 
 const calculators = [
-  { id: 'yearend', name: '연말정산', path: '/yearend/index.html', blurb: '근로소득 환급/추납' },
-  { id: 'corporate', name: '법인세', path: '/corporate/index.html', blurb: 'TaxCore 2025 시뮬레이터' },
-  { id: 'financial', name: '금융소득 종합과세', path: '/financial/index.html', blurb: '비교과세 · Gross-up · 해외소득' },
+  { id: 'yearend', name: '연말정산', blurb: '근로소득 환급/추납', route: '/yearend', href: '/yearend/index.html' },
+  { id: 'corporate', name: '법인세', blurb: 'TaxCore 2025 시뮬레이터', route: '/corporate', href: '/corporate/index.html' },
+  { id: 'financial', name: '금융소득 종합과세', blurb: '비교과세 · Gross-up · 해외소득', route: '/financial', href: '/financial/index.html' },
 ];
 
 const docChecklist = [
@@ -27,7 +27,7 @@ const ChatBubble = ({ role, children }) => (
 function useProgress(calculator, step) {
   const steps = useMemo(() => {
     if (calculator === 'financial') {
-      return ['select', 'docs', 'financialIncome', 'otherIncome', 'grossUp', 'review'];
+      return ['select', 'docs', 'financialIncome', 'otherIncome', 'review'];
     }
     if (calculator === 'yearend' || calculator === 'corporate') {
       return ['select', 'docs', 'basic', 'review'];
@@ -57,7 +57,7 @@ const FinancialSummary = ({ data }) => {
   const comprehensiveTax = progressive(Math.max(other + Math.max(fin - threshold, 0) + grossUpAdd, 0));
   const methodA = comprehensiveTax + threshold * 0.14;
   const methodB = separateTax;
-  const chosen = methodA >= methodB ? '종합과세가 더 큼 (비교과세 적용)' : '분리과세가 더 큼 (비교과세 적용)';
+  const chosen = methodA >= methodB ? '종합과세 적용(더 큰 세액)' : '분리과세 유지';
   const note = fin > threshold ? chosen : '2천만원 이하 → 전액 분리과세';
 
   return (
@@ -80,6 +80,7 @@ function ChatWizard() {
   const [answers, setAnswers] = useState({ financialIncome: '', otherIncome: '', grossUpRate: 0.1 });
   const [step, setStep] = useState('select');
   const { steps, index, pct } = useProgress(calculator, step);
+  const navigate = useNavigate();
 
   const pushMessage = (role, text) => setMessages((prev) => [...prev, { role, text }]);
 
@@ -126,6 +127,11 @@ function ChatWizard() {
   const handleBasicNext = () => {
     pushMessage('bot', '선택한 계산기 페이지로 이동해 계속 입력하세요.');
     setStep('review');
+  };
+
+  const openCalculator = (id) => {
+    const target = calculators.find((c) => c.id === id);
+    if (target) navigate(target.route);
   };
 
   return (
@@ -220,7 +226,7 @@ function ChatWizard() {
               <p className="pill">간단 안내</p>
               <p className="muted">선택한 계산기를 열어 세부 항목을 채워 주세요. 입력 자료는 브라우저에만 저장됩니다.</p>
               <div className="actions">
-                <a className="btn primary" href={calculators.find((c) => c.id === calculator)?.path}>계산기 열기</a>
+                <button className="btn primary" onClick={() => openCalculator(calculator)}>계산기 열기</button>
               </div>
             </div>
           )}
@@ -235,9 +241,9 @@ function ChatWizard() {
               <p className="muted">아래 버튼을 눌러 선택한 계산기로 이동해 상세 입력을 완료하세요.</p>
               <div className="actions">
                 {calculators.map((c) => (
-                  <a key={c.id} className="btn ghost" href={c.path} target={calculator === c.id ? '_self' : '_blank'} rel="noreferrer">
+                  <Link key={c.id} className="btn ghost" to={c.route}>
                     {c.name} 열기
-                  </a>
+                  </Link>
                 ))}
               </div>
             </div>
@@ -251,7 +257,7 @@ function ChatWizard() {
               {calculators.map((c) => (
                 <li key={c.id}>
                   <strong>{c.name}</strong> — {c.blurb}{' '}
-                  <Link to={c.path} target="_blank" rel="noreferrer" className="link">바로가기</Link>
+                  <a href={c.href} target="_blank" rel="noreferrer" className="link">원본 열기</a>
                 </li>
               ))}
             </ul>
@@ -267,32 +273,65 @@ function ChatWizard() {
   );
 }
 
+const PageLayout = ({ title, children }) => (
+  <main className="shell">
+    <h1 className="page-title">{title}</h1>
+    {children}
+  </main>
+);
+
+const IframePage = ({ title, src }) => (
+  <PageLayout title={title}>
+    <div className="card">
+      <p className="muted">원본 엔진을 React 라우트에서 그대로 불러옵니다. 새 창으로 열어 전 화면에서도 사용할 수 있습니다.</p>
+      <div className="actions">
+        <a className="btn primary" href={src} target="_blank" rel="noreferrer">새 창에서 열기</a>
+      </div>
+      <div className="frame-wrap">
+        <iframe title={title} src={src} loading="lazy" />
+      </div>
+    </div>
+  </PageLayout>
+);
+
+function Home() {
+  return (
+    <div>
+      <header className="hero">
+        <div>
+          <p className="pill">대화형 진행</p>
+          <h1>챗봇처럼 단계별로 세금 계산을 안내합니다</h1>
+          <p className="lede">
+            많은 입력을 한 번에 요구하지 않습니다. 필요한 자료 확인 → 소득/공제 입력 → 비교과세 결과를 메시지로 안내하고,
+            각 계산기는 별도 페이지에서 가볍게 실행합니다.
+          </p>
+          <div className="hero-badges">
+            <span className="pill">Progressive Disclosure</span>
+            <span className="pill">비교과세 강조</span>
+            <span className="pill">접근성 준수</span>
+          </div>
+        </div>
+        <div className="actions">
+          {calculators.map((c) => (
+            <Link key={c.id} className="btn primary" to={c.route}>
+              {c.name} 열기
+            </Link>
+          ))}
+        </div>
+      </header>
+      <ChatWizard />
+    </div>
+  );
+}
+
 function App() {
   return (
     <Routes>
-      <Route
-        path="/*"
-        element={
-          <main>
-            <header className="hero">
-              <div>
-                <p className="pill">대화형 진행</p>
-                <h1>챗봇처럼 단계별로 세금 계산을 안내합니다</h1>
-                <p className="lede">
-                  많은 입력을 한 번에 요구하지 않습니다. 필요한 자료 확인 → 소득/공제 입력 → 비교과세 결과를 메시지로 안내하고,
-                  각 계산기는 별도 페이지에서 가볍게 실행합니다.
-                </p>
-                <div className="hero-badges">
-                  <span className="pill">Progressive Disclosure</span>
-                  <span className="pill">비교과세 강조</span>
-                  <span className="pill">접근성 준수</span>
-                </div>
-              </div>
-            </header>
-            <ChatWizard />
-          </main>
-        }
-      />
+      <Route path="/" element={<Home />} />
+      <Route path="/yearend" element={<IframePage title="연말정산" src="/yearend/index.html" />} />
+      <Route path="/corporate" element={<IframePage title="법인세" src="/corporate/index.html" />} />
+      <Route path="/financial" element={<IframePage title="금융소득 종합과세" src="/financial/index.html" />} />
+      <Route path="*" element={<Home />} />
     </Routes>
   );
 }
