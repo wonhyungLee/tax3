@@ -81,6 +81,7 @@ function ChatWizard() {
   const [step, setStep] = useState('select');
   const { steps, index, pct } = useProgress(calculator, step);
   const navigate = useNavigate();
+  const [inputText, setInputText] = useState('');
 
   const pushMessage = (role, text) => setMessages((prev) => [...prev, { role, text }]);
 
@@ -132,6 +133,74 @@ function ChatWizard() {
   const openCalculator = (id) => {
     const target = calculators.find((c) => c.id === id);
     if (target) navigate(target.route);
+  };
+
+  const parseNumeric = (text) => {
+    if (!text) return [];
+    return (text.match(/\d+(?:[.,]\d+)?/g) || []).map((n) => Number(String(n).replace(/[^\d.]/g, '')));
+  };
+
+  const handleSend = () => {
+    const text = inputText.trim();
+    if (!text) return;
+    pushMessage('user', text);
+    setInputText('');
+
+    const lower = text.toLowerCase();
+    if (step === 'select') {
+      if (lower.includes('연말') || lower.includes('year')) return handleSelectCalculator('yearend');
+      if (lower.includes('법인') || lower.includes('corp')) return handleSelectCalculator('corporate');
+      if (lower.includes('금융') || lower.includes('financial')) return handleSelectCalculator('financial');
+      return pushMessage('bot', '연말정산/법인세/금융소득 중 하나를 말씀해 주세요. 예: "금융소득 계산"');
+    }
+
+    if (step === 'docs') {
+      if (lower.includes('준비') || lower.includes('완료') || lower.includes('ok')) return handleDocsNext();
+      const found = docChecklist.filter((d) => lower.includes(d.split(' ')[0].toLowerCase()));
+      if (found.length) {
+        setDocReady((prev) => Array.from(new Set([...prev, ...found])));
+        return pushMessage('bot', `${found.join(', ')} 체크되었습니다. "준비 완료"라고 보내면 다음 단계로 이동합니다.`);
+      }
+      return pushMessage('bot', '자료 준비 여부를 말씀해 주세요. 예: "간소화 PDF 준비", "준비 완료".');
+    }
+
+    if (step === 'financialIncome') {
+      const nums = parseNumeric(text);
+      const grossMatch = text.match(/gross|그로스|배당|%/i);
+      const grossRate = grossMatch && nums.length ? nums[nums.length - 1] : answers.grossUpRate;
+      const [fin, other] = nums;
+      if (fin) {
+        setAnswers((prev) => ({
+          ...prev,
+          financialIncome: fin,
+          otherIncome: other ?? prev.otherIncome,
+          grossUpRate: grossRate ?? prev.grossUpRate,
+        }));
+        pushMessage(
+          'bot',
+          `금융소득 ${formatKRW(fin)} / 기타소득 ${formatKRW(other ?? prev.otherIncome)} / Gross-up ${grossRate ?? prev.grossUpRate}`,
+        );
+        setStep('review');
+        return;
+      }
+      return pushMessage('bot', '숫자를 인식하지 못했어요. 예: "금융 24000000 기타 40000000 gross 0.1"');
+    }
+
+    if (step === 'basic') {
+      pushMessage('bot', '선택한 계산기로 이동합니다.');
+      setStep('review');
+      return;
+    }
+
+    pushMessage('bot', '선택한 계산기 카드에서 이어서 진행해 주세요.');
+  };
+
+  const quickReplies = () => {
+    if (step === 'select') return ['연말정산', '법인세', '금융소득'];
+    if (step === 'docs') return ['준비 완료', '간소화 PDF 있음', '배당 원천징수내역 준비'];
+    if (step === 'financialIncome') return ['금융 24000000 기타 40000000 gross 0.1'];
+    if (step === 'review') return calculators.map((c) => `${c.name} 열기`);
+    return [];
   };
 
   return (
@@ -268,6 +337,24 @@ function ChatWizard() {
             <p className="muted">비교과세: 종합 세액과 분리 과세 세액을 나란히 표기해 어떤 방식이 적용되는지 쉽게 알 수 있습니다.</p>
           </div>
         </aside>
+      </div>
+      <div className="composer">
+        <div className="quick-replies">
+          {quickReplies().map((q) => (
+            <button key={q} className="btn ghost" type="button" onClick={() => { setInputText(q); setTimeout(handleSend, 0); }}>
+              {q}
+            </button>
+          ))}
+        </div>
+        <div className="composer-row">
+          <input
+            value={inputText}
+            onChange={(e) => setInputText(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleSend(); }}
+            placeholder="메시지를 입력하세요. 예: 금융소득 2400만, 기타 4000만"
+          />
+          <button className="btn primary" type="button" onClick={handleSend}>전송</button>
+        </div>
       </div>
     </section>
   );
