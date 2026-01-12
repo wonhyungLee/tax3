@@ -281,6 +281,16 @@ a {
   margin-top: 12px;
 }
 
+.calculator-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.calc-intro {
+  margin: 18px 0;
+}
+
 .card {
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.5));
   border: 1px solid var(--border);
