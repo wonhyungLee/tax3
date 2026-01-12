@@ -1,144 +1,16 @@
 <!doctype html>
 <html lang="ko">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>통합 세금 플랫폼 · 연말정산 · 법인세 · 종합소득세</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles/colors.css">
-  <link rel="stylesheet" href="styles.css">
-  <link rel="stylesheet" href="styles/responsive.css">
-</head>
-<body data-theme="light">
-  <header class="topbar">
-    <div class="brand">
-      <div class="brand-mark" aria-hidden="true"></div>
-      <div>
-        <strong>Tax Unified</strong>
-        <div class="mini">연말정산 · 법인세 · 금융소득</div>
-      </div>
-    </div>
-    <nav class="nav-links" aria-label="주요 섹션">
-      <a href="#calculators">계산기 선택</a>
-      <a href="#faq">FAQ</a>
-      <a href="#contact">문의</a>
-    </nav>
-    <div class="topbar-actions">
-      <button class="btn ghost" id="open-modal" type="button">주민세 계산법</button>
-      <button class="btn ghost" id="open-a11y" type="button">WCAG 대비 강화</button>
-      <div class="contrast-control">
-        <span class="mini">대비</span>
-        <input type="range" id="contrast-slider" min="90" max="120" value="100" aria-label="대비 강도" />
-      </div>
-      <button class="btn chip" id="theme-toggle" type="button" aria-pressed="false">
-        <span class="theme-light-only" aria-hidden="true">🌞</span>
-        <span class="theme-dark-only" aria-hidden="true">🌙</span>
-        테마
-      </button>
-    </div>
-  </header>
-  <main class="shell">
-    <header class="hero">
-      <div>
-        <p class="pill">원본 엔진 그대로</p>
-        <h1>연말정산 · 법인세 · 금융소득 계산 바로가기</h1>
-        <p class="lede">필요한 계산기만 별도 페이지에서 실행합니다. 불필요한 기능과 배포 안내는 모두 제거해, 계산에만 집중할 수 있도록 구성했습니다.</p>
-      </div>
-      <div class="hero-actions">
-        <a class="btn primary" href="yearend/index.html">연말정산 열기</a>
-        <a class="btn ghost" href="corporate/index.html">법인세 열기</a>
-        <a class="btn ghost" href="financial/index.html">금융소득 열기</a>
-      </div>
-    </header>
-
-    <section class="calc-intro" id="calculators">
-      <div class="section-head">
-        <div>
-          <p class="pill">계산기 바로가기</p>
-          <h2>필요한 계산기만 열어서 바로 계산하세요</h2>
-          <p class="muted">각 계산기는 별도 페이지로 분리되어 가볍게 로드됩니다. 한 번에 하나씩 실행하는 구조로 성능과 가독성을 확보했습니다.</p>
-        </div>
-      </div>
-      <div class="calculator-grid">
-        <article class="card">
-          <p class="pill">연말정산</p>
-          <h3>근로소득 환급/추가납부</h3>
-          <p class="muted">카드·연금·주택·의료·교육·기부금 전 항목을 포함한 원본 엔진.</p>
-          <div class="card-actions">
-            <a class="btn primary" href="yearend/index.html">페이지 열기</a>
-            <a class="btn ghost" href="yearend/index.html" target="_blank" rel="noreferrer">새 창</a>
-          </div>
-        </article>
-        <article class="card">
-          <p class="pill">법인세</p>
-          <h3>TaxCore 2025 시뮬레이터</h3>
-          <p class="muted">접대비 한도·감가상각·익금/손금 조정·최저한세 포함.</p>
-          <div class="card-actions">
-            <a class="btn primary" href="corporate/index.html">페이지 열기</a>
-            <a class="btn ghost" href="corporate/index.html" target="_blank" rel="noreferrer">새 창</a>
-          </div>
-        </article>
-        <article class="card">
-          <p class="pill">종합소득세(금융)</p>
-          <h3>비교과세 · Gross-up · 해외소득</h3>
-          <p class="muted">2천만원 한도 비교과세 필수: 종합과세 vs 전액 분리과세 중 큰 세액을 선택하고, 배당 Gross-up/외국납부세액공제를 반영합니다.</p>
-          <div class="card-actions">
-            <a class="btn primary" href="financial/index.html">페이지 열기</a>
-            <a class="btn ghost" href="financial/index.html" target="_blank" rel="noreferrer">새 창</a>
-          </div>
-        </article>
-      </div>
-    </section>
-
-    <section class="note" id="faq">
-      <p><strong>FAQ.</strong> 각 계산기는 서로 독립적이며, 입력값은 브라우저에만 저장됩니다. 계산 과정에서 서버 전송이 없으니 안심하고 사용하세요.</p>
-    </section>
-
-    <section class="note" id="contact">
-      <p><strong>문의.</strong> 계산기 오류나 개선 제안이 있으면 GitHub 이슈나 이메일로 알려 주세요. 사용자 피드백을 반영해 엔진 업데이트와 UI 개선을 지속합니다.</p>
-    </section>
-  </main>
-
-  <div class="modal-backdrop" id="info-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-    <div class="modal">
-      <div class="modal-head">
-        <h3 id="modal-title">주민세 계산법</h3>
-        <button class="close-modal" type="button" data-close-modal aria-label="닫기">×</button>
-      </div>
-      <p class="muted">주민세는 산출세액의 10%를 기본으로 하며, 일부 감면·비과세 항목은 지자체 규정에 따릅니다.</p>
-      <ul class="list small">
-        <li>연말정산/법인세 결과의 국세 산출세액 × 10%를 기본 지방소득세로 반영합니다.</li>
-        <li>과세표준 구간별 감면이 있는 경우 해당 지자체 공지와 납부서 기준을 확인하세요.</li>
-        <li>지방교육세 등 부가세가 붙는 경우는 별도 계산 탭(원본 엔진)에서 확인할 수 있습니다.</li>
-      </ul>
-      <div class="modal-actions">
-        <button class="btn ghost" type="button" data-close-modal>닫기</button>
-        <button class="btn primary" type="button" data-close-modal>확인</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="modal-backdrop" id="a11y-modal" role="dialog" aria-modal="true" aria-labelledby="a11y-title">
-    <div class="modal">
-      <div class="modal-head">
-        <h3 id="a11y-title">WCAG 대비/접근성 안내</h3>
-        <button class="close-modal" type="button" data-close-a11y aria-label="닫기">×</button>
-      </div>
-      <p class="muted">테마/대비 슬라이더로 색상 대비를 조정하고, 키보드와 스크린리더로 탐색할 수 있습니다.</p>
-      <ul class="list small">
-        <li>탭(Tab)과 시프트+탭으로 인터페이스를 이동하고, 엔터/스페이스로 버튼을 실행합니다.</li>
-        <li>모든 상호작용 요소는 포커스 표시와 ARIA 라벨을 포함합니다.</li>
-        <li>테마 토글과 대비 슬라이더를 사용해 밝기·채도를 조정해 WCAG AA 대비를 유지하세요.</li>
-        <li>모달은 ESC 키와 배경 클릭으로 닫을 수 있으며, 열릴 때 포커스를 내부로 이동합니다.</li>
-      </ul>
-      <div class="modal-actions">
-        <button class="btn ghost" type="button" data-close-a11y>닫기</button>
-      </div>
-    </div>
-  </div>
-
-  <script src="app.js"></script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tax Unified · 연말정산 · 법인세 · 금융소득</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
 </html>

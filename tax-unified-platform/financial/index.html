@@ -63,6 +63,23 @@
     .trace { background: rgba(255,255,255,0.03); border-radius: 10px; border: 1px solid var(--border); padding: 10px; font-size: 13px; white-space: pre-wrap; max-height: 360px; overflow: auto; }
     .warn { color: #fbbf24; font-weight: 600; }
     .callout { border: 1px solid var(--border); background: rgba(16,185,129,0.08); border-radius: 12px; padding: 12px; margin: 12px 0; }
+    .stepper { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin: 12px 0; }
+    .step { padding: 10px; border: 1px solid var(--border); border-radius: 12px; background: rgba(255,255,255,0.03); text-align: left; }
+    .step.active { border-color: var(--accent); box-shadow: 0 0 0 1px rgba(16,185,129,0.35); background: rgba(16,185,129,0.12); }
+    .step.completed { opacity: 0.85; }
+    .progress { margin: 0 0 12px; height: 8px; background: rgba(255,255,255,0.06); border-radius: 6px; overflow: hidden; }
+    .progress-bar { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); width: 25%; transition: width 180ms ease; }
+    .fieldset { border: 1px solid var(--border); border-radius: 12px; padding: 12px; margin-top: 10px; }
+    .fieldset legend { padding: 0 8px; color: var(--muted); }
+    .floating { position: relative; }
+    .floating input:not(:placeholder-shown) + span,
+    .floating input:focus + span,
+    .floating select:focus + span { transform: translateY(-18px); font-size: 11px; color: var(--muted); }
+    .floating span { position: absolute; left: 12px; top: 12px; pointer-events: none; transition: 120ms ease; background: rgba(15,23,42,0.9); padding: 0 4px; border-radius: 6px; }
+    input:focus, select:focus { outline: 2px solid rgba(16,185,129,0.35); box-shadow: 0 6px 16px rgba(16,185,129,0.2); }
+    @media (prefers-reduced-motion: reduce) {
+      * { transition: none !important; animation-duration: 0s !important; }
+    }
   </style>
 </head>
 <body>
@@ -82,9 +99,17 @@
     </p>
   </div>
 
+  <div class="progress"><div class="progress-bar" id="progressBar"></div></div>
+  <div class="stepper" id="stepper">
+    <div class="step active" data-step="0">1단계: 기본 설정</div>
+    <div class="step" data-step="1">2단계: 금융소득 입력</div>
+    <div class="step" data-step="2">3단계: 기타 소득/공제</div>
+    <div class="step" data-step="3">4단계: 결과</div>
+  </div>
+
   <div class="layout">
-    <div class="stack">
-      <section>
+    <div class="stack" id="step-0">
+      <section class="fieldset">
         <h2>기본 설정</h2>
         <div class="grid">
           <label>귀속연도
@@ -114,8 +139,13 @@
         </div>
         <div class="muted" style="margin-top:6px;">누진세율표: 6 / 15 / 24 / 35 / 38 / 40 / 42 / 45% (2024년).</div>
       </section>
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button class="secondary" type="button" data-next>다음 단계</button>
+      </div>
+    </div>
 
-      <section>
+    <div class="stack" id="step-1" hidden>
+      <section class="fieldset">
         <div class="flex" style="justify-content: space-between; align-items: center; margin-bottom:8px;">
           <h2 style="margin:0;">금융소득 항목 (이자/배당)</h2>
           <button class="secondary" id="addFinancial">+ 항목 추가</button>
@@ -135,8 +165,14 @@
         </table>
         <div class="muted" style="margin-top:6px;">임대 유형을 선택하고 분리과세율을 비워두면 기본 14% 적용, 연 20,000,000원 초과분은 종합과세로 전환됩니다.</div>
       </section>
+      <div style="display:flex;gap:10px;justify-content:space-between;">
+        <button class="secondary" type="button" data-prev>이전</button>
+        <button class="secondary" type="button" data-next>다음 단계</button>
+      </div>
+    </div>
 
-      <section>
+    <div class="stack" id="step-2" hidden>
+      <section class="fieldset">
         <h2>기타 종합소득 / 소득공제</h2>
         <div class="grid">
           <label>집계 입력: 다른 종합소득금액(근로/사업 등)
@@ -167,7 +203,7 @@
         </table>
       </section>
 
-      <section>
+      <section class="fieldset">
         <h2>기납부세액(추가)</h2>
         <div class="grid">
           <label>국세(중간예납 등)
@@ -181,10 +217,14 @@
           </label>
         </div>
       </section>
+      <div style="display:flex;gap:10px;justify-content:space-between;">
+        <button class="secondary" type="button" data-prev>이전</button>
+        <button class="secondary" type="button" data-next>다음 단계</button>
+      </div>
     </div>
 
-    <div class="stack">
-      <section>
+    <div class="stack" id="step-3" hidden>
+      <section class="fieldset">
         <h2>결과</h2>
         <div id="resultPrimary" class="result-card">계산 버튼을 눌러 결과를 확인하세요.</div>
         <div style="margin-top:12px;">
@@ -197,7 +237,7 @@
         </div>
       </section>
 
-      <section>
+      <section class="fieldset">
         <h2>계산 로직 요약</h2>
         <ul style="margin:0; padding-left:18px; color:var(--muted); line-height:1.5;">
           <li>금융소득 2천만원 한도까지 항목별 원천세율로 과세, 초과분은 종합과세 비교.</li>
@@ -207,10 +247,53 @@
           <li>지방소득세는 결정세액의 10%, 최종 납부세액은 10원 미만 절사.</li>
         </ul>
       </section>
+      <div style="display:flex;gap:10px;justify-content:flex-start;">
+        <button class="secondary" type="button" data-prev>이전</button>
+        <button id="calcBtn" type="button">계산 실행</button>
+      </div>
     </div>
   </div>
 
   <script>
+    // 단계 전환
+    const steps = Array.from(document.querySelectorAll('[id^="step-"]'));
+    const progressBar = document.getElementById('progressBar');
+    const stepper = document.getElementById('stepper');
+    let currentStep = 0;
+
+    const updateSteps = () => {
+      steps.forEach((s, idx) => s.toggleAttribute('hidden', idx !== currentStep));
+      stepper.querySelectorAll('.step').forEach((el, idx) => {
+        el.classList.toggle('active', idx === currentStep);
+        el.classList.toggle('completed', idx < currentStep);
+      });
+      const pct = ((currentStep + 1) / steps.length) * 100;
+      if (progressBar) progressBar.style.width = `${pct}%`;
+    };
+
+    document.querySelectorAll('[data-next]').forEach((btn) =>
+      btn.addEventListener('click', () => {
+        currentStep = Math.min(currentStep + 1, steps.length - 1);
+        updateSteps();
+      }),
+    );
+    document.querySelectorAll('[data-prev]').forEach((btn) =>
+      btn.addEventListener('click', () => {
+        currentStep = Math.max(currentStep - 1, 0);
+        updateSteps();
+      }),
+    );
+    stepper.querySelectorAll('.step').forEach((el) =>
+      el.addEventListener('click', () => {
+        const idx = Number(el.dataset.step);
+        if (!Number.isNaN(idx)) {
+          currentStep = idx;
+          updateSteps();
+        }
+      }),
+    );
+    updateSteps();
+
     // --- 유틸 ---
     const ensureNumber = (v) => Number.isFinite(Number(v)) ? Number(v) : 0;
     const toKRW = (v) => Math.floor(ensureNumber(v));
