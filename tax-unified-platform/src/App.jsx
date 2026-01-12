@@ -18,9 +18,10 @@ const docChecklist = [
 const formatKRW = (n) => Number(n || 0).toLocaleString('ko-KR');
 
 const ChatBubble = ({ role, children }) => (
-  <div className={`bubble ${role}`}>
-    <div className="bubble-role">{role === 'bot' ? '도우미' : '사용자'}</div>
-    <div className="bubble-body">{children}</div>
+  <div className={`bubble-row ${role === 'user' ? 'me' : ''}`}>
+    <div className={`bubble ${role}`}>
+      <div className="bubble-body">{children}</div>
+    </div>
   </div>
 );
 
@@ -85,11 +86,39 @@ function ChatWizard() {
 
   const pushMessage = (role, text) => setMessages((prev) => [...prev, { role, text }]);
 
+  const financialAdvice = (data) => {
+    const fin = Number(data.financialIncome) || 0;
+    const other = Number(data.otherIncome) || 0;
+    const gross = Number(data.grossUpRate || 0);
+    const threshold = 20_000_000;
+    if (!fin) return '금융소득 금액을 알려주시면 종합 vs 분리 어느 쪽이 더 큰지 안내해 드릴게요.';
+    const separateTax = fin * 0.14;
+    const progressive = (income) => {
+      if (income <= 14_000_000) return income * 0.06;
+      if (income <= 50_000_000) return 840000 + (income - 14_000_000) * 0.15;
+      if (income <= 88_000_000) return 6240000 + (income - 50_000_000) * 0.24;
+      return 15440000 + (income - 88_000_000) * 0.35;
+    };
+    const grossUpAdd = fin > threshold ? (fin - threshold) * gross : 0;
+    const comprehensiveTax = progressive(Math.max(other + Math.max(fin - threshold, 0) + grossUpAdd, 0)) + threshold * 0.14;
+    const picked = comprehensiveTax >= separateTax ? '종합과세 금액이 더 커서 종합으로 비교과세 적용' : '14% 전액 분리과세가 더 큼';
+    return [
+      `금융소득 ${formatKRW(fin)} / 기타소득 ${formatKRW(other)} / Gross-up ${gross}`,
+      `종합 방식(초과+누진세): 약 ₩${formatKRW(Math.round(comprehensiveTax))}, 분리: 약 ₩${formatKRW(Math.round(separateTax))}`,
+      picked,
+    ].join(' · ');
+  };
+
   const handleSelectCalculator = (id) => {
     setCalculator(id);
     setStep('docs');
     pushMessage('user', `${calculators.find((c) => c.id === id)?.name} 계산기를 선택했어요.`);
-    pushMessage('bot', '자료 준비 여부를 체크하고 다음 단계로 이동해 주세요.');
+    pushMessage(
+      'bot',
+      id === 'financial'
+        ? '자료 준비 후 금융소득/기타소득을 입력하면 종합 vs 분리 비교 결과를 바로 알려드릴게요.'
+        : '자료 준비 여부를 체크하고 다음 단계로 이동해 주세요.',
+    );
   };
 
   const toggleDoc = (item) => {
@@ -122,11 +151,12 @@ function ChatWizard() {
       `금융소득: ${formatKRW(answers.financialIncome)} / 기타소득: ${formatKRW(answers.otherIncome)} / Gross-up 비율: ${answers.grossUpRate}`,
     );
     setStep('review');
-    pushMessage('bot', '계산 결과와 종합 vs 분리 비교를 아래 카드에서 확인하세요.');
+    pushMessage('bot', financialAdvice({ ...answers, ...{ financialIncome: answers.financialIncome, otherIncome: answers.otherIncome, grossUpRate: answers.grossUpRate } }));
   };
 
   const handleBasicNext = () => {
-    pushMessage('bot', '선택한 계산기 페이지로 이동해 계속 입력하세요.');
+    const name = calculators.find((c) => c.id === calculator)?.name || '계산기';
+    pushMessage('bot', `${name} 페이지를 열어 세부 항목을 입력하세요. 자료가 준비되지 않아도 저장 없이 브라우저에서만 처리됩니다.`);
     setStep('review');
   };
 
@@ -198,7 +228,7 @@ function ChatWizard() {
   const quickReplies = () => {
     if (step === 'select') return ['연말정산', '법인세', '금융소득'];
     if (step === 'docs') return ['준비 완료', '간소화 PDF 있음', '배당 원천징수내역 준비'];
-    if (step === 'financialIncome') return ['금융 24000000 기타 40000000 gross 0.1'];
+    if (step === 'financialIncome') return ['금융 24000000 기타 40000000 gross 0.1', '조언'];
     if (step === 'review') return calculators.map((c) => `${c.name} 열기`);
     return [];
   };
