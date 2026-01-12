@@ -21,6 +21,7 @@ const partnerId = import.meta.env.VITE_COUPANG_PARTNER_ID || 'AF7397099';
 const buildAdLink = (keyword) => `https://link.coupang.com/a/${partnerId}?search=${encodeURIComponent(keyword)}`;
 const coupangProxy = import.meta.env.VITE_COUPANG_PROXY_URL || '';
 const bestCategoryId = 1016; // 가전디지털
+const adInjectChance = 0.22;
 
 const adProducts = [
   {
@@ -99,6 +100,7 @@ function ChatWizard() {
   const [consent, setConsent] = useState(false);
   const [awaitingConsent, setAwaitingConsent] = useState(false);
   const [pendingAdContext, setPendingAdContext] = useState(null);
+  const [messageCount, setMessageCount] = useState(0);
   const { steps, index, pct } = useProgress(calculator, step);
   const [inputText, setInputText] = useState('');
   const calculatorLinks = calculators.map((c) => ({ label: `${c.name} 열기`, href: c.route }));
@@ -109,7 +111,10 @@ function ChatWizard() {
     return ctx || '';
   };
 
-  const pushMessage = (payload) => setMessages((prev) => [...prev, payload]);
+  const pushMessage = (payload) => {
+    setMessages((prev) => [...prev, payload]);
+    setMessageCount((n) => n + 1);
+  };
   const pushBot = (text, extra = {}) => pushMessage({ role: 'bot', text, ...extra });
   const pushUser = (text) => pushMessage({ role: 'user', text });
 
@@ -138,13 +143,32 @@ function ChatWizard() {
 
   const fallbackAds = () => adProducts.map((ad) => ({ ...ad, link: buildAdLink(ad.keyword) }));
 
-  const normalizeAd = (item) => ({
-    title: item.title || item.productName || item.name,
-    desc: item.desc || item.description || item.productDescription || '가전디지털 인기 상품',
-    price: item.price || item.salePrice || item.salesPrice,
-    image: item.image || item.imageUrl || item.productImage || adProducts[0].image,
-    link: item.deeplink || item.link || item.url || buildAdLink('가전디지털'),
-  });
+const normalizeAd = (item) => ({
+  title: item.title || item.productName || item.name,
+  desc: item.desc || item.description || item.productDescription || '가전디지털 인기 상품',
+  price: item.price || item.salePrice || item.salesPrice,
+  image: item.image || item.imageUrl || item.productImage || item.productImageUrl || adProducts[0].image,
+  link: item.deeplink || item.link || item.url || item.productUrl || buildAdLink('가전디지털'),
+});
+
+  const fetchDeeplink = async (url) => {
+    if (!coupangProxy || !url) return null;
+    try {
+      const res = await fetch(`${coupangProxy}/deeplink`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ coupangUrl: url }),
+      });
+      if (!res.ok) throw new Error(`deeplink HTTP ${res.status}`);
+      const data = await res.json();
+      const list = data?.data?.deeplinks || data?.data?.links || data?.data || [];
+      const first = Array.isArray(list) ? list[0] : data?.data;
+      return first?.shortenUrl || first?.shortUrl || first?.link || first?.url || null;
+    } catch (err) {
+      console.error('deeplink error', err);
+      return null;
+    }
+  };
 
   const fetchCoupangAds = async (categoryId = bestCategoryId) => {
     if (!coupangProxy) return fallbackAds();
@@ -152,8 +176,22 @@ function ChatWizard() {
       const res = await fetch(`${coupangProxy}/products/bestcategories/${categoryId}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      const items = Array.isArray(data) ? data : data.data || [];
-      const ads = items.slice(0, 4).map(normalizeAd).filter((a) => a.title && a.link);
+      const items =
+        (Array.isArray(data) && data) ||
+        data?.data?.productData ||
+        data?.data?.products ||
+        data?.data?.content ||
+        data?.data ||
+        data?.rData?.productData ||
+        data?.products ||
+        [];
+      const rawAds = items.slice(0, 4).map(normalizeAd).filter((a) => a.title);
+      const ads = await Promise.all(
+        rawAds.map(async (ad) => {
+          const deeplink = await fetchDeeplink(ad.link);
+          return { ...ad, link: deeplink || ad.link };
+        }),
+      );
       if (ads.length) return ads;
     } catch (err) {
       console.error('coupang fetch error', err);
@@ -258,6 +296,10 @@ function ChatWizard() {
       if (consent) showContextAds(calculator);
       else requestConsent(calculator);
       return;
+    }
+
+    if (consent && Math.random() < adInjectChance && messageCount > 3) {
+      showContextAds(calculator);
     }
 
     if (step === 'select') {
