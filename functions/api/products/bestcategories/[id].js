@@ -1,4 +1,4 @@
-import { coupangAuthHeader, validateKeys } from '../_coupangAuth';
+import { coupangAuthHeader, validateKeys } from '/functions/api/_coupangAuth';
 
 const API_HOST = 'https://api-gateway.coupang.com';
 
