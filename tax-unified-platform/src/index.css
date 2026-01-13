@@ -259,6 +259,8 @@ iframe { width: 100%; height: 100vh; border: none; background: #0b1224; }
   letter-spacing: 0.02em;
 }
 
+.coupang-ad-slot { margin: 20px auto 32px; max-width: 1200px; }
+
 @media (max-width: 960px) {
   .chat-wrap { padding: 12px; }
   iframe { height: 720px; }

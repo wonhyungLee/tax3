@@ -3,8 +3,12 @@ import { coupangAuthHeader, validateKeys } from './_coupangAuth';
 const API_HOST = 'https://api-gateway.coupang.com';
 
 export async function onRequestPost({ request, env }) {
-  if (!validateKeys(env)) {
-    return new Response(JSON.stringify({ error: 'Missing Coupang credentials' }), { status: 500, headers: { 'content-type': 'application/json' } });
+  const { accessKey, secretKey, partnerId } = validateKeys(env);
+  if (!accessKey || !secretKey) {
+    return new Response(JSON.stringify({ error: 'Missing Coupang credentials', required: ['COUPANG_ACCESS_KEY', 'COUPANG_SECRET_KEY'] }), {
+      status: 500,
+      headers: { 'content-type': 'application/json' },
+    });
   }
 
   const body = await request.json().catch(() => ({}));
@@ -15,7 +19,7 @@ export async function onRequestPost({ request, env }) {
 
   const path = `/v2/providers/affiliate_open_api/apis/openapi/v1/deeplink`;
   const headers = {
-    ...(await coupangAuthHeader('POST', path, env.COUPANG_ACCESS_KEY, env.COUPANG_SECRET_KEY)),
+    ...(await coupangAuthHeader('POST', path, accessKey, secretKey)),
     'content-type': 'application/json',
   };
 
@@ -25,7 +29,7 @@ export async function onRequestPost({ request, env }) {
       headers,
       body: JSON.stringify({
         coupangUrls: [coupangUrl],
-        subId: env.COUPANG_PARTNER_ID,
+        subId: partnerId,
       }),
     });
     const data = await res.json();

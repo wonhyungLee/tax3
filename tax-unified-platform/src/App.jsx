@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Routes, Route } from 'react-router-dom';
 
 const calculators = [
@@ -98,9 +98,6 @@ function ChatWizard() {
   const [docReady, setDocReady] = useState([]);
   const [answers, setAnswers] = useState({ financialIncome: '', otherIncome: '', grossUpRate: 0.1 });
   const [step, setStep] = useState('select');
-  const [consent, setConsent] = useState(false);
-  const [awaitingConsent, setAwaitingConsent] = useState(false);
-  const [pendingAdContext, setPendingAdContext] = useState(null);
   const [messageCount, setMessageCount] = useState(0);
   const { steps, index, pct } = useProgress(calculator, step);
   const [inputText, setInputText] = useState('');
@@ -253,9 +250,6 @@ const normalizeAd = (item) => ({
     setDocReady([]);
     setAnswers({ financialIncome: '', otherIncome: '', grossUpRate: 0.1 });
     setStep('select');
-    setConsent(false);
-    setAwaitingConsent(false);
-    setPendingAdContext(null);
     setMessages([
       { role: 'bot', text: '메신저처럼 대화하며 계산을 안내합니다. 자료 준비 → 금액 입력 → 결과/링크 순서로 진행해요.' },
       { role: 'bot', text: '연말정산 · 법인세 · 금융소득 중 무엇을 계산할까요?' },
@@ -283,8 +277,7 @@ const normalizeAd = (item) => ({
     const links = selected ? [{ label: `${selected.name} 열기`, href: selected.route }, ...calculatorLinks] : calculatorLinks;
     pushBot('바로 계산기를 열 수 있어요. 필요한 페이지를 선택해 주세요.', { links });
     setStep(next);
-    if (consent) showContextAds(selected?.id);
-    else requestConsent(selected?.id);
+    showContextAds(selected?.id);
   };
 
   const parseNumeric = (text) => {
@@ -304,30 +297,12 @@ const normalizeAd = (item) => ({
       return;
     }
 
-    if (awaitingConsent && (lower.includes('동의') || lower.includes('허용'))) {
-      setConsent(true);
-      setAwaitingConsent(false);
-      pushBot('동의해 주셔서 감사합니다. 맞춤 추천을 준비할게요.');
-      showContextAds(pendingAdContext);
-      setPendingAdContext(null);
-      return;
-    }
-    if (awaitingConsent && (lower.includes('거부') || lower.includes('안 해') || lower.includes('싫'))) {
-      setConsent(false);
-      setAwaitingConsent(false);
-      setPendingAdContext(null);
-      pushBot('네, 동의 없이 기록은 사용하지 않고 일반 추천만 제공합니다.');
-      showAds();
-      return;
-    }
-
     if (lower.includes('광고') || lower.includes('추천') || lower.includes('쇼핑') || lower.includes('로그')) {
-      if (consent) showContextAds(calculator);
-      else requestConsent(calculator);
+      showContextAds(calculator);
       return;
     }
 
-    if (consent && Math.random() < adInjectChance && messageCount > 3) {
+    if (Math.random() < adInjectChance && messageCount > 3) {
       showContextAds(calculator);
     }
 
@@ -503,10 +478,47 @@ function Home() {
   );
 }
 
+function CoupangCarouselAd() {
+  const slotRef = useRef(null);
+  const initialized = useRef(false);
+  const ids = [902947, 902948, 902949];
+  const pickId = () => ids[Math.floor(Math.random() * ids.length)];
+
+  useEffect(() => {
+    if (initialized.current) return;
+    initialized.current = true;
+    const load = () => {
+      const widgetId = pickId();
+      if (window.PartnersCoupang?.G && slotRef.current) {
+        new window.PartnersCoupang.G({
+          id: widgetId,
+          trackingCode: 'AF7397099',
+          subId: null,
+          template: 'carousel',
+          width: '1200',
+          height: '250',
+        });
+      }
+    };
+
+    if (window.PartnersCoupang?.G) {
+      load();
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = 'https://ads-partners.coupang.com/g.js';
+    script.async = true;
+    script.onload = load;
+    document.body.appendChild(script);
+  }, []);
+
+  return <div ref={slotRef} className="coupang-ad-slot" />;
+}
+
 function App() {
   return (
     <Routes>
-      <Route path="/" element={<Home />} />
+      <Route path="/" element={<><Home /><CoupangCarouselAd /></>} />
       <Route path="/yearend" element={<IframePage title="연말정산" src="/yearend/index.html" />} />
       <Route path="/corporate" element={<IframePage title="법인세" src="/corporate/index.html" />} />
       <Route path="/financial" element={<IframePage title="금융소득 종합과세" src="/financial/index.html" />} />
