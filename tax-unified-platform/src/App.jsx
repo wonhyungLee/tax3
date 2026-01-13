@@ -2,9 +2,9 @@ import { useMemo, useState } from 'react';
 import { Routes, Route } from 'react-router-dom';
 
 const calculators = [
-  { id: 'yearend', name: '연말정산', blurb: '근로소득 환급/추납', route: '/yearend', href: '/yearend/index.html' },
-  { id: 'corporate', name: '법인세', blurb: 'TaxCore 2025 시뮬레이터', route: '/corporate', href: '/corporate/index.html' },
-  { id: 'financial', name: '금융소득 종합과세', blurb: '비교과세 · Gross-up · 해외소득', route: '/financial', href: '/financial/index.html' },
+  { id: 'yearend', name: '연말정산', blurb: '근로소득 환급/추납' },
+  { id: 'corporate', name: '법인세', blurb: 'TaxCore 2025 시뮬레이터' },
+  { id: 'financial', name: '금융소득 종합과세', blurb: '비교과세 · Gross-up · 해외소득' },
 ];
 
 const docChecklist = [
@@ -16,10 +16,18 @@ const docChecklist = [
 ];
 
 const formatKRW = (n) => Number(n || 0).toLocaleString('ko-KR');
-const calculatorFrames = {
-  yearend: '/yearend/index.html',
-  corporate: '/corporate/index.html',
-  financial: '/financial/index.html',
+
+const initialAnswers = {
+  financialIncome: '',
+  otherIncome: '',
+  grossUpRate: 0.1,
+  salary: '',
+  insurance: '',
+  education: '',
+  donation: '',
+  corpRevenue: '',
+  corpExpense: '',
+  corpCredit: '',
 };
 
 const ChatBubble = ({ role, text, links = [] }) => (
@@ -42,8 +50,8 @@ const ChatBubble = ({ role, text, links = [] }) => (
 function useProgress(calculator, step) {
   const steps = useMemo(() => {
     if (calculator === 'financial') return ['select', 'docs', 'financialIncome', 'review'];
-    if (calculator === 'yearend' || calculator === 'corporate') return ['select', 'docs', 'review'];
-    return ['select', 'docs', 'review'];
+    if (calculator === 'yearend' || calculator === 'corporate') return ['select', 'docs', 'input', 'review'];
+    return ['select', 'docs', 'input', 'review'];
   }, [calculator]);
 
   const index = Math.max(0, steps.indexOf(step));
@@ -58,7 +66,7 @@ function ChatWizard() {
     { role: 'bot', text: '연말정산 · 법인세 · 금융소득 중 무엇을 계산하고 싶으신가요?' },
   ]);
   const [docReady, setDocReady] = useState([]);
-  const [answers, setAnswers] = useState({ financialIncome: '', otherIncome: '', grossUpRate: 0.1 });
+  const [answers, setAnswers] = useState({ ...initialAnswers });
   const [step, setStep] = useState('select');
   const { steps, index, pct } = useProgress(calculator, step);
   const [inputText, setInputText] = useState('');
@@ -95,7 +103,7 @@ function ChatWizard() {
   const resetFlow = () => {
     setCalculator(null);
     setDocReady([]);
-    setAnswers({ financialIncome: '', otherIncome: '', grossUpRate: 0.1 });
+    setAnswers({ ...initialAnswers });
     setStep('select');
     setMessages([
       { role: 'bot', text: '메신저처럼 대화하며 계산을 안내합니다. 자료 준비 → 금액 입력 → 결과/링크 순서로 진행해요.' },
@@ -114,13 +122,19 @@ function ChatWizard() {
 
   const handleDocsNext = () => {
     pushUser(`준비한 자료: ${docReady.length ? docReady.join(', ') : '없음'}`);
-    const next = calculator === 'financial' ? 'financialIncome' : 'review';
+    const next = calculator === 'financial' ? 'financialIncome' : 'input';
     if (calculator === 'financial') {
       pushBot('금융소득/기타소득 금액을 메시지로 알려주세요. 예: "금융 24000000 기타 40000000 gross 0.1"');
       setStep(next);
       return;
     }
-    pushBot('채팅 아래에 계산기 창을 열었어요. 필요한 값 입력 후 궁금한 점을 알려주세요.');
+    if (calculator === 'yearend') {
+      pushBot('총급여와 공제 항목을 알려주세요. 예: "총급여 5000만, 보험료 120만, 교육비 50만, 기부금 30만"');
+    } else if (calculator === 'corporate') {
+      pushBot('매출/비용/세액공제 금액을 알려주세요. 예: "매출 3억, 비용 2억2천, 세액공제 500만"');
+    } else {
+      pushBot('필요한 금액을 메시지로 알려주세요.');
+    }
     setStep(next);
   };
 
@@ -187,11 +201,45 @@ function ChatWizard() {
       return pushBot('숫자를 인식하지 못했어요. 예: "금융 24000000 기타 40000000 gross 0.1"');
     }
 
+    if (step === 'input' && calculator === 'yearend') {
+      const salary = text.match(/(총)?급여\s*([\d,\.]+)/i)?.[2];
+      const insurance = text.match(/보험료\s*([\d,\.]+)/i)?.[1];
+      const education = text.match(/교육비\s*([\d,\.]+)/i)?.[1];
+      const donation = text.match(/기부금\s*([\d,\.]+)/i)?.[1];
+      setAnswers((prev) => ({
+        ...prev,
+        salary: salary ? Number(String(salary).replace(/[^\d]/g, '')) : prev.salary || '',
+        insurance: insurance ? Number(String(insurance).replace(/[^\d]/g, '')) : prev.insurance || '',
+        education: education ? Number(String(education).replace(/[^\d]/g, '')) : prev.education || '',
+        donation: donation ? Number(String(donation).replace(/[^\d]/g, '')) : prev.donation || '',
+      }));
+      pushBot(
+        `입력값 확인: 총급여 ${formatKRW(salary || answers.salary)} / 보험료 ${formatKRW(insurance || answers.insurance)} / 교육비 ${formatKRW(education || answers.education)} / 기부금 ${formatKRW(donation || answers.donation)}`,
+      );
+      pushBot('간단 계산은 브라우저에서만 처리됩니다. 추가로 수정할 항목이 있으면 알려주세요.');
+      setStep('review');
+      return;
+    }
+
+    if (step === 'input' && calculator === 'corporate') {
+      const revenue = text.match(/(매출|수익)\s*([\d,\.]+)/i)?.[2];
+      const expense = text.match(/(비용|지출)\s*([\d,\.]+)/i)?.[2];
+      const credit = text.match(/(세액공제|공제)\s*([\d,\.]+)/i)?.[2];
+      setAnswers((prev) => ({
+        ...prev,
+        corpRevenue: revenue ? Number(String(revenue).replace(/[^\d]/g, '')) : prev.corpRevenue || '',
+        corpExpense: expense ? Number(String(expense).replace(/[^\d]/g, '')) : prev.corpExpense || '',
+        corpCredit: credit ? Number(String(credit).replace(/[^\d]/g, '')) : prev.corpCredit || '',
+      }));
+      pushBot(
+        `입력값 확인: 매출 ${formatKRW(revenue || answers.corpRevenue)} / 비용 ${formatKRW(expense || answers.corpExpense)} / 세액공제 ${formatKRW(credit || answers.corpCredit)}`,
+      );
+      pushBot('간단 계산은 브라우저에서만 처리됩니다. 추가로 수정할 항목이 있으면 알려주세요.');
+      setStep('review');
+      return;
+    }
+
     if (step === 'review') {
-      if (lower.includes('열기')) {
-        pushBot('아래 내장된 계산기 창에서 입력을 이어가세요.');
-        return;
-      }
       if (lower.includes('조언') || lower.includes('비교')) {
         pushBot(financialAdvice(answers));
         return;
@@ -200,7 +248,7 @@ function ChatWizard() {
         resetFlow();
         return;
       }
-      pushBot('추가로 궁금한 계산이나 자료가 있으면 알려주세요. "열기"라고 입력하면 계산기 링크를 다시 보여드려요.');
+      pushBot('추가로 궁금한 계산이나 자료가 있으면 알려주세요. 필요한 값을 더 알려주시면 대화 안에서 계속 업데이트해 드릴게요.');
       return;
     }
 
@@ -211,6 +259,9 @@ function ChatWizard() {
     if (step === 'select') return ['연말정산', '법인세', '금융소득'];
     if (step === 'docs') return ['준비 완료', '간소화 PDF 있음', '배당 원천징수내역 준비'];
     if (step === 'financialIncome') return ['금융 24000000 기타 40000000 gross 0.1', '조언'];
+    if (step === 'input' && calculator === 'yearend') return ['총급여 50000000 보험료 1200000 교육비 500000 기부금 300000'];
+    if (step === 'input' && calculator === 'corporate') return ['매출 300000000 비용 220000000 세액공제 5000000'];
+    if (step === 'input') return ['금액을 알려주세요'];
     if (step === 'review') return ['조언', '다시 시작'];
     return [];
   };
@@ -218,8 +269,9 @@ function ChatWizard() {
   const stepLabels = {
     select: '계산기 선택',
     docs: '자료 확인',
+    input: '금액 입력',
     financialIncome: '금액 입력',
-    review: '검토/열기',
+    review: '검토/조언',
   };
 
   return (
@@ -241,11 +293,6 @@ function ChatWizard() {
             <ChatBubble key={idx} role={m.role} text={m.text} links={m.links} />
           ))}
         </div>
-        {calculator && calculatorFrames[calculator] && (
-          <div className="frame-wrap">
-            <iframe title={`${calculator} 계산기`} src={calculatorFrames[calculator]} loading="lazy" />
-          </div>
-        )}
         <div className="composer">
           <div className="quick-replies">
             {quickReplies().map((q) => (
@@ -269,27 +316,6 @@ function ChatWizard() {
   );
 }
 
-const PageLayout = ({ title, children }) => (
-  <main className="shell">
-    <h1 className="page-title">{title}</h1>
-    {children}
-  </main>
-);
-
-const IframePage = ({ title, src }) => (
-  <PageLayout title={title}>
-    <div className="card">
-      <p className="muted">원본 엔진을 React 라우트에서 그대로 불러옵니다. 새 창으로 열어 전 화면에서도 사용할 수 있습니다.</p>
-      <div className="actions">
-        <a className="btn primary" href={src} target="_blank" rel="noreferrer">새 창에서 열기</a>
-      </div>
-      <div className="frame-wrap">
-        <iframe title={title} src={src} loading="lazy" />
-      </div>
-    </div>
-  </PageLayout>
-);
-
 function Home() {
   return (
     <div>
@@ -298,8 +324,8 @@ function Home() {
           <p className="pill">대화형 진행</p>
           <h1>챗봇처럼 단계별로 세금 계산을 안내합니다</h1>
           <p className="lede">
-            많은 입력을 한 번에 요구하지 않습니다. 필요한 자료 확인 → 소득/공제 입력 → 비교과세 결과를 메시지로 안내하고,
-            각 계산기는 별도 페이지에서 가볍게 실행합니다.
+            많은 입력을 한 번에 요구하지 않습니다. 필요한 자료 확인 → 소득/공제 입력 → 비교과세 결과를 메시지로 안내하며,
+            모든 단계를 하나의 대화 안에서 이어 갑니다.
           </p>
           <div className="hero-badges">
             <span className="pill">Progressive Disclosure</span>
@@ -317,9 +343,6 @@ function App() {
   return (
     <Routes>
       <Route path="/" element={<Home />} />
-      <Route path="/yearend" element={<IframePage title="연말정산" src="/yearend/index.html" />} />
-      <Route path="/corporate" element={<IframePage title="법인세" src="/corporate/index.html" />} />
-      <Route path="/financial" element={<IframePage title="금융소득 종합과세" src="/financial/index.html" />} />
       <Route path="*" element={<Home />} />
     </Routes>
   );
