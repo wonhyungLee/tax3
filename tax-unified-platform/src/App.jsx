@@ -1,10 +1,16 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Routes, Route } from 'react-router-dom';
 
 const calculators = [
   { id: 'yearend', name: '연말정산', blurb: '근로소득 환급/추납' },
   { id: 'corporate', name: '법인세', blurb: 'TaxCore 2025 시뮬레이터' },
   { id: 'financial', name: '금융소득 종합과세', blurb: '비교과세 · Gross-up · 해외소득' },
+];
+
+const calculatorFrames = [
+  { id: 'yearend', title: '연말정산', src: '/yearend/index.html' },
+  { id: 'corporate', title: '법인세', src: '/corporate/index.html' },
+  { id: 'financial', title: '금융소득 종합과세', src: '/financial/index.html' },
 ];
 
 const docChecklist = [
@@ -30,6 +36,12 @@ const initialAnswers = {
   corpCredit: '',
 };
 
+const coupangAds = [
+  { id: 902948, trackingCode: 'AF7397099', template: 'carousel', width: '100%', height: '250' },
+  { id: 902947, trackingCode: 'AF7397099', template: 'carousel', width: '100%', height: '250' },
+  { id: 902949, trackingCode: 'AF7397099', template: 'carousel', width: '100%', height: '250' },
+];
+
 const ChatBubble = ({ role, text, links = [] }) => (
   <div className={`bubble-row ${role === 'user' ? 'me' : ''}`}>
     <div className={`bubble ${role}`}>
@@ -46,6 +58,55 @@ const ChatBubble = ({ role, text, links = [] }) => (
     </div>
   </div>
 );
+
+function CoupangAd() {
+  const containerRef = useRef(null);
+  const [ad] = useState(() => coupangAds[Math.floor(Math.random() * coupangAds.length)]);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return undefined;
+
+    container.innerHTML = '';
+
+    const initWidget = () => {
+      if (window?.PartnersCoupang?.G) {
+        // eslint-disable-next-line no-new
+        new window.PartnersCoupang.G(ad);
+      }
+    };
+
+    const existing = document.getElementById('coupang-partners-sdk');
+    if (existing && existing.dataset.ready === 'true') {
+      initWidget();
+    } else {
+      const script = existing || document.createElement('script');
+      script.id = 'coupang-partners-sdk';
+      script.src = 'https://ads-partners.coupang.com/g.js';
+      script.async = true;
+      script.dataset.ready = 'false';
+      script.onload = () => {
+        script.dataset.ready = 'true';
+        initWidget();
+      };
+      if (!existing) container.appendChild(script);
+    }
+
+    return () => {
+      container.innerHTML = '';
+    };
+  }, [ad]);
+
+  return (
+    <div className="card ad-card">
+      <div className="ad-head">
+        <span className="pill">쿠팡 파트너스</span>
+        <span className="muted">랜덤 추천 슬롯</span>
+      </div>
+      <div ref={containerRef} className="ad-slot" />
+    </div>
+  );
+}
 
 function useProgress(calculator, step) {
   const steps = useMemo(() => {
@@ -123,8 +184,10 @@ function ChatWizard() {
   const handleDocsNext = () => {
     pushUser(`준비한 자료: ${docReady.length ? docReady.join(', ') : '없음'}`);
     const next = calculator === 'financial' ? 'financialIncome' : 'input';
+    const name = calculators.find((c) => c.id === calculator)?.name ?? '계산기';
     if (calculator === 'financial') {
       pushBot('금융소득/기타소득 금액을 메시지로 알려주세요. 예: "금융 24000000 기타 40000000 gross 0.1"');
+      pushBot('필요하면 원래 계산 화면도 바로 열 수 있어요.', { links: [{ label: `${name} 계산기 열기`, href: `/${calculator}` }] });
       setStep(next);
       return;
     }
@@ -135,6 +198,7 @@ function ChatWizard() {
     } else {
       pushBot('필요한 금액을 메시지로 알려주세요.');
     }
+    pushBot('필요하면 원래 계산 화면도 바로 열 수 있어요.', { links: [{ label: `${name} 계산기 열기`, href: `/${calculator}` }] });
     setStep(next);
   };
 
@@ -240,6 +304,11 @@ function ChatWizard() {
     }
 
     if (step === 'review') {
+      if (lower.includes('열기')) {
+        const name = calculators.find((c) => c.id === calculator)?.name ?? '계산기';
+        pushBot('브라우저 전체 화면에서 열 수 있는 링크를 준비했어요.', { links: [{ label: `${name} 계산기 열기`, href: `/${calculator ?? ''}` }] });
+        return;
+      }
       if (lower.includes('조언') || lower.includes('비교')) {
         pushBot(financialAdvice(answers));
         return;
@@ -262,7 +331,7 @@ function ChatWizard() {
     if (step === 'input' && calculator === 'yearend') return ['총급여 50000000 보험료 1200000 교육비 500000 기부금 300000'];
     if (step === 'input' && calculator === 'corporate') return ['매출 300000000 비용 220000000 세액공제 5000000'];
     if (step === 'input') return ['금액을 알려주세요'];
-    if (step === 'review') return ['조언', '다시 시작'];
+    if (step === 'review') return ['계산기 열기', '조언', '다시 시작'];
     return [];
   };
 
@@ -293,6 +362,7 @@ function ChatWizard() {
             <ChatBubble key={idx} role={m.role} text={m.text} links={m.links} />
           ))}
         </div>
+        <CoupangAd />
         <div className="composer">
           <div className="quick-replies">
             {quickReplies().map((q) => (
@@ -315,6 +385,27 @@ function ChatWizard() {
     </section>
   );
 }
+
+const PageLayout = ({ title, children }) => (
+  <main className="shell">
+    <h1 className="page-title">{title}</h1>
+    {children}
+  </main>
+);
+
+const IframePage = ({ title, src }) => (
+  <PageLayout title={title}>
+    <div className="card">
+      <p className="muted">기존 계산기 화면을 그대로 제공합니다. 새 창 또는 아래 프레임에서 바로 계산할 수 있어요.</p>
+      <div className="actions">
+        <a className="btn primary" href={src} target="_blank" rel="noreferrer">새 창에서 열기</a>
+      </div>
+      <div className="frame-wrap">
+        <iframe title={title} src={src} loading="lazy" />
+      </div>
+    </div>
+  </PageLayout>
+);
 
 function Home() {
   return (
@@ -343,6 +434,9 @@ function App() {
   return (
     <Routes>
       <Route path="/" element={<Home />} />
+      {calculatorFrames.map((c) => (
+        <Route key={c.id} path={`/${c.id}`} element={<IframePage title={c.title} src={c.src} />} />
+      ))}
       <Route path="*" element={<Home />} />
     </Routes>
   );
