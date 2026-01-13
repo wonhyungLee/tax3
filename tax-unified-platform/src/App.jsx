@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Link, Routes, Route } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 
 const calculators = [
   { id: 'yearend', name: '연말정산', blurb: '근로소득 환급/추납', route: '/yearend', href: '/yearend/index.html' },
@@ -16,6 +16,11 @@ const docChecklist = [
 ];
 
 const formatKRW = (n) => Number(n || 0).toLocaleString('ko-KR');
+const calculatorFrames = {
+  yearend: '/yearend/index.html',
+  corporate: '/corporate/index.html',
+  financial: '/financial/index.html',
+};
 
 const ChatBubble = ({ role, text, links = [] }) => (
   <div className={`bubble-row ${role === 'user' ? 'me' : ''}`}>
@@ -57,7 +62,6 @@ function ChatWizard() {
   const [step, setStep] = useState('select');
   const { steps, index, pct } = useProgress(calculator, step);
   const [inputText, setInputText] = useState('');
-  const calculatorLinks = calculators.map((c) => ({ label: `${c.name} 열기`, href: c.route }));
 
   const pushMessage = (payload) => {
     setMessages((prev) => [...prev, payload]);
@@ -116,9 +120,7 @@ function ChatWizard() {
       setStep(next);
       return;
     }
-    const selected = calculators.find((c) => c.id === calculator);
-    const links = selected ? [{ label: `${selected.name} 열기`, href: selected.route }, ...calculatorLinks] : calculatorLinks;
-    pushBot('바로 계산기를 열 수 있어요. 필요한 페이지를 선택해 주세요.', { links });
+    pushBot('채팅 아래에 계산기 창을 열었어요. 필요한 값 입력 후 궁금한 점을 알려주세요.');
     setStep(next);
   };
 
@@ -176,7 +178,6 @@ function ChatWizard() {
         pushBot(`금융소득 ${formatKRW(fin)} / 기타소득 ${formatKRW(other ?? prev.otherIncome)} / Gross-up ${grossRate ?? prev.grossUpRate}`);
         setStep('review');
         pushBot(financialAdvice({ financialIncome: fin, otherIncome: other ?? answers.otherIncome, grossUpRate: grossRate ?? answers.grossUpRate }));
-        pushBot('필요한 계산기를 바로 열 수 있습니다.', { links: calculatorLinks });
         return;
       }
       if (lower.includes('조언')) {
@@ -188,7 +189,7 @@ function ChatWizard() {
 
     if (step === 'review') {
       if (lower.includes('열기')) {
-        pushBot('아래 링크에서 계산기를 바로 열 수 있습니다.', { links: calculatorLinks });
+        pushBot('아래 내장된 계산기 창에서 입력을 이어가세요.');
         return;
       }
       if (lower.includes('조언') || lower.includes('비교')) {
@@ -207,10 +208,10 @@ function ChatWizard() {
   };
 
   const quickReplies = () => {
-    if (step === 'select') return ['연말정산', '법인세', '금융소득', '광고 추천'];
-    if (step === 'docs') return ['준비 완료', '간소화 PDF 있음', '배당 원천징수내역 준비', '광고 추천'];
-    if (step === 'financialIncome') return ['금융 24000000 기타 40000000 gross 0.1', '조언', '광고 추천'];
-    if (step === 'review') return ['계산기 열기', '조언', '다시 시작', '광고 추천'];
+    if (step === 'select') return ['연말정산', '법인세', '금융소득'];
+    if (step === 'docs') return ['준비 완료', '간소화 PDF 있음', '배당 원천징수내역 준비'];
+    if (step === 'financialIncome') return ['금융 24000000 기타 40000000 gross 0.1', '조언'];
+    if (step === 'review') return ['조언', '다시 시작'];
     return [];
   };
 
@@ -240,6 +241,11 @@ function ChatWizard() {
             <ChatBubble key={idx} role={m.role} text={m.text} links={m.links} />
           ))}
         </div>
+        {calculator && calculatorFrames[calculator] && (
+          <div className="frame-wrap">
+            <iframe title={`${calculator} 계산기`} src={calculatorFrames[calculator]} loading="lazy" />
+          </div>
+        )}
         <div className="composer">
           <div className="quick-replies">
             {quickReplies().map((q) => (
@@ -300,13 +306,6 @@ function Home() {
             <span className="pill">비교과세 강조</span>
             <span className="pill">접근성 준수</span>
           </div>
-        </div>
-        <div className="actions">
-          {calculators.map((c) => (
-            <Link key={c.id} className="btn primary" to={c.route}>
-              {c.name} 열기
-            </Link>
-          ))}
         </div>
       </header>
       <ChatWizard />
