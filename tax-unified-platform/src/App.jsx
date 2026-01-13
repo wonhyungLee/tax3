@@ -36,6 +36,72 @@ const initialAnswers = {
   corpCredit: '',
 };
 
+// 계산에 사용될 주요 함수들 (yearend/script.js에서 가져온 로직 일부)
+const earnedIncomeDeduction = (gross) => {
+  if (gross <= 5_000_000) return gross * 0.7;
+  if (gross <= 15_000_000) return 3_500_000 + (gross - 5_000_000) * 0.4;
+  if (gross <= 45_000_000) return 7_500_000 + (gross - 15_000_000) * 0.15;
+  if (gross <= 100_000_000) return 12_000_000 + (gross - 45_000_000) * 0.05;
+  const deduction = 14_750_000 + (gross - 100_000_000) * 0.02;
+  return Math.min(deduction, 20_000_000);
+};
+
+const progressiveTax = (taxable) => {
+  const brackets = [
+    { limit: 14_000_000, rate: 0.06, deduction: 0 },
+    { limit: 50_000_000, rate: 0.15, deduction: 840_000 },
+    { limit: 88_000_000, rate: 0.24, deduction: 6_240_000 },
+    { limit: 150_000_000, rate: 0.35, deduction: 15_360_000 },
+    { limit: 300_000_000, rate: 0.38, deduction: 37_060_000 },
+    { limit: 500_000_000, rate: 0.4, deduction: 94_060_000 },
+    { limit: 1_000_000_000, rate: 0.42, deduction: 174_060_000 },
+    { limit: Infinity, rate: 0.45, deduction: 384_060_000 },
+  ];
+  const bracket = brackets.find((item) => taxable <= item.limit) || brackets[brackets.length - 1];
+  return taxable * bracket.rate - bracket.deduction;
+};
+
+const calcYearendEstimate = ({ salary, insurance, education, donation }) => {
+  const gross = Number(salary) || 0;
+  if (!gross) return '총급여를 먼저 알려주세요. 예: 총급여 5000만';
+  const ins = Number(insurance) || 0;
+  const edu = Number(education) || 0;
+  const don = Number(donation) || 0;
+
+  const earnedDed = earnedIncomeDeduction(gross);
+  const personalDed = 1_500_000; // 단순 개인 기본공제
+  const totalDed = earnedDed + personalDed + ins + edu + don;
+  const taxable = Math.max(0, gross - totalDed);
+  const incomeTax = Math.max(0, progressiveTax(taxable));
+  const localTax = incomeTax * 0.1;
+  const total = incomeTax + localTax;
+
+  return [
+    `총급여 ${formatKRW(gross)} / 근로소득공제 ${formatKRW(earnedDed)} / 기본공제 ${formatKRW(personalDed)}`,
+    `기타 공제(보험·교육·기부): ${formatKRW(ins + edu + don)}`,
+    `과세표준 약 ${formatKRW(taxable)}, 산출세액 약 ${formatKRW(incomeTax)}, 지방소득세 약 ${formatKRW(localTax)}`,
+    `예상 납부(또는 원천 징수 비교): 총 약 ${formatKRW(total)}`,
+  ].join(' · ');
+};
+
+const calcCorporateEstimate = ({ corpRevenue, corpExpense, corpCredit }) => {
+  const rev = Number(corpRevenue) || 0;
+  const exp = Number(corpExpense) || 0;
+  const credit = Number(corpCredit) || 0;
+  if (!rev) return '매출을 먼저 알려주세요. 예: 매출 3억';
+  const profit = Math.max(0, rev - exp);
+  const firstBand = Math.min(profit, 200_000_000);
+  const secondBand = Math.max(0, profit - 200_000_000);
+  const incomeTax = firstBand * 0.1 + secondBand * 0.2;
+  const localTax = incomeTax * 0.1;
+  const totalTax = Math.max(0, incomeTax + localTax - credit);
+
+  return [
+    `과세표준(추정) ${formatKRW(profit)} / 산출세액 ${formatKRW(incomeTax)} / 지방소득세 ${formatKRW(localTax)}`,
+    credit ? `세액공제 차감 후 예상 납부액 약 ${formatKRW(totalTax)}` : `예상 납부액 약 ${formatKRW(totalTax)}`,
+  ].join(' · ');
+};
+
 const coupangAds = [
   { id: 902948, trackingCode: 'AF7397099', template: 'carousel', width: '100%', height: '250' },
   { id: 902947, trackingCode: 'AF7397099', template: 'carousel', width: '100%', height: '250' },
@@ -270,17 +336,19 @@ function ChatWizard() {
       const insurance = text.match(/보험료\s*([\d,\.]+)/i)?.[1];
       const education = text.match(/교육비\s*([\d,\.]+)/i)?.[1];
       const donation = text.match(/기부금\s*([\d,\.]+)/i)?.[1];
-      setAnswers((prev) => ({
-        ...prev,
-        salary: salary ? Number(String(salary).replace(/[^\d]/g, '')) : prev.salary || '',
-        insurance: insurance ? Number(String(insurance).replace(/[^\d]/g, '')) : prev.insurance || '',
-        education: education ? Number(String(education).replace(/[^\d]/g, '')) : prev.education || '',
-        donation: donation ? Number(String(donation).replace(/[^\d]/g, '')) : prev.donation || '',
-      }));
+      const nextAnswers = {
+        ...answers,
+        salary: salary ? Number(String(salary).replace(/[^\d]/g, '')) : answers.salary || '',
+        insurance: insurance ? Number(String(insurance).replace(/[^\d]/g, '')) : answers.insurance || '',
+        education: education ? Number(String(education).replace(/[^\d]/g, '')) : answers.education || '',
+        donation: donation ? Number(String(donation).replace(/[^\d]/g, '')) : answers.donation || '',
+      };
+      setAnswers(nextAnswers);
       pushBot(
         `입력값 확인: 총급여 ${formatKRW(salary || answers.salary)} / 보험료 ${formatKRW(insurance || answers.insurance)} / 교육비 ${formatKRW(education || answers.education)} / 기부금 ${formatKRW(donation || answers.donation)}`,
       );
-      pushBot('간단 계산은 브라우저에서만 처리됩니다. 추가로 수정할 항목이 있으면 알려주세요.');
+      pushBot(calcYearendEstimate(nextAnswers));
+      pushBot('추가로 수정할 항목이 있으면 알려주세요. 보다 정밀한 계산은 원본 계산기 열기로 이동할 수 있어요.');
       setStep('review');
       return;
     }
@@ -289,16 +357,18 @@ function ChatWizard() {
       const revenue = text.match(/(매출|수익)\s*([\d,\.]+)/i)?.[2];
       const expense = text.match(/(비용|지출)\s*([\d,\.]+)/i)?.[2];
       const credit = text.match(/(세액공제|공제)\s*([\d,\.]+)/i)?.[2];
-      setAnswers((prev) => ({
-        ...prev,
-        corpRevenue: revenue ? Number(String(revenue).replace(/[^\d]/g, '')) : prev.corpRevenue || '',
-        corpExpense: expense ? Number(String(expense).replace(/[^\d]/g, '')) : prev.corpExpense || '',
-        corpCredit: credit ? Number(String(credit).replace(/[^\d]/g, '')) : prev.corpCredit || '',
-      }));
+      const nextAnswers = {
+        ...answers,
+        corpRevenue: revenue ? Number(String(revenue).replace(/[^\d]/g, '')) : answers.corpRevenue || '',
+        corpExpense: expense ? Number(String(expense).replace(/[^\d]/g, '')) : answers.corpExpense || '',
+        corpCredit: credit ? Number(String(credit).replace(/[^\d]/g, '')) : answers.corpCredit || '',
+      };
+      setAnswers(nextAnswers);
       pushBot(
         `입력값 확인: 매출 ${formatKRW(revenue || answers.corpRevenue)} / 비용 ${formatKRW(expense || answers.corpExpense)} / 세액공제 ${formatKRW(credit || answers.corpCredit)}`,
       );
-      pushBot('간단 계산은 브라우저에서만 처리됩니다. 추가로 수정할 항목이 있으면 알려주세요.');
+      pushBot(calcCorporateEstimate(nextAnswers));
+      pushBot('추가로 수정할 항목이 있으면 알려주세요. 보다 정밀한 계산은 원본 계산기 열기로 이동할 수 있어요.');
       setStep('review');
       return;
     }
