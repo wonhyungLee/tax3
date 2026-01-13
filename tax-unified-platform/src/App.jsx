@@ -17,38 +17,7 @@ const docChecklist = [
 
 const formatKRW = (n) => Number(n || 0).toLocaleString('ko-KR');
 
-const partnerId = import.meta.env.VITE_COUPANG_PARTNER_ID || 'AF7397099';
-const buildAdLink = (keyword) => `https://link.coupang.com/a/${partnerId}?search=${encodeURIComponent(keyword || '가전디지털')}`;
-const coupangProxy = import.meta.env.VITE_COUPANG_PROXY_URL || '';
-const bestCategoryId = 1016; // 가전디지털
-const adInjectChance = 0.22;
-const placeholderImage = 'https://via.placeholder.com/480x300.png?text=%EA%B0%80%EC%A0%84%EB%94%94%EC%A7%80%ED%84%B8+Best';
-
-const adProducts = [
-  {
-    title: '연말정산 준비 파일 세트',
-    desc: '서류 정리를 위한 라벨/바인더 구성',
-    price: 12900,
-    keyword: '연말정산',
-    image: 'https://via.placeholder.com/320x200.png?text=%EC%97%B0%EB%A7%90%EC%A0%95%EC%82%B0+%EB%B0%94%EC%9D%B4%EB%8D%94',
-  },
-  {
-    title: '세무 기초 가이드',
-    desc: '비교과세와 공제를 쉽게 풀어쓴 도서',
-    price: 15800,
-    keyword: '가이드',
-    image: 'https://via.placeholder.com/320x200.png?text=%EC%84%B8%EB%AC%B4+%EA%B0%80%EC%9D%B4%EB%93%9C',
-  },
-  {
-    title: '문서 스캐너 앱 구독',
-    desc: '모바일로 영수증/증빙을 빠르게 저장',
-    price: 9900,
-    keyword: '스캐너',
-    image: 'https://via.placeholder.com/320x200.png?text=%EB%AC%B8%EC%84%9C+%EC%8A%A4%EC%BA%90%EB%84%88',
-  },
-];
-
-const ChatBubble = ({ role, text, links = [], ads = [] }) => (
+const ChatBubble = ({ role, text, links = [] }) => (
   <div className={`bubble-row ${role === 'user' ? 'me' : ''}`}>
     <div className={`bubble ${role}`}>
       {text && <div className="bubble-body">{text}</div>}
@@ -57,18 +26,6 @@ const ChatBubble = ({ role, text, links = [], ads = [] }) => (
           {links.map((l) => (
             <a key={l.href} href={l.href} target="_blank" rel="noreferrer" className="link">
               {l.label}
-            </a>
-          ))}
-        </div>
-      )}
-      {ads && ads.length > 0 && (
-        <div className="ads">
-          {ads.map((ad) => (
-            <a key={ad.title} href={ad.link} target="_blank" rel="noreferrer" className="ad-card">
-              {ad.image && <img className="ad-img" src={ad.image} alt={ad.title} />}
-              <div className="ad-title">{ad.title}</div>
-              <div className="ad-desc">{ad.desc}</div>
-              <div className="ad-price">₩ {formatKRW(ad.price)}</div>
             </a>
           ))}
         </div>
@@ -98,20 +55,12 @@ function ChatWizard() {
   const [docReady, setDocReady] = useState([]);
   const [answers, setAnswers] = useState({ financialIncome: '', otherIncome: '', grossUpRate: 0.1 });
   const [step, setStep] = useState('select');
-  const [messageCount, setMessageCount] = useState(0);
   const { steps, index, pct } = useProgress(calculator, step);
   const [inputText, setInputText] = useState('');
   const calculatorLinks = calculators.map((c) => ({ label: `${c.name} 열기`, href: c.route }));
-  const calcKeyword = (ctx) => {
-    if (ctx === 'yearend') return '연말정산';
-    if (ctx === 'corporate') return '법인';
-    if (ctx === 'financial') return '금융소득';
-    return ctx || '';
-  };
 
   const pushMessage = (payload) => {
     setMessages((prev) => [...prev, payload]);
-    setMessageCount((n) => n + 1);
   };
   const pushBot = (text, extra = {}) => pushMessage({ role: 'bot', text, ...extra });
   const pushUser = (text) => pushMessage({ role: 'user', text });
@@ -137,112 +86,6 @@ function ChatWizard() {
       `종합 방식(초과+누진세): 약 ₩${formatKRW(Math.round(comprehensiveTax))}, 분리: 약 ₩${formatKRW(Math.round(separateTax))}`,
       picked,
     ].join(' · ');
-  };
-
-  const fallbackAds = () => adProducts.map((ad) => ({ ...ad, link: buildAdLink(ad.keyword) }));
-
-const normalizeAd = (item) => ({
-  title: item.title || item.productName || item.name,
-  desc: item.desc || item.description || item.productDescription || '가전디지털 인기 상품',
-  price: item.price || item.salePrice || item.salesPrice,
-  image: item.image || item.imageUrl || item.productImage || item.productImageUrl || adProducts[0].image,
-  link: item.deeplink || item.link || item.url || item.productUrl || buildAdLink('가전디지털'),
-});
-
-  const fetchDeeplink = async (url) => {
-    if (!coupangProxy || !url) return null;
-    try {
-      const res = await fetch(`${coupangProxy}/deeplink`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ coupangUrl: url }),
-      });
-      if (!res.ok) throw new Error(`deeplink HTTP ${res.status}`);
-      const data = await res.json();
-      const list = data?.data?.deeplinks || data?.data?.links || data?.data || [];
-      const first = Array.isArray(list) ? list[0] : data?.data;
-      return first?.shortenUrl || first?.shortUrl || first?.link || first?.url || null;
-    } catch (err) {
-      console.error('deeplink error', err);
-      return null;
-    }
-  };
-
-  const fetchCoupangAds = async (categoryId = bestCategoryId) => {
-    if (!coupangProxy) return fallbackAds();
-    try {
-      const params = new URLSearchParams({ limit: '8', imageSize: '512x512', subId: partnerId });
-      const res = await fetch(`${coupangProxy}/products/bestcategories/${categoryId}?${params.toString()}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      const items =
-        (Array.isArray(data) && data) ||
-        data?.data?.productData ||
-        data?.data?.bestProducts ||
-        data?.data?.contentData ||
-        data?.data?.products ||
-        data?.data?.content ||
-        data?.data ||
-        data?.rData?.productData ||
-        data?.products ||
-        [];
-      const rawAds = items.slice(0, 4).map(normalizeAd).filter((a) => a.title);
-      const ads = await Promise.all(
-        rawAds.map(async (ad) => {
-          const deeplink = await fetchDeeplink(ad.link);
-          return { ...ad, link: deeplink || ad.link, image: ad.image || placeholderImage };
-        }),
-      );
-      if (ads.length) return ads;
-    } catch (err) {
-      console.error('coupang fetch error', err);
-    }
-    // fallback to keyword search for 가전디지털
-    try {
-      const searchParams = new URLSearchParams({ keyword: '가전디지털', limit: '8', imageSize: '512x512', subId: partnerId });
-      const res = await fetch(`${coupangProxy}/products/search?${searchParams.toString()}`);
-      if (res.ok) {
-        const data = await res.json();
-        const items =
-          (Array.isArray(data) && data) ||
-          data?.data?.productData ||
-          data?.data?.products ||
-          data?.products ||
-          data?.data ||
-          [];
-        const rawAds = items.slice(0, 4).map(normalizeAd).filter((a) => a.title);
-        const ads = await Promise.all(
-          rawAds.map(async (ad) => {
-            const deeplink = await fetchDeeplink(ad.link);
-            return { ...ad, link: deeplink || ad.link, image: ad.image || placeholderImage };
-          }),
-        );
-        if (ads.length) return ads;
-      }
-    } catch (err) {
-      console.error('coupang search error', err);
-    }
-    return fallbackAds();
-  };
-
-  const showAds = (contextMessage) => {
-    fetchCoupangAds().then((ads) => {
-      pushBot(contextMessage || '쿠팡 파트너스 추천 상품입니다. 필요한 경우 새 창에서 열립니다.', { ads });
-    });
-  };
-
-  const showContextAds = (context) => {
-    const keyword = calcKeyword(context || calculator);
-    fetchCoupangAds(bestCategoryId).then((ads) => {
-      const filtered = ads.filter((ad) => keyword ? (ad.title?.includes(keyword) || ad.desc?.includes(keyword)) : true);
-      pushBot('동의해 주셔서 감사해요. 대화 내용을 참고한 추천 상품입니다.', { ads: filtered.length ? filtered : ads });
-    });
-  };
-
-  const requestConsent = (context) => {
-    setAwaitingConsent(true);
-    setPendingAdContext(context || null);
-    pushBot('대화 기록을 참고해 상품을 추천해도 될까요? "동의" 또는 "거부"라고 답해주세요.');
   };
 
   const resetFlow = () => {
@@ -277,7 +120,6 @@ const normalizeAd = (item) => ({
     const links = selected ? [{ label: `${selected.name} 열기`, href: selected.route }, ...calculatorLinks] : calculatorLinks;
     pushBot('바로 계산기를 열 수 있어요. 필요한 페이지를 선택해 주세요.', { links });
     setStep(next);
-    showContextAds(selected?.id);
   };
 
   const parseNumeric = (text) => {
@@ -295,15 +137,6 @@ const normalizeAd = (item) => ({
     if (lower.includes('리셋') || lower.includes('처음')) {
       resetFlow();
       return;
-    }
-
-    if (lower.includes('광고') || lower.includes('추천') || lower.includes('쇼핑') || lower.includes('로그')) {
-      showContextAds(calculator);
-      return;
-    }
-
-    if (Math.random() < adInjectChance && messageCount > 3) {
-      showContextAds(calculator);
     }
 
     if (step === 'select') {
@@ -400,9 +233,10 @@ const normalizeAd = (item) => ({
 
         <div className="messages">
           {messages.map((m, idx) => (
-            <ChatBubble key={idx} role={m.role} text={m.text} links={m.links} ads={m.ads} />
+            <ChatBubble key={idx} role={m.role} text={m.text} links={m.links} />
           ))}
         </div>
+        <CoupangCarouselAd />
         <div className="composer">
           <div className="quick-replies">
             {quickReplies().map((q) => (
