@@ -18,7 +18,7 @@ const docChecklist = [
 const formatKRW = (n) => Number(n || 0).toLocaleString('ko-KR');
 
 const partnerId = import.meta.env.VITE_COUPANG_PARTNER_ID || 'AF7397099';
-const buildAdLink = (keyword) => `https://link.coupang.com/a/${partnerId}?search=${encodeURIComponent(keyword)}`;
+const buildAdLink = (keyword) => `https://link.coupang.com/a/${partnerId}?search=${encodeURIComponent(keyword || '가전디지털')}`;
 const coupangProxy = import.meta.env.VITE_COUPANG_PROXY_URL || '';
 const bestCategoryId = 1016; // 가전디지털
 const adInjectChance = 0.22;
@@ -174,7 +174,8 @@ const normalizeAd = (item) => ({
   const fetchCoupangAds = async (categoryId = bestCategoryId) => {
     if (!coupangProxy) return fallbackAds();
     try {
-      const res = await fetch(`${coupangProxy}/products/bestcategories/${categoryId}`);
+      const params = new URLSearchParams({ limit: '8', imageSize: '512x512', subId: partnerId });
+      const res = await fetch(`${coupangProxy}/products/bestcategories/${categoryId}?${params.toString()}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       const items =
@@ -198,6 +199,31 @@ const normalizeAd = (item) => ({
       if (ads.length) return ads;
     } catch (err) {
       console.error('coupang fetch error', err);
+    }
+    // fallback to keyword search for 가전디지털
+    try {
+      const searchParams = new URLSearchParams({ keyword: '가전디지털', limit: '8', imageSize: '512x512', subId: partnerId });
+      const res = await fetch(`${coupangProxy}/products/search?${searchParams.toString()}`);
+      if (res.ok) {
+        const data = await res.json();
+        const items =
+          (Array.isArray(data) && data) ||
+          data?.data?.productData ||
+          data?.data?.products ||
+          data?.products ||
+          data?.data ||
+          [];
+        const rawAds = items.slice(0, 4).map(normalizeAd).filter((a) => a.title);
+        const ads = await Promise.all(
+          rawAds.map(async (ad) => {
+            const deeplink = await fetchDeeplink(ad.link);
+            return { ...ad, link: deeplink || ad.link, image: ad.image || placeholderImage };
+          }),
+        );
+        if (ads.length) return ads;
+      }
+    } catch (err) {
+      console.error('coupang search error', err);
     }
     return fallbackAds();
   };
