@@ -1,23 +1,8 @@
 const encoder = new TextEncoder();
 
 function utcStamp() {
-  const d = new Date();
-  const pad = (n) => String(n).padStart(2, '0');
-  // yyyy-MM-dd'T'HH:mm:ss'Z' (ISO-like format accepted by Coupang)
-  return (
-    d.getUTCFullYear() +
-    '-' +
-    pad(d.getUTCMonth() + 1) +
-    '-' +
-    pad(d.getUTCDate()) +
-    'T' +
-    pad(d.getUTCHours()) +
-    ':' +
-    pad(d.getUTCMinutes()) +
-    ':' +
-    pad(d.getUTCSeconds()) +
-    'Z'
-  );
+  // ISO8601 UTC without milliseconds; Coupang accepts this format for signed-date.
+  return new Date().toISOString().replace(/\.\d+Z$/, 'Z');
 }
 
 async function hmacHex(message, secret) {
