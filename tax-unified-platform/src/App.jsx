@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link, Routes, Route } from 'react-router-dom';
 
 const calculators = [
@@ -49,8 +49,8 @@ function useProgress(calculator, step) {
 function ChatWizard() {
   const [calculator, setCalculator] = useState(null);
   const [messages, setMessages] = useState([
-    { role: 'bot', text: '메신저처럼 대화하며 계산을 안내합니다. 자료 준비 → 금액 입력 → 결과/링크 순서로 진행해요.' },
-    { role: 'bot', text: '연말정산 · 법인세 · 금융소득 중 무엇을 계산할까요?' },
+    { role: 'bot', text: '안녕하세요! 한 단계씩 차분히 세금 계산을 도와드릴게요. 준비 자료부터 함께 살펴보죠.' },
+    { role: 'bot', text: '연말정산 · 법인세 · 금융소득 중 무엇을 계산하고 싶으신가요?' },
   ]);
   const [docReady, setDocReady] = useState([]);
   const [answers, setAnswers] = useState({ financialIncome: '', otherIncome: '', grossUpRate: 0.1 });
@@ -104,7 +104,7 @@ function ChatWizard() {
     setStep('docs');
     const name = calculators.find((c) => c.id === id)?.name || '계산기';
     pushUser(`${name} 계산기를 선택했어요.`);
-    pushBot('필요한 자료를 체크한 뒤, 준비 완료라고 입력하면 다음 단계로 넘어갑니다.');
+    pushBot('필요한 자료를 체크해 볼게요. 준비된 것이 있으면 알려주세요. 예: "간소화 PDF 있음".');
     pushBot(`준비 예시: ${docChecklist.join(' · ')}`);
   };
 
@@ -136,6 +136,11 @@ function ChatWizard() {
     const lower = text.toLowerCase();
     if (lower.includes('리셋') || lower.includes('처음')) {
       resetFlow();
+      return;
+    }
+
+    if (lower.includes('광고') || lower.includes('추천')) {
+      pushBot('광고 추천 기능은 현재 비활성화되어 있어요. 세금 계산을 이어서 진행해 볼까요?');
       return;
     }
 
