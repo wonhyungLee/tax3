@@ -3,14 +3,18 @@ const encoder = new TextEncoder();
 function utcStamp() {
   const d = new Date();
   const pad = (n) => String(n).padStart(2, '0');
-  // yyMMdd'T'HHmmss'Z' format (Coupang spec)
+  // yyyy-MM-dd'T'HH:mm:ss'Z' (ISO-like format accepted by Coupang)
   return (
-    String(d.getUTCFullYear()).slice(-2) +
+    d.getUTCFullYear() +
+    '-' +
     pad(d.getUTCMonth() + 1) +
+    '-' +
     pad(d.getUTCDate()) +
     'T' +
     pad(d.getUTCHours()) +
+    ':' +
     pad(d.getUTCMinutes()) +
+    ':' +
     pad(d.getUTCSeconds()) +
     'Z'
   );
