@@ -370,7 +370,6 @@ const normalizeAd = (item) => ({
   };
 
   const quickReplies = () => {
-    if (awaitingConsent) return ['동의', '거부'];
     if (step === 'select') return ['연말정산', '법인세', '금융소득', '광고 추천'];
     if (step === 'docs') return ['준비 완료', '간소화 PDF 있음', '배당 원천징수내역 준비', '광고 추천'];
     if (step === 'financialIncome') return ['금융 24000000 기타 40000000 gross 0.1', '조언', '광고 추천'];
