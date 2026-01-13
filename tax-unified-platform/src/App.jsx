@@ -22,6 +22,7 @@ const buildAdLink = (keyword) => `https://link.coupang.com/a/${partnerId}?search
 const coupangProxy = import.meta.env.VITE_COUPANG_PROXY_URL || '';
 const bestCategoryId = 1016; // 가전디지털
 const adInjectChance = 0.22;
+const placeholderImage = 'https://via.placeholder.com/480x300.png?text=%EA%B0%80%EC%A0%84%EB%94%94%EC%A7%80%ED%84%B8+Best';
 
 const adProducts = [
   {
@@ -179,6 +180,8 @@ const normalizeAd = (item) => ({
       const items =
         (Array.isArray(data) && data) ||
         data?.data?.productData ||
+        data?.data?.bestProducts ||
+        data?.data?.contentData ||
         data?.data?.products ||
         data?.data?.content ||
         data?.data ||
@@ -189,7 +192,7 @@ const normalizeAd = (item) => ({
       const ads = await Promise.all(
         rawAds.map(async (ad) => {
           const deeplink = await fetchDeeplink(ad.link);
-          return { ...ad, link: deeplink || ad.link };
+          return { ...ad, link: deeplink || ad.link, image: ad.image || placeholderImage };
         }),
       );
       if (ads.length) return ads;
