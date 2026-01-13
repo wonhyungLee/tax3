@@ -311,47 +311,10 @@ function Home() {
   );
 }
 
-function CoupangCarouselAd() {
-  const slotRef = useRef(null);
-  const initialized = useRef(false);
-  const ids = [902947, 902948, 902949];
-  const pickId = () => ids[Math.floor(Math.random() * ids.length)];
-
-  useEffect(() => {
-    if (initialized.current) return;
-    initialized.current = true;
-    const load = () => {
-      const widgetId = pickId();
-      if (window.PartnersCoupang?.G && slotRef.current) {
-        new window.PartnersCoupang.G({
-          id: widgetId,
-          trackingCode: 'AF7397099',
-          subId: null,
-          template: 'carousel',
-          width: '1200',
-          height: '250',
-        });
-      }
-    };
-
-    if (window.PartnersCoupang?.G) {
-      load();
-      return;
-    }
-    const script = document.createElement('script');
-    script.src = 'https://ads-partners.coupang.com/g.js';
-    script.async = true;
-    script.onload = load;
-    document.body.appendChild(script);
-  }, []);
-
-  return <div ref={slotRef} className="coupang-ad-slot" />;
-}
-
 function App() {
   return (
     <Routes>
-      <Route path="/" element={<><Home /><CoupangCarouselAd /></>} />
+      <Route path="/" element={<Home />} />
       <Route path="/yearend" element={<IframePage title="연말정산" src="/yearend/index.html" />} />
       <Route path="/corporate" element={<IframePage title="법인세" src="/corporate/index.html" />} />
       <Route path="/financial" element={<IframePage title="금융소득 종합과세" src="/financial/index.html" />} />
