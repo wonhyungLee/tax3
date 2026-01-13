@@ -3,9 +3,9 @@ const encoder = new TextEncoder();
 function utcStamp() {
   const d = new Date();
   const pad = (n) => String(n).padStart(2, '0');
-  // yyMMdd'T'HHmmss'Z' format required by Coupang
+  // yyyyMMdd'T'HHmmss'Z' format required by Coupang
   return (
-    String(d.getUTCFullYear()).slice(-2) +
+    d.getUTCFullYear() +
     pad(d.getUTCMonth() + 1) +
     pad(d.getUTCDate()) +
     'T' +
