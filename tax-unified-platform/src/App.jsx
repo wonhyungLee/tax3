@@ -236,7 +236,6 @@ function ChatWizard() {
             <ChatBubble key={idx} role={m.role} text={m.text} links={m.links} />
           ))}
         </div>
-        <CoupangCarouselAd />
         <div className="composer">
           <div className="quick-replies">
             {quickReplies().map((q) => (
