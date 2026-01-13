@@ -172,7 +172,6 @@ function ChatWizard() {
         setStep('review');
         pushBot(financialAdvice({ financialIncome: fin, otherIncome: other ?? answers.otherIncome, grossUpRate: grossRate ?? answers.grossUpRate }));
         pushBot('필요한 계산기를 바로 열 수 있습니다.', { links: calculatorLinks });
-        showAds();
         return;
       }
       if (lower.includes('조언')) {
