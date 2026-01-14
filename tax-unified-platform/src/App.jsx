@@ -347,6 +347,7 @@ function ChatWizard() {
   const [yearendForm, setYearendForm] = useState(createInitialYearendForm);
   const [corporatePayload, setCorporatePayload] = useState(createInitialCorporatePayload);
   const [financialInput, setFinancialInput] = useState(createInitialFinancialInput);
+  const [adShown, setAdShown] = useState(false);
   const messagesRef = useRef(null);
 
   useEffect(() => {
@@ -367,6 +368,7 @@ function ChatWizard() {
     setYearendForm(createInitialYearendForm());
     setCorporatePayload(createInitialCorporatePayload());
     setFinancialInput(createInitialFinancialInput());
+    setAdShown(false);
     setStep('select');
     setMessages([
       { role: 'bot', text: '대화형 세금 계산을 다시 시작할게요.' },
@@ -418,6 +420,7 @@ function ChatWizard() {
     setCalculator(id);
     setStage(null);
     setDocReady([]);
+    setAdShown(false);
     if (id === 'yearend') setYearendForm(createInitialYearendForm());
     if (id === 'corporate') setCorporatePayload(createInitialCorporatePayload());
     if (id === 'financial') setFinancialInput(createInitialFinancialInput());
@@ -735,6 +738,10 @@ function ChatWizard() {
           setStage('yearend_details');
           pushBot('이제 공제/세액공제 항목을 알려주시면 바로 반영해 드릴게요. 예: "신용카드 1200만, 의료비 200만". 다 입력했으면 "완료".');
           pushBot(yearendSummary(next));
+          if (!adShown) {
+            pushAd();
+            setAdShown(true);
+          }
           return;
         }
         pushBot(yearendSummary(next));
@@ -753,6 +760,10 @@ function ChatWizard() {
           setStage('corp_loss');
           pushBot('이월결손금/기납부세액이 있나요? 예: "이월결손금 1억, 기납부세액 0" (없으면 0)');
           pushBot(corporateSummary(next));
+          if (!adShown) {
+            pushAd();
+            setAdShown(true);
+          }
           return;
         }
         if (stage === 'corp_loss') {
@@ -787,6 +798,10 @@ function ChatWizard() {
           setStage('fin_details');
           pushBot('추가로 Gross-up/해외소득/외국납부세액/기납부세액이 있으면 입력해 주세요. 다 입력했으면 "완료".');
           pushBot(financialSummary(next));
+          if (!adShown) {
+            pushAd();
+            setAdShown(true);
+          }
           return;
         }
         pushBot(financialSummary(next));
