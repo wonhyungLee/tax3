@@ -151,6 +151,6 @@ export const onRequestGet = async ({ request, env, params }) => {
       fetchedAt: new Date().toISOString(),
       products,
     },
-    { headers: { 'cache-control': 'public, max-age=300' } },
+    { headers: { 'cache-control': 'public, max-age=86400' } },
   );
 };

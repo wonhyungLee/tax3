@@ -156,6 +156,9 @@ const COUPANG_BEST_CATEGORY_ID = 1016;
 const COUPANG_SUB_ID = 'AF7397099';
 const COUPANG_MIN_PRICE = 100_000;
 const COUPANG_CATEGORY_IDS = [1001, 1002, 1010, 1011, 1015, 1016, 1024, 1025, 1026, 1030];
+const COUPANG_ROTATE_INTERVAL_MS = 10_000;
+const COUPANG_POOL_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const COUPANG_POOL_CACHE_PREFIX = 'tax3.coupangPool.v1';
 let coupangCategoryCursor = Math.floor(Math.random() * 1_000_000);
 const COUPANG_CURSOR_KEY = 'tax3.coupangCategoryCursor';
 let coupangProductCursor = Math.floor(Math.random() * 1_000_000);
@@ -230,12 +233,12 @@ function CoupangBestCategoryAds({ title = '베스트 추천', categoryIds = COUP
     products: [],
     error: null,
   }));
+  const poolRef = useRef([]);
 
   useEffect(() => {
     let cancelled = false;
     const controller = new AbortController();
 
-    setState({ status: 'loading', products: [], error: null });
     const normalizedCategoryIds = (Array.isArray(categoryIds) && categoryIds.length ? categoryIds : [COUPANG_BEST_CATEGORY_ID])
       .map((id) => Number(id))
       .filter((id) => Number.isFinite(id) && id > 0);
@@ -244,6 +247,34 @@ function CoupangBestCategoryAds({ title = '베스트 추천', categoryIds = COUP
     const requestLimit = Math.min(50, desiredCount * 10);
     const poolMax = 60;
     const startIndex = getCategoryRotationStartIndex(candidates);
+    const poolCacheKey = `${COUPANG_POOL_CACHE_PREFIX}:${COUPANG_MIN_PRICE}:${candidates.join(',')}`;
+
+    const readCachedPool = () => {
+      try {
+        if (typeof window === 'undefined' || !window.localStorage) return null;
+        const raw = window.localStorage.getItem(poolCacheKey);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        const cachedAt = Number(parsed?.cachedAt);
+        const pool = Array.isArray(parsed?.pool) ? parsed.pool : [];
+        if (!Number.isFinite(cachedAt) || Date.now() - cachedAt > COUPANG_POOL_CACHE_TTL_MS) return null;
+        return pool.slice(0, poolMax);
+      } catch {
+        return null;
+      }
+    };
+
+    const cachedPool = readCachedPool();
+    if (cachedPool && cachedPool.length > 0) {
+      poolRef.current = cachedPool;
+      setState({ status: 'success', products: pickRotated(cachedPool, desiredCount), error: null });
+      return () => {
+        cancelled = true;
+        controller.abort();
+      };
+    }
+
+    setState({ status: 'loading', products: [], error: null });
 
     const load = async () => {
       const pool = [];
@@ -292,7 +323,16 @@ function CoupangBestCategoryAds({ title = '베스트 추천', categoryIds = COUP
         setState({ status: 'error', products: [], error: '광고 데이터를 불러오지 못했습니다.' });
         return;
       }
+      poolRef.current = pool;
       setState({ status: 'success', products: pickRotated(pool, desiredCount), error: null });
+
+      try {
+        if (typeof window !== 'undefined' && window.localStorage) {
+          window.localStorage.setItem(poolCacheKey, JSON.stringify({ cachedAt: Date.now(), pool }));
+        }
+      } catch {
+        // ignore localStorage failures
+      }
     };
 
     load();
@@ -302,6 +342,23 @@ function CoupangBestCategoryAds({ title = '베스트 추천', categoryIds = COUP
       controller.abort();
     };
   }, [JSON.stringify(categoryIds)]);
+
+  useEffect(() => {
+    if (state.status !== 'success') return undefined;
+    if (!poolRef.current.length) return undefined;
+
+    const tick = () => {
+      setState((prev) => {
+        if (prev.status !== 'success') return prev;
+        const pool = poolRef.current;
+        if (!pool.length) return prev;
+        return { ...prev, products: pickRotated(pool, 4) };
+      });
+    };
+
+    const intervalId = window.setInterval(tick, COUPANG_ROTATE_INTERVAL_MS);
+    return () => window.clearInterval(intervalId);
+  }, [state.status]);
 
   if (state.status === 'success' && state.products.length > 0) {
     return (
