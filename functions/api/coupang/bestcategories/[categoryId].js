@@ -90,7 +90,7 @@ export const onRequestGet = async ({ request, env, params }) => {
   const imageSize = url.searchParams.get('imageSize') || '512x512';
   const subId = url.searchParams.get('subId') || env.COUPANG_SUB_ID || '';
   const minPriceRaw = url.searchParams.get('minPrice');
-  const minPrice = minPriceRaw == null ? 100_000 : Math.max(0, parseInt(minPriceRaw, 10) || 0);
+  const minPrice = minPriceRaw == null ? 0 : Math.max(0, parseInt(minPriceRaw, 10) || 0);
 
   const query = new URLSearchParams();
   query.set('limit', String(fetchLimit));

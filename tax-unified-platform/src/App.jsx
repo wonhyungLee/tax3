@@ -152,15 +152,7 @@ function CoupangAd({ title = '추천 상품', showHeader = true }) {
   );
 }
 
-const COUPANG_BEST_CATEGORY_ID = 1016;
-const COUPANG_SUB_ID = 'AF7397099';
-const COUPANG_MIN_PRICE = 100_000;
-const COUPANG_CATEGORY_IDS = [1001, 1002, 1010, 1011, 1015, 1016, 1024, 1025, 1026, 1030];
 const COUPANG_ROTATE_INTERVAL_MS = 10_000;
-const COUPANG_POOL_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
-const COUPANG_POOL_CACHE_PREFIX = 'tax3.coupangPool.v1';
-let coupangCategoryCursor = Math.floor(Math.random() * 1_000_000);
-const COUPANG_CURSOR_KEY = 'tax3.coupangCategoryCursor';
 let coupangProductCursor = Math.floor(Math.random() * 1_000_000);
 const COUPANG_PRODUCT_CURSOR_KEY = 'tax3.coupangProductCursor';
 
@@ -172,8 +164,9 @@ const getRotationStartIndex = ({ total, storageKey, fallbackState, step = 1 }) =
 
   try {
     if (typeof window !== 'undefined' && window.localStorage) {
-      const stored = parseInt(window.localStorage.getItem(storageKey) || '0', 10);
-      const start = Number.isFinite(stored) ? modIndex(stored, total) : 0;
+      const raw = window.localStorage.getItem(storageKey);
+      const stored = raw == null ? NaN : parseInt(raw, 10);
+      const start = Number.isFinite(stored) ? modIndex(stored, total) : Math.floor(Math.random() * total);
       window.localStorage.setItem(storageKey, String(modIndex(start + normalizedStep, total)));
       return start;
     }
@@ -185,21 +178,6 @@ const getRotationStartIndex = ({ total, storageKey, fallbackState, step = 1 }) =
   fallbackState.value = modIndex(start + normalizedStep, total);
   return start;
 };
-
-const getCategoryRotationStartIndex = (categoryIds) =>
-  getRotationStartIndex({
-    total: categoryIds.length,
-    storageKey: COUPANG_CURSOR_KEY,
-    fallbackState: {
-      get value() {
-        return coupangCategoryCursor;
-      },
-      set value(v) {
-        coupangCategoryCursor = v;
-      },
-    },
-    step: 1,
-  });
 
 const getProductRotationStartIndex = (total, step) =>
   getRotationStartIndex({
@@ -227,7 +205,7 @@ const pickRotated = (items, count) => {
   return out;
 };
 
-function CoupangBestCategoryAds({ title = '베스트 추천', categoryIds = COUPANG_CATEGORY_IDS }) {
+function CoupangBestCategoryAds({ title = '추천 상품' }) {
   const [state, setState] = useState(() => ({
     status: 'idle',
     products: [],
@@ -236,112 +214,52 @@ function CoupangBestCategoryAds({ title = '베스트 추천', categoryIds = COUP
   const poolRef = useRef([]);
 
   useEffect(() => {
-    let cancelled = false;
     const controller = new AbortController();
+    let active = true;
 
-    const normalizedCategoryIds = (Array.isArray(categoryIds) && categoryIds.length ? categoryIds : [COUPANG_BEST_CATEGORY_ID])
-      .map((id) => Number(id))
-      .filter((id) => Number.isFinite(id) && id > 0);
-    const candidates = normalizedCategoryIds.length ? normalizedCategoryIds : [COUPANG_BEST_CATEGORY_ID];
     const desiredCount = 4;
-    const requestLimit = Math.min(50, desiredCount * 10);
-    const poolMax = 60;
-    const startIndex = getCategoryRotationStartIndex(candidates);
-    const poolCacheKey = `${COUPANG_POOL_CACHE_PREFIX}:${COUPANG_MIN_PRICE}:${candidates.join(',')}`;
-
-    const readCachedPool = () => {
-      try {
-        if (typeof window === 'undefined' || !window.localStorage) return null;
-        const raw = window.localStorage.getItem(poolCacheKey);
-        if (!raw) return null;
-        const parsed = JSON.parse(raw);
-        const cachedAt = Number(parsed?.cachedAt);
-        const pool = Array.isArray(parsed?.pool) ? parsed.pool : [];
-        if (!Number.isFinite(cachedAt) || Date.now() - cachedAt > COUPANG_POOL_CACHE_TTL_MS) return null;
-        return pool.slice(0, poolMax);
-      } catch {
-        return null;
-      }
-    };
-
-    const cachedPool = readCachedPool();
-    if (cachedPool && cachedPool.length > 0) {
-      poolRef.current = cachedPool;
-      setState({ status: 'success', products: pickRotated(cachedPool, desiredCount), error: null });
-      return () => {
-        cancelled = true;
-        controller.abort();
-      };
-    }
-
     setState({ status: 'loading', products: [], error: null });
 
     const load = async () => {
-      const pool = [];
-      const seen = new Set();
+      try {
+        const res = await fetch('/api/coupang/pool?limit=60', {
+          signal: controller.signal,
+          headers: { Accept: 'application/json' },
+        });
 
-      for (let offset = 0; offset < candidates.length; offset += 1) {
-        if (cancelled || controller.signal.aborted) return;
-        if (pool.length >= poolMax) break;
+        const contentType = res.headers.get('content-type') || '';
+        const isJson = contentType.includes('application/json');
+        const data = isJson ? await res.json().catch(() => ({})) : {};
 
-        const categoryId = candidates[(startIndex + offset) % candidates.length];
-
-        try {
-          const res = await fetch(
-            `/api/coupang/bestcategories/${categoryId}?limit=${requestLimit}&imageSize=512x512&minPrice=${COUPANG_MIN_PRICE}&subId=${encodeURIComponent(
-              COUPANG_SUB_ID,
-            )}`,
-            { signal: controller.signal, headers: { Accept: 'application/json' } },
-          );
-
-          const contentType = res.headers.get('content-type') || '';
-          const isJson = contentType.includes('application/json');
-          const data = isJson ? await res.json().catch(() => ({})) : {};
-          if (!res.ok) {
-            continue;
-          }
-          if (!isJson) {
-            continue;
-          }
-
-          const products = Array.isArray(data?.products) ? data.products : [];
-          for (const p of products) {
-            const key = p?.url || p?.id;
-            if (!key || seen.has(key)) continue;
-            seen.add(key);
-            pool.push(p);
-            if (pool.length >= poolMax) break;
-          }
-        } catch (error) {
-          if (error?.name === 'AbortError') return;
-          continue;
+        if (!active) return;
+        if (!res.ok || !isJson || !data?.ok) {
+          setState({ status: 'error', products: [], error: '광고 데이터를 불러오지 못했습니다.' });
+          return;
         }
-      }
 
-      if (cancelled) return;
-      if (pool.length === 0) {
+        const pool = Array.isArray(data?.products) ? data.products : [];
+        if (!pool.length) {
+          setState({ status: 'error', products: [], error: '광고 데이터를 불러오지 못했습니다.' });
+          return;
+        }
+
+        poolRef.current = pool;
+        setState({ status: 'success', products: pickRotated(pool, desiredCount), error: null });
+      } catch (error) {
+        if (error?.name === 'AbortError') return;
+        if (!active) return;
         setState({ status: 'error', products: [], error: '광고 데이터를 불러오지 못했습니다.' });
         return;
-      }
-      poolRef.current = pool;
-      setState({ status: 'success', products: pickRotated(pool, desiredCount), error: null });
-
-      try {
-        if (typeof window !== 'undefined' && window.localStorage) {
-          window.localStorage.setItem(poolCacheKey, JSON.stringify({ cachedAt: Date.now(), pool }));
-        }
-      } catch {
-        // ignore localStorage failures
       }
     };
 
     load();
 
     return () => {
-      cancelled = true;
+      active = false;
       controller.abort();
     };
-  }, [JSON.stringify(categoryIds)]);
+  }, []);
 
   useEffect(() => {
     if (state.status !== 'success') return undefined;
@@ -367,6 +285,9 @@ function CoupangBestCategoryAds({ title = '베스트 추천', categoryIds = COUP
           <span className="pill">쿠팡 파트너스</span>
           <span className="muted">{title}</span>
         </div>
+        <div className="ad-disclosure">
+          이 포스팅은 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다.
+        </div>
         <div className="ads">
           {state.products.map((p) => (
             <a key={p.id ?? p.url} className="ad-card" href={p.url} target="_blank" rel="noreferrer">
@@ -388,6 +309,9 @@ function CoupangBestCategoryAds({ title = '베스트 추천', categoryIds = COUP
       <div className="ad-embed-head">
         <span className="pill">쿠팡 파트너스</span>
         <span className="muted">{title}</span>
+      </div>
+      <div className="ad-disclosure">
+        이 포스팅은 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다.
       </div>
       {state.status === 'loading' ? (
         <div className="muted">광고를 불러오는 중…</div>
