@@ -85,12 +85,15 @@ export const onRequestGet = async ({ request, env, params }) => {
   }
 
   const limitRaw = url.searchParams.get('limit');
-  const limit = limitRaw ? Math.max(1, Math.min(10, parseInt(limitRaw, 10) || 4)) : 4;
+  const outputLimit = limitRaw ? Math.max(1, Math.min(10, parseInt(limitRaw, 10) || 4)) : 4;
+  const fetchLimit = Math.min(100, Math.max(10, outputLimit * 5));
   const imageSize = url.searchParams.get('imageSize') || '512x512';
   const subId = url.searchParams.get('subId') || env.COUPANG_SUB_ID || '';
+  const minPriceRaw = url.searchParams.get('minPrice');
+  const minPrice = minPriceRaw == null ? 100_000 : Math.max(0, parseInt(minPriceRaw, 10) || 0);
 
   const query = new URLSearchParams();
-  query.set('limit', String(limit));
+  query.set('limit', String(fetchLimit));
   if (subId) query.set('subId', subId);
   if (imageSize) query.set('imageSize', imageSize);
   const queryString = query.toString();
@@ -122,8 +125,8 @@ export const onRequestGet = async ({ request, env, params }) => {
   }
 
   const list = pickList(best);
-  const rawProducts = list.slice(0, limit);
-  const products = rawProducts
+  const rawProducts = list.slice(0, fetchLimit);
+  const filtered = rawProducts
     .map((p) => ({
       id: p?.productId ?? p?.id ?? null,
       name: p?.productName ?? p?.name ?? '',
@@ -134,17 +137,20 @@ export const onRequestGet = async ({ request, env, params }) => {
       isRocket: Boolean(p?.isRocket),
       isFreeShipping: Boolean(p?.isFreeShipping),
     }))
-    .filter((p) => p.url && p.image && p.name);
+    .filter((p) => p.url && p.image && p.name)
+    .filter((p) => typeof p.price === 'number' && p.price >= minPrice);
+
+  const products = filtered.slice(0, outputLimit);
 
   // bestcategories 응답의 productUrl은 link.coupang.com 형태(이미 제휴 링크)로 내려오는 경우가 많아 그대로 사용합니다.
   return json(
     {
       ok: true,
       categoryId: Number(categoryId),
+      minPrice,
       fetchedAt: new Date().toISOString(),
       products,
     },
     { headers: { 'cache-control': 'public, max-age=300' } },
   );
 };
-

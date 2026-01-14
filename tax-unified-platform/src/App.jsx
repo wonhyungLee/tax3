@@ -154,6 +154,7 @@ function CoupangAd({ title = '추천 상품', showHeader = true }) {
 
 const COUPANG_BEST_CATEGORY_ID = 1016;
 const COUPANG_SUB_ID = 'AF7397099';
+const COUPANG_MIN_PRICE = 100_000;
 
 function CoupangBestCategoryAds({ title = '가전/디지털 베스트', categoryId = COUPANG_BEST_CATEGORY_ID }) {
   const [state, setState] = useState(() => ({
@@ -167,10 +168,13 @@ function CoupangBestCategoryAds({ title = '가전/디지털 베스트', category
     const controller = new AbortController();
 
     setState({ status: 'loading', products: [], error: null });
-    fetch(`/api/coupang/bestcategories/${categoryId}?limit=4&imageSize=512x512&subId=${encodeURIComponent(COUPANG_SUB_ID)}`, {
+    fetch(
+      `/api/coupang/bestcategories/${categoryId}?limit=4&imageSize=512x512&minPrice=${COUPANG_MIN_PRICE}&subId=${encodeURIComponent(COUPANG_SUB_ID)}`,
+      {
       signal: controller.signal,
       headers: { Accept: 'application/json' },
-    })
+      },
+    )
       .then(async (res) => {
         const contentType = res.headers.get('content-type') || '';
         const isJson = contentType.includes('application/json');
@@ -298,8 +302,8 @@ function AgeListSelect({ label, value, onChange, hint, options = [], maxItems = 
                   </option>
                 ))}
               </select>
-              <button type="button" className="btn ghost sm" onClick={() => removeAt(idx)} aria-label="삭제">
-                삭제
+              <button type="button" className="icon-btn" onClick={() => removeAt(idx)} aria-label="삭제" title="삭제">
+                ×
               </button>
             </div>
           ))}
