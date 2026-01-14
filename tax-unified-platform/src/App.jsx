@@ -155,8 +155,18 @@ function CoupangAd({ title = '추천 상품', showHeader = true }) {
 const COUPANG_BEST_CATEGORY_ID = 1016;
 const COUPANG_SUB_ID = 'AF7397099';
 const COUPANG_MIN_PRICE = 100_000;
+const COUPANG_CATEGORY_IDS = [1001, 1002, 1010, 1011, 1015, 1016, 1024, 1025, 1026, 1030];
 
-function CoupangBestCategoryAds({ title = '가전/디지털 베스트', categoryId = COUPANG_BEST_CATEGORY_ID }) {
+const shuffle = (values) => {
+  const arr = values.slice();
+  for (let i = arr.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+};
+
+function CoupangBestCategoryAds({ title = '베스트 추천', categoryIds = COUPANG_CATEGORY_IDS }) {
   const [state, setState] = useState(() => ({
     status: 'idle',
     products: [],
@@ -168,42 +178,64 @@ function CoupangBestCategoryAds({ title = '가전/디지털 베스트', category
     const controller = new AbortController();
 
     setState({ status: 'loading', products: [], error: null });
-    fetch(
-      `/api/coupang/bestcategories/${categoryId}?limit=4&imageSize=512x512&minPrice=${COUPANG_MIN_PRICE}&subId=${encodeURIComponent(COUPANG_SUB_ID)}`,
-      {
-      signal: controller.signal,
-      headers: { Accept: 'application/json' },
-      },
-    )
-      .then(async (res) => {
-        const contentType = res.headers.get('content-type') || '';
-        const isJson = contentType.includes('application/json');
-        const data = isJson ? await res.json().catch(() => ({})) : {};
-        if (!res.ok) {
-          const message = data?.error || data?.message || `광고 데이터를 불러오지 못했습니다. (${res.status})`;
-          throw new Error(message);
-        }
-        if (!isJson) {
-          throw new Error('광고 응답 형식이 올바르지 않습니다. (JSON 아님)');
-        }
-        return data;
-      })
-      .then((data) => {
-        if (cancelled) return;
-        const products = Array.isArray(data?.products) ? data.products : [];
-        setState({ status: 'success', products, error: null });
-      })
-      .catch((error) => {
-        if (cancelled) return;
-        if (error?.name === 'AbortError') return;
-        setState({ status: 'error', products: [], error: error?.message ? String(error.message) : '광고 로딩 실패' });
-      });
+    const normalizedCategoryIds = (Array.isArray(categoryIds) && categoryIds.length ? categoryIds : [COUPANG_BEST_CATEGORY_ID])
+      .map((id) => Number(id))
+      .filter((id) => Number.isFinite(id) && id > 0);
+    const candidates = shuffle(normalizedCategoryIds.length ? normalizedCategoryIds : [COUPANG_BEST_CATEGORY_ID]);
+
+    const fetchCategory = (index) => {
+      if (cancelled) return;
+      if (index >= candidates.length) {
+        setState({ status: 'error', products: [], error: '광고 데이터를 불러오지 못했습니다.' });
+        return;
+      }
+
+      const categoryId = candidates[index];
+      fetch(
+        `/api/coupang/bestcategories/${categoryId}?limit=4&imageSize=512x512&minPrice=${COUPANG_MIN_PRICE}&subId=${encodeURIComponent(
+          COUPANG_SUB_ID,
+        )}`,
+        {
+          signal: controller.signal,
+          headers: { Accept: 'application/json' },
+        },
+      )
+        .then(async (res) => {
+          const contentType = res.headers.get('content-type') || '';
+          const isJson = contentType.includes('application/json');
+          const data = isJson ? await res.json().catch(() => ({})) : {};
+          if (!res.ok) {
+            const message = data?.error || data?.message || `광고 데이터를 불러오지 못했습니다. (${res.status})`;
+            throw new Error(message);
+          }
+          if (!isJson) {
+            throw new Error('광고 응답 형식이 올바르지 않습니다. (JSON 아님)');
+          }
+          return data;
+        })
+        .then((data) => {
+          if (cancelled) return;
+          const products = Array.isArray(data?.products) ? data.products : [];
+          if (products.length === 0) {
+            fetchCategory(index + 1);
+            return;
+          }
+          setState({ status: 'success', products, error: null });
+        })
+        .catch((error) => {
+          if (cancelled) return;
+          if (error?.name === 'AbortError') return;
+          fetchCategory(index + 1);
+        });
+    };
+
+    fetchCategory(0);
 
     return () => {
       cancelled = true;
       controller.abort();
     };
-  }, [categoryId]);
+  }, [JSON.stringify(categoryIds)]);
 
   if (state.status === 'success' && state.products.length > 0) {
     return (
