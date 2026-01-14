@@ -263,83 +263,50 @@ const parseAgeList = (raw) => {
     .slice(0, 10);
 };
 
-function AgeChipInput({
-  id,
-  label,
-  value,
-  onChange,
-  hint,
-  suggestions = [],
-  placeholder = '나이 입력',
-  maxItems = 10,
-}) {
-  const [draft, setDraft] = useState('');
-
+function AgeListSelect({ label, value, onChange, hint, options = [], maxItems = 10, addLabel = '추가' }) {
   const normalized = useMemo(() => parseAgeList(value), [value]);
+  const effectiveOptions = options.length ? options : Array.from({ length: 121 }, (_, i) => i);
+  const defaultAge = effectiveOptions[0] ?? 0;
 
-  const commit = () => {
-    const nextValue = parseInt(String(draft).trim(), 10);
-    if (!Number.isFinite(nextValue) || nextValue < 0 || nextValue > 120) return;
+  const updateAt = (index, nextAge) => {
+    const next = normalized.slice();
+    next[index] = nextAge;
+    onChange(next);
+  };
+
+  const addRow = () => {
     if (normalized.length >= maxItems) return;
-    onChange([...normalized, nextValue]);
-    setDraft('');
+    onChange([...normalized, defaultAge]);
   };
 
   const removeAt = (index) => {
     onChange(normalized.filter((_, i) => i !== index));
   };
 
-  const clearAll = () => {
-    onChange([]);
-  };
-
-  const listId = id ? `${id}-list` : undefined;
-
   return (
     <div className="field">
       <label>{label}</label>
-      <div className="chip-editor">
-        <div className="chip-list" aria-label={`${label} 목록`}>
-          {normalized.length === 0 ? <span className="muted">아직 추가된 나이가 없어요.</span> : null}
+      <div className="age-editor">
+        {normalized.length === 0 ? <div className="muted">추가 버튼을 눌러 나이를 선택해 주세요.</div> : null}
+        <div className="age-list">
           {normalized.map((age, idx) => (
-            <button key={`${age}-${idx}`} type="button" className="chip" onClick={() => removeAt(idx)}>
-              {age}세 <span aria-hidden="true">×</span>
-            </button>
+            <div key={`${label}-${idx}`} className="age-row">
+              <select value={age} onChange={(e) => updateAt(idx, Number(e.target.value))} aria-label={`${label} ${idx + 1}`}>
+                {effectiveOptions.map((n) => (
+                  <option key={n} value={n}>
+                    {n}세
+                  </option>
+                ))}
+              </select>
+              <button type="button" className="btn ghost sm" onClick={() => removeAt(idx)} aria-label="삭제">
+                삭제
+              </button>
+            </div>
           ))}
-          {normalized.length > 0 ? (
-            <button type="button" className="chip chip-clear" onClick={clearAll}>
-              모두 지우기
-            </button>
-          ) : null}
         </div>
-        <div className="chip-input-row">
-          <input
-            id={id}
-            list={listId}
-            type="text"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            placeholder={placeholder}
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                commit();
-              }
-            }}
-          />
-          <button className="btn ghost" type="button" onClick={commit} disabled={!draft || normalized.length >= maxItems}>
-            추가
-          </button>
-        </div>
-        {listId ? (
-          <datalist id={listId}>
-            {suggestions.map((n) => (
-              <option key={n} value={n} />
-            ))}
-          </datalist>
-        ) : null}
+        <button type="button" className="btn ghost sm" onClick={addRow} disabled={normalized.length >= maxItems}>
+          {addLabel}
+        </button>
       </div>
       {hint ? <div className="hint">{hint}</div> : null}
     </div>
@@ -1047,23 +1014,21 @@ function TaxWizard() {
             </label>
             <div className="hint">배우자가 기본공제 대상이면 체크합니다.</div>
           </div>
-          <AgeChipInput
-            id="children-ages"
+          <AgeListSelect
             label="자녀 나이"
             value={yearendInputs.childrenAges}
             onChange={(next) => setYearendInputs((p) => ({ ...p, childrenAges: next }))}
-            suggestions={Array.from({ length: 26 }, (_, i) => i)}
-            placeholder="예: 10"
-            hint="추가한 나이를 기준으로 기본공제/자녀세액공제를 판단합니다."
+            options={Array.from({ length: 26 }, (_, i) => i)}
+            addLabel="자녀 추가"
+            hint="자녀를 한 명씩 추가해 나이를 선택해 주세요."
           />
-          <AgeChipInput
-            id="parent-ages"
+          <AgeListSelect
             label="부모 나이"
             value={yearendInputs.parentAges}
             onChange={(next) => setYearendInputs((p) => ({ ...p, parentAges: next }))}
-            suggestions={Array.from({ length: 41 }, (_, i) => i + 50)}
-            placeholder="예: 70"
-            hint="60세 이상이면 기본공제 대상일 수 있어요."
+            options={Array.from({ length: 61 }, (_, i) => i + 40)}
+            addLabel="부모 추가"
+            hint="부모를 한 명씩 추가해 나이를 선택해 주세요. (60세 이상이면 기본공제 대상일 수 있어요)"
           />
         </div>
         <div className="form-grid">
