@@ -146,6 +146,27 @@ a { color: inherit; text-decoration: none; }
   text-decoration: none;
 }
 
+.ad-embed {
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 14px;
+  border: 1px solid #cfd7ea;
+  background: #ffffff;
+}
+
+.ad-embed-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.ad-embed-slot {
+  overflow: auto;
+  max-width: 100%;
+}
+
 .ads {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
