@@ -156,27 +156,72 @@ const COUPANG_BEST_CATEGORY_ID = 1016;
 const COUPANG_SUB_ID = 'AF7397099';
 const COUPANG_MIN_PRICE = 100_000;
 const COUPANG_CATEGORY_IDS = [1001, 1002, 1010, 1011, 1015, 1016, 1024, 1025, 1026, 1030];
-let coupangCategoryCursor = 0;
+let coupangCategoryCursor = Math.floor(Math.random() * 1_000_000);
 const COUPANG_CURSOR_KEY = 'tax3.coupangCategoryCursor';
+let coupangProductCursor = Math.floor(Math.random() * 1_000_000);
+const COUPANG_PRODUCT_CURSOR_KEY = 'tax3.coupangProductCursor';
 
-const getRotationStartIndex = (categoryIds) => {
-  const total = categoryIds.length;
+const modIndex = (value, total) => ((value % total) + total) % total;
+
+const getRotationStartIndex = ({ total, storageKey, fallbackState, step = 1 }) => {
   if (!total) return 0;
+  const normalizedStep = Number.isFinite(step) && step > 0 ? Math.floor(step) : 1;
 
   try {
     if (typeof window !== 'undefined' && window.localStorage) {
-      const stored = parseInt(window.localStorage.getItem(COUPANG_CURSOR_KEY) || '0', 10);
-      const start = Number.isFinite(stored) ? ((stored % total) + total) % total : 0;
-      window.localStorage.setItem(COUPANG_CURSOR_KEY, String((start + 1) % total));
+      const stored = parseInt(window.localStorage.getItem(storageKey) || '0', 10);
+      const start = Number.isFinite(stored) ? modIndex(stored, total) : 0;
+      window.localStorage.setItem(storageKey, String(modIndex(start + normalizedStep, total)));
       return start;
     }
   } catch {
     // ignore localStorage failures and fall back to in-memory cursor
   }
 
-  const start = ((coupangCategoryCursor % total) + total) % total;
-  coupangCategoryCursor = (start + 1) % total;
+  const start = modIndex(fallbackState.value, total);
+  fallbackState.value = modIndex(start + normalizedStep, total);
   return start;
+};
+
+const getCategoryRotationStartIndex = (categoryIds) =>
+  getRotationStartIndex({
+    total: categoryIds.length,
+    storageKey: COUPANG_CURSOR_KEY,
+    fallbackState: {
+      get value() {
+        return coupangCategoryCursor;
+      },
+      set value(v) {
+        coupangCategoryCursor = v;
+      },
+    },
+    step: 1,
+  });
+
+const getProductRotationStartIndex = (total, step) =>
+  getRotationStartIndex({
+    total,
+    storageKey: COUPANG_PRODUCT_CURSOR_KEY,
+    fallbackState: {
+      get value() {
+        return coupangProductCursor;
+      },
+      set value(v) {
+        coupangProductCursor = v;
+      },
+    },
+    step,
+  });
+
+const pickRotated = (items, count) => {
+  if (!Array.isArray(items) || items.length === 0) return [];
+  if (items.length <= count) return items.slice(0, count);
+  const start = getProductRotationStartIndex(items.length, count);
+  const out = [];
+  for (let i = 0; i < count; i += 1) {
+    out.push(items[(start + i) % items.length]);
+  }
+  return out;
 };
 
 function CoupangBestCategoryAds({ title = '베스트 추천', categoryIds = COUPANG_CATEGORY_IDS }) {
@@ -196,22 +241,23 @@ function CoupangBestCategoryAds({ title = '베스트 추천', categoryIds = COUP
       .filter((id) => Number.isFinite(id) && id > 0);
     const candidates = normalizedCategoryIds.length ? normalizedCategoryIds : [COUPANG_BEST_CATEGORY_ID];
     const desiredCount = 4;
-    const startIndex = getRotationStartIndex(candidates);
+    const requestLimit = Math.min(50, desiredCount * 10);
+    const poolMax = 60;
+    const startIndex = getCategoryRotationStartIndex(candidates);
 
     const load = async () => {
-      const picked = [];
+      const pool = [];
       const seen = new Set();
 
       for (let offset = 0; offset < candidates.length; offset += 1) {
         if (cancelled || controller.signal.aborted) return;
-        if (picked.length >= desiredCount) break;
+        if (pool.length >= poolMax) break;
 
         const categoryId = candidates[(startIndex + offset) % candidates.length];
-        const remaining = desiredCount - picked.length;
 
         try {
           const res = await fetch(
-            `/api/coupang/bestcategories/${categoryId}?limit=${remaining}&imageSize=512x512&minPrice=${COUPANG_MIN_PRICE}&subId=${encodeURIComponent(
+            `/api/coupang/bestcategories/${categoryId}?limit=${requestLimit}&imageSize=512x512&minPrice=${COUPANG_MIN_PRICE}&subId=${encodeURIComponent(
               COUPANG_SUB_ID,
             )}`,
             { signal: controller.signal, headers: { Accept: 'application/json' } },
@@ -232,8 +278,8 @@ function CoupangBestCategoryAds({ title = '베스트 추천', categoryIds = COUP
             const key = p?.url || p?.id;
             if (!key || seen.has(key)) continue;
             seen.add(key);
-            picked.push(p);
-            if (picked.length >= desiredCount) break;
+            pool.push(p);
+            if (pool.length >= poolMax) break;
           }
         } catch (error) {
           if (error?.name === 'AbortError') return;
@@ -242,11 +288,11 @@ function CoupangBestCategoryAds({ title = '베스트 추천', categoryIds = COUP
       }
 
       if (cancelled) return;
-      if (picked.length === 0) {
+      if (pool.length === 0) {
         setState({ status: 'error', products: [], error: '광고 데이터를 불러오지 못했습니다.' });
         return;
       }
-      setState({ status: 'success', products: picked, error: null });
+      setState({ status: 'success', products: pickRotated(pool, desiredCount), error: null });
     };
 
     load();

@@ -85,7 +85,7 @@ export const onRequestGet = async ({ request, env, params }) => {
   }
 
   const limitRaw = url.searchParams.get('limit');
-  const outputLimit = limitRaw ? Math.max(1, Math.min(10, parseInt(limitRaw, 10) || 4)) : 4;
+  const outputLimit = limitRaw ? Math.max(1, Math.min(50, parseInt(limitRaw, 10) || 4)) : 4;
   const fetchLimit = Math.min(100, Math.max(10, outputLimit * 5));
   const imageSize = url.searchParams.get('imageSize') || '512x512';
   const subId = url.searchParams.get('subId') || env.COUPANG_SUB_ID || '';
