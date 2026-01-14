@@ -156,14 +156,27 @@ const COUPANG_BEST_CATEGORY_ID = 1016;
 const COUPANG_SUB_ID = 'AF7397099';
 const COUPANG_MIN_PRICE = 100_000;
 const COUPANG_CATEGORY_IDS = [1001, 1002, 1010, 1011, 1015, 1016, 1024, 1025, 1026, 1030];
+let coupangCategoryCursor = 0;
+const COUPANG_CURSOR_KEY = 'tax3.coupangCategoryCursor';
 
-const shuffle = (values) => {
-  const arr = values.slice();
-  for (let i = arr.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
+const getRotationStartIndex = (categoryIds) => {
+  const total = categoryIds.length;
+  if (!total) return 0;
+
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const stored = parseInt(window.localStorage.getItem(COUPANG_CURSOR_KEY) || '0', 10);
+      const start = Number.isFinite(stored) ? ((stored % total) + total) % total : 0;
+      window.localStorage.setItem(COUPANG_CURSOR_KEY, String((start + 1) % total));
+      return start;
+    }
+  } catch {
+    // ignore localStorage failures and fall back to in-memory cursor
   }
-  return arr;
+
+  const start = ((coupangCategoryCursor % total) + total) % total;
+  coupangCategoryCursor = (start + 1) % total;
+  return start;
 };
 
 function CoupangBestCategoryAds({ title = '베스트 추천', categoryIds = COUPANG_CATEGORY_IDS }) {
@@ -181,55 +194,62 @@ function CoupangBestCategoryAds({ title = '베스트 추천', categoryIds = COUP
     const normalizedCategoryIds = (Array.isArray(categoryIds) && categoryIds.length ? categoryIds : [COUPANG_BEST_CATEGORY_ID])
       .map((id) => Number(id))
       .filter((id) => Number.isFinite(id) && id > 0);
-    const candidates = shuffle(normalizedCategoryIds.length ? normalizedCategoryIds : [COUPANG_BEST_CATEGORY_ID]);
+    const candidates = normalizedCategoryIds.length ? normalizedCategoryIds : [COUPANG_BEST_CATEGORY_ID];
+    const desiredCount = 4;
+    const startIndex = getRotationStartIndex(candidates);
 
-    const fetchCategory = (index) => {
-      if (cancelled) return;
-      if (index >= candidates.length) {
-        setState({ status: 'error', products: [], error: '광고 데이터를 불러오지 못했습니다.' });
-        return;
-      }
+    const load = async () => {
+      const picked = [];
+      const seen = new Set();
 
-      const categoryId = candidates[index];
-      fetch(
-        `/api/coupang/bestcategories/${categoryId}?limit=4&imageSize=512x512&minPrice=${COUPANG_MIN_PRICE}&subId=${encodeURIComponent(
-          COUPANG_SUB_ID,
-        )}`,
-        {
-          signal: controller.signal,
-          headers: { Accept: 'application/json' },
-        },
-      )
-        .then(async (res) => {
+      for (let offset = 0; offset < candidates.length; offset += 1) {
+        if (cancelled || controller.signal.aborted) return;
+        if (picked.length >= desiredCount) break;
+
+        const categoryId = candidates[(startIndex + offset) % candidates.length];
+        const remaining = desiredCount - picked.length;
+
+        try {
+          const res = await fetch(
+            `/api/coupang/bestcategories/${categoryId}?limit=${remaining}&imageSize=512x512&minPrice=${COUPANG_MIN_PRICE}&subId=${encodeURIComponent(
+              COUPANG_SUB_ID,
+            )}`,
+            { signal: controller.signal, headers: { Accept: 'application/json' } },
+          );
+
           const contentType = res.headers.get('content-type') || '';
           const isJson = contentType.includes('application/json');
           const data = isJson ? await res.json().catch(() => ({})) : {};
           if (!res.ok) {
-            const message = data?.error || data?.message || `광고 데이터를 불러오지 못했습니다. (${res.status})`;
-            throw new Error(message);
+            continue;
           }
           if (!isJson) {
-            throw new Error('광고 응답 형식이 올바르지 않습니다. (JSON 아님)');
+            continue;
           }
-          return data;
-        })
-        .then((data) => {
-          if (cancelled) return;
+
           const products = Array.isArray(data?.products) ? data.products : [];
-          if (products.length === 0) {
-            fetchCategory(index + 1);
-            return;
+          for (const p of products) {
+            const key = p?.url || p?.id;
+            if (!key || seen.has(key)) continue;
+            seen.add(key);
+            picked.push(p);
+            if (picked.length >= desiredCount) break;
           }
-          setState({ status: 'success', products, error: null });
-        })
-        .catch((error) => {
-          if (cancelled) return;
+        } catch (error) {
           if (error?.name === 'AbortError') return;
-          fetchCategory(index + 1);
-        });
+          continue;
+        }
+      }
+
+      if (cancelled) return;
+      if (picked.length === 0) {
+        setState({ status: 'error', products: [], error: '광고 데이터를 불러오지 못했습니다.' });
+        return;
+      }
+      setState({ status: 'success', products: picked, error: null });
     };
 
-    fetchCategory(0);
+    load();
 
     return () => {
       cancelled = true;
