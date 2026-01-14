@@ -4,7 +4,7 @@ const COUPANG_HOST = 'https://api-gateway.coupang.com';
 const API_PREFIX = '/v2/providers/affiliate_open_api/apis/openapi/v1';
 
 const KV_BINDING_NAME = 'COUPANG_ADS_KV';
-const POOL_VERSION = 'v1';
+const POOL_VERSION = 'v2';
 const DEFAULT_POOL_SIZE = 60;
 const MAX_POOL_SIZE = 120;
 const SEARCH_LIMIT = 10;
@@ -197,21 +197,44 @@ const convertDeeplinks = async ({ accessKey, secretKey, originalUrls }) => {
 };
 
 const buildDailyPool = async ({ accessKey, secretKey, subId, dateKey, poolSize }) => {
-  const rawKeywords = COUPANG_KEYWORD_GROUPS.flatMap((g) => g.keywords);
-  const keywords = Array.from(new Set(rawKeywords.map(normalizeKeyword).filter(Boolean)));
-  const shuffled = shuffleDeterministic(keywords, `${POOL_VERSION}:${dateKey}`);
-  const selected = shuffled.slice(0, Math.min(MAX_SEARCH_REQUESTS, shuffled.length));
+  const groups = COUPANG_KEYWORD_GROUPS.map((g) => ({
+    id: g.id,
+    label: g.label,
+    keywords: Array.from(new Set((g.keywords || []).map(normalizeKeyword).filter(Boolean))),
+  })).filter((g) => g.id && g.label && g.keywords.length > 0);
+
+  const shuffledGroups = shuffleDeterministic(groups, `${POOL_VERSION}:${dateKey}:groups`);
+  const groupBuckets = shuffledGroups.map((g) => ({
+    ...g,
+    shuffledKeywords: shuffleDeterministic(g.keywords, `${POOL_VERSION}:${dateKey}:${g.id}`),
+  }));
+
+  const selected = [];
+  let round = 0;
+  while (selected.length < MAX_SEARCH_REQUESTS) {
+    let pushed = false;
+    for (const bucket of groupBuckets) {
+      const keyword = bucket.shuffledKeywords[round];
+      if (!keyword) continue;
+      selected.push({ keyword, groupId: bucket.id, groupLabel: bucket.label });
+      pushed = true;
+      if (selected.length >= MAX_SEARCH_REQUESTS) break;
+    }
+    if (!pushed) break;
+    round += 1;
+  }
 
   const searchResults = await mapLimit(
     selected,
     4,
-    async (keyword) => {
+    async (entry) => {
+      const keyword = entry?.keyword || '';
       try {
         const payload = await searchProducts({ accessKey, secretKey, keyword, subId, imageSize: '512x512' });
-        if (!isOkReturnCode(payload)) return { keyword, products: [] };
-        return { keyword, products: pickList(payload) };
+        if (!isOkReturnCode(payload)) return { ...entry, products: [] };
+        return { ...entry, products: pickList(payload) };
       } catch {
-        return { keyword, products: [] };
+        return { ...entry, products: [] };
       }
     },
   );
@@ -220,6 +243,8 @@ const buildDailyPool = async ({ accessKey, secretKey, subId, dateKey, poolSize }
   const rawPool = [];
   for (const entry of searchResults) {
     const keyword = entry?.keyword || '';
+    const groupId = entry?.groupId || '';
+    const groupLabel = entry?.groupLabel || '';
     const list = Array.isArray(entry?.products) ? entry.products : [];
     for (const p of list) {
       const productId = p?.productId ?? p?.id ?? null;
@@ -233,6 +258,8 @@ const buildDailyPool = async ({ accessKey, secretKey, subId, dateKey, poolSize }
         price: typeof p?.productPrice === 'number' ? p.productPrice : Number(p?.productPrice) || null,
         image: p?.productImage ?? p?.image ?? '',
         url: productUrl,
+        groupId,
+        groupLabel,
         keyword,
         categoryName: p?.categoryName ?? '',
         isRocket: Boolean(p?.isRocket),
@@ -290,7 +317,7 @@ const buildDailyPool = async ({ accessKey, secretKey, subId, dateKey, poolSize }
     version: POOL_VERSION,
     dateKey,
     generatedAt: new Date().toISOString(),
-    keywordsUsed: selected.slice(0, Math.min(12, selected.length)),
+    keywordsUsed: selected.slice(0, Math.min(12, selected.length)).map((k) => k.keyword),
     products: finalPool,
   };
 };

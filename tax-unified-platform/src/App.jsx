@@ -205,6 +205,39 @@ const pickRotated = (items, count) => {
   return out;
 };
 
+const pickRotatedDistinctGroups = (items, count) => {
+  if (!Array.isArray(items) || items.length === 0) return [];
+  if (items.length <= count) return items.slice(0, count);
+
+  const start = getProductRotationStartIndex(items.length, count);
+  const picked = [];
+  const usedGroups = new Set();
+  const usedKeys = new Set();
+
+  for (let i = 0; i < items.length && picked.length < count; i += 1) {
+    const item = items[(start + i) % items.length];
+    const groupKey = item?.groupId || item?.groupLabel || '';
+    if (groupKey && usedGroups.has(groupKey)) continue;
+    const uniq = item?.url || item?.id || `${groupKey}:${i}`;
+    if (usedKeys.has(uniq)) continue;
+    usedKeys.add(uniq);
+    if (groupKey) usedGroups.add(groupKey);
+    picked.push(item);
+  }
+
+  if (picked.length < count) {
+    for (let i = 0; i < items.length && picked.length < count; i += 1) {
+      const item = items[(start + i) % items.length];
+      const uniq = item?.url || item?.id || i;
+      if (usedKeys.has(uniq)) continue;
+      usedKeys.add(uniq);
+      picked.push(item);
+    }
+  }
+
+  return picked.slice(0, count);
+};
+
 function CoupangBestCategoryAds({ title = '추천 상품' }) {
   const [state, setState] = useState(() => ({
     status: 'idle',
@@ -244,7 +277,7 @@ function CoupangBestCategoryAds({ title = '추천 상품' }) {
         }
 
         poolRef.current = pool;
-        setState({ status: 'success', products: pickRotated(pool, desiredCount), error: null });
+        setState({ status: 'success', products: pickRotatedDistinctGroups(pool, desiredCount), error: null });
       } catch (error) {
         if (error?.name === 'AbortError') return;
         if (!active) return;
@@ -270,7 +303,7 @@ function CoupangBestCategoryAds({ title = '추천 상품' }) {
         if (prev.status !== 'success') return prev;
         const pool = poolRef.current;
         if (!pool.length) return prev;
-        return { ...prev, products: pickRotated(pool, 4) };
+        return { ...prev, products: pickRotatedDistinctGroups(pool, 4) };
       });
     };
 
@@ -294,6 +327,7 @@ function CoupangBestCategoryAds({ title = '추천 상품' }) {
               <img className="ad-img" src={p.image} alt={p.name} loading="lazy" />
               <div className="ad-title">{p.name}</div>
               <div className="ad-desc">
+                {p.groupLabel ? `${p.groupLabel} · ` : ''}
                 {p.isRocket ? '로켓배송' : '일반배송'} · {p.isFreeShipping ? '무료배송' : '배송비 확인'}
               </div>
               <div className="ad-price">{typeof p.price === 'number' ? formatWon(p.price) : '-'}</div>
