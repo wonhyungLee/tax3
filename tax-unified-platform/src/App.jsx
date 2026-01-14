@@ -41,9 +41,9 @@ const calculatorFrames = [
 ];
 
 const coupangAds = [
-  { id: 902948, trackingCode: 'AF7397099', subId: null, template: 'carousel', width: '1200', height: '250' },
-  { id: 902947, trackingCode: 'AF7397099', subId: null, template: 'carousel', width: '1200', height: '250' },
-  { id: 902949, trackingCode: 'AF7397099', subId: null, template: 'carousel', width: '1200', height: '250' },
+  { id: 902948, trackingCode: 'AF7397099', subId: null, template: 'carousel', width: '360', height: '210' },
+  { id: 902947, trackingCode: 'AF7397099', subId: null, template: 'carousel', width: '360', height: '210' },
+  { id: 902949, trackingCode: 'AF7397099', subId: null, template: 'carousel', width: '360', height: '210' },
 ];
 
 let coupangSdkPromise;
@@ -108,7 +108,7 @@ const loadPdfJs = () => {
   return pdfjsSdkPromise;
 };
 
-function CoupangAd({ title = '추천 상품' }) {
+function CoupangAd({ title = '추천 상품', showHeader = true }) {
   const containerRef = useRef(null);
   const [ad] = useState(() => coupangAds[Math.floor(Math.random() * coupangAds.length)]);
 
@@ -137,6 +137,10 @@ function CoupangAd({ title = '추천 상품' }) {
     };
   }, [ad]);
 
+  if (!showHeader) {
+    return <div ref={containerRef} className="ad-embed-slot" />;
+  }
+
   return (
     <div className="ad-embed">
       <div className="ad-embed-head">
@@ -144,6 +148,96 @@ function CoupangAd({ title = '추천 상품' }) {
         <span className="muted">{title}</span>
       </div>
       <div ref={containerRef} className="ad-embed-slot" />
+    </div>
+  );
+}
+
+const COUPANG_BEST_CATEGORY_ID = 1016;
+const COUPANG_SUB_ID = 'AF7397099';
+
+function CoupangBestCategoryAds({ title = '가전/디지털 베스트', categoryId = COUPANG_BEST_CATEGORY_ID }) {
+  const [state, setState] = useState(() => ({
+    status: 'idle',
+    products: [],
+    error: null,
+  }));
+
+  useEffect(() => {
+    let cancelled = false;
+    const controller = new AbortController();
+
+    setState({ status: 'loading', products: [], error: null });
+    fetch(`/api/coupang/bestcategories/${categoryId}?limit=4&imageSize=512x512&subId=${encodeURIComponent(COUPANG_SUB_ID)}`, {
+      signal: controller.signal,
+      headers: { Accept: 'application/json' },
+    })
+      .then(async (res) => {
+        const contentType = res.headers.get('content-type') || '';
+        const isJson = contentType.includes('application/json');
+        const data = isJson ? await res.json().catch(() => ({})) : {};
+        if (!res.ok) {
+          const message = data?.error || data?.message || `광고 데이터를 불러오지 못했습니다. (${res.status})`;
+          throw new Error(message);
+        }
+        if (!isJson) {
+          throw new Error('광고 응답 형식이 올바르지 않습니다. (JSON 아님)');
+        }
+        return data;
+      })
+      .then((data) => {
+        if (cancelled) return;
+        const products = Array.isArray(data?.products) ? data.products : [];
+        setState({ status: 'success', products, error: null });
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        if (error?.name === 'AbortError') return;
+        setState({ status: 'error', products: [], error: error?.message ? String(error.message) : '광고 로딩 실패' });
+      });
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [categoryId]);
+
+  if (state.status === 'success' && state.products.length > 0) {
+    return (
+      <div className="ad-embed">
+        <div className="ad-embed-head">
+          <span className="pill">쿠팡 파트너스</span>
+          <span className="muted">{title}</span>
+        </div>
+        <div className="ads">
+          {state.products.map((p) => (
+            <a key={p.id ?? p.url} className="ad-card" href={p.url} target="_blank" rel="noreferrer">
+              <img className="ad-img" src={p.image} alt={p.name} loading="lazy" />
+              <div className="ad-title">{p.name}</div>
+              <div className="ad-desc">
+                {p.isRocket ? '로켓배송' : '일반배송'} · {p.isFreeShipping ? '무료배송' : '배송비 확인'}
+              </div>
+              <div className="ad-price">{typeof p.price === 'number' ? formatWon(p.price) : '-'}</div>
+            </a>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="ad-embed">
+      <div className="ad-embed-head">
+        <span className="pill">쿠팡 파트너스</span>
+        <span className="muted">{title}</span>
+      </div>
+      {state.status === 'loading' ? (
+        <div className="muted">광고를 불러오는 중…</div>
+      ) : state.status === 'error' ? (
+        <div className="muted">{state.error || '광고를 불러오지 못했습니다.'}</div>
+      ) : null}
+      <div className="ad-fallback">
+        <CoupangAd title="추천 상품" showHeader={false} />
+      </div>
     </div>
   );
 }
@@ -156,12 +250,101 @@ const toNumber = (value) => {
 
 const parseAgeList = (raw) => {
   if (!raw) return [];
+  if (Array.isArray(raw)) {
+    return raw
+      .map((n) => (typeof n === 'string' ? parseInt(n, 10) : Number(n)))
+      .filter((n) => Number.isFinite(n) && n >= 0 && n <= 120)
+      .slice(0, 10);
+  }
   return String(raw)
     .split(/[,\s]+/)
     .map((n) => parseInt(n, 10))
     .filter((n) => Number.isFinite(n) && n >= 0 && n <= 120)
     .slice(0, 10);
 };
+
+function AgeChipInput({
+  id,
+  label,
+  value,
+  onChange,
+  hint,
+  suggestions = [],
+  placeholder = '나이 입력',
+  maxItems = 10,
+}) {
+  const [draft, setDraft] = useState('');
+
+  const normalized = useMemo(() => parseAgeList(value), [value]);
+
+  const commit = () => {
+    const nextValue = parseInt(String(draft).trim(), 10);
+    if (!Number.isFinite(nextValue) || nextValue < 0 || nextValue > 120) return;
+    if (normalized.length >= maxItems) return;
+    onChange([...normalized, nextValue]);
+    setDraft('');
+  };
+
+  const removeAt = (index) => {
+    onChange(normalized.filter((_, i) => i !== index));
+  };
+
+  const clearAll = () => {
+    onChange([]);
+  };
+
+  const listId = id ? `${id}-list` : undefined;
+
+  return (
+    <div className="field">
+      <label>{label}</label>
+      <div className="chip-editor">
+        <div className="chip-list" aria-label={`${label} 목록`}>
+          {normalized.length === 0 ? <span className="muted">아직 추가된 나이가 없어요.</span> : null}
+          {normalized.map((age, idx) => (
+            <button key={`${age}-${idx}`} type="button" className="chip" onClick={() => removeAt(idx)}>
+              {age}세 <span aria-hidden="true">×</span>
+            </button>
+          ))}
+          {normalized.length > 0 ? (
+            <button type="button" className="chip chip-clear" onClick={clearAll}>
+              모두 지우기
+            </button>
+          ) : null}
+        </div>
+        <div className="chip-input-row">
+          <input
+            id={id}
+            list={listId}
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            placeholder={placeholder}
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                commit();
+              }
+            }}
+          />
+          <button className="btn ghost" type="button" onClick={commit} disabled={!draft || normalized.length >= maxItems}>
+            추가
+          </button>
+        </div>
+        {listId ? (
+          <datalist id={listId}>
+            {suggestions.map((n) => (
+              <option key={n} value={n} />
+            ))}
+          </datalist>
+        ) : null}
+      </div>
+      {hint ? <div className="hint">{hint}</div> : null}
+    </div>
+  );
+}
 
 const buildDependents = ({ spouse, childrenAges, parentAges }) => {
   const dependents = [];
@@ -195,8 +378,8 @@ function TaxWizard() {
     withheld_local_tax: '',
     social_insurance: '',
     spouse: false,
-    childrenAges: '',
-    parentAges: '',
+    childrenAges: [],
+    parentAges: [],
     self_disabled: false,
     single_parent: false,
     female_head: false,
@@ -303,8 +486,8 @@ function TaxWizard() {
       withheld_local_tax: '',
       social_insurance: '',
       spouse: false,
-      childrenAges: '',
-      parentAges: '',
+      childrenAges: [],
+      parentAges: [],
       self_disabled: false,
       single_parent: false,
       female_head: false,
@@ -726,7 +909,7 @@ function TaxWizard() {
           )}
         </div>
       </div>
-      <CoupangAd title="계산 중 추천" />
+      <CoupangBestCategoryAds title="계산 중 추천" />
     </div>
   );
 
@@ -864,26 +1047,24 @@ function TaxWizard() {
             </label>
             <div className="hint">배우자가 기본공제 대상이면 체크합니다.</div>
           </div>
-          <div className="field">
-            <label>자녀 나이(쉼표로 구분)</label>
-            <input
-              type="text"
-              value={yearendInputs.childrenAges}
-              onChange={(e) => setYearendInputs((p) => ({ ...p, childrenAges: e.target.value }))}
-              placeholder="예: 10, 15"
-            />
-            <div className="hint">나이를 입력하면 기본공제/자녀세액공제 판단에 반영됩니다.</div>
-          </div>
-          <div className="field">
-            <label>부모 나이(쉼표로 구분)</label>
-            <input
-              type="text"
-              value={yearendInputs.parentAges}
-              onChange={(e) => setYearendInputs((p) => ({ ...p, parentAges: e.target.value }))}
-              placeholder="예: 65, 72"
-            />
-            <div className="hint">60세 이상이면 기본공제 대상일 수 있어요.</div>
-          </div>
+          <AgeChipInput
+            id="children-ages"
+            label="자녀 나이"
+            value={yearendInputs.childrenAges}
+            onChange={(next) => setYearendInputs((p) => ({ ...p, childrenAges: next }))}
+            suggestions={Array.from({ length: 26 }, (_, i) => i)}
+            placeholder="예: 10"
+            hint="추가한 나이를 기준으로 기본공제/자녀세액공제를 판단합니다."
+          />
+          <AgeChipInput
+            id="parent-ages"
+            label="부모 나이"
+            value={yearendInputs.parentAges}
+            onChange={(next) => setYearendInputs((p) => ({ ...p, parentAges: next }))}
+            suggestions={Array.from({ length: 41 }, (_, i) => i + 50)}
+            placeholder="예: 70"
+            hint="60세 이상이면 기본공제 대상일 수 있어요."
+          />
         </div>
         <div className="form-grid">
           <label className="check">
@@ -1346,10 +1527,17 @@ function TaxWizard() {
         }
       >
         <SubStep />
-        <div className="wizard-grid">
-          <div className="wizard-main">{renderStage()}</div>
-          <SummarySideCard />
-        </div>
+        {calculator === 'yearend' && stage === 'y_family' ? (
+          <div className="wizard-stack">
+            <div className="wizard-main">{renderStage()}</div>
+            <SummarySideCard />
+          </div>
+        ) : (
+          <div className="wizard-grid">
+            <div className="wizard-main">{renderStage()}</div>
+            <SummarySideCard />
+          </div>
+        )}
         <div className="wizard-nav">
           <button className="btn ghost" type="button" onClick={goPrevInput}>
             이전
@@ -1438,7 +1626,7 @@ function TaxWizard() {
           </div>
         )}
 
-        <CoupangAd title="추천 상품" />
+        <CoupangBestCategoryAds title="추천 상품" />
       </CardFrame>
     );
   };

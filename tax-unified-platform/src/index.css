@@ -54,6 +54,8 @@ a { color: inherit; text-decoration: none; }
 
 .wizard-body { display: flex; flex-direction: column; gap: 12px; }
 
+.wizard-stack { display: flex; flex-direction: column; gap: 12px; }
+
 .wizard-card {
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -184,6 +186,56 @@ a { color: inherit; text-decoration: none; }
   border: 1px solid var(--border);
   background: #ffffff;
 }
+
+.chip-editor {
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: #f7f9fd;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.chip {
+  border: 1px solid #cfd7ea;
+  background: #ffffff;
+  border-radius: 999px;
+  padding: 7px 10px;
+  cursor: pointer;
+  font-weight: 800;
+  color: #2b3a55;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.7);
+}
+
+.chip span { opacity: 0.7; font-weight: 900; }
+.chip:hover { transform: translateY(-1px); }
+.chip:active { transform: translateY(0); opacity: 0.95; }
+
+.chip-clear {
+  border-style: dashed;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.chip-input-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.chip-input-row input { flex: 1; min-width: 140px; }
 
 .field { display: flex; flex-direction: column; gap: 6px; }
 .field label { color: var(--muted); font-size: 13px; }
@@ -342,6 +394,8 @@ a { color: inherit; text-decoration: none; }
   overflow: auto;
   max-width: 100%;
 }
+
+.ad-fallback { margin-top: 10px; }
 
 .ads {
   display: grid;
