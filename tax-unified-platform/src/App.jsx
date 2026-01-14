@@ -6,6 +6,7 @@ import {
   calculateYearEndTax,
   formatWon,
 } from './lib/tax-calculations';
+import { parsePaystubPdf } from './lib/paystub-parser';
 
 const calculators = [
   { id: 'yearend', name: '연말정산', blurb: '근로소득 환급/추납' },
@@ -68,6 +69,43 @@ const loadCoupangSdk = () => {
     if (!existing) document.head.appendChild(script);
   });
   return coupangSdkPromise;
+};
+
+let pdfjsSdkPromise;
+const loadPdfJs = () => {
+  if (typeof window === 'undefined') return Promise.reject(new Error('Missing window'));
+  if (window.pdfjsLib?.getDocument) return Promise.resolve(window.pdfjsLib);
+  if (pdfjsSdkPromise) return pdfjsSdkPromise;
+
+  pdfjsSdkPromise = new Promise((resolve, reject) => {
+    const existing = document.getElementById('pdfjs-sdk');
+    if (existing?.dataset.loaded === 'true' && window.pdfjsLib?.getDocument) {
+      resolve(window.pdfjsLib);
+      return;
+    }
+
+    const script = existing || document.createElement('script');
+    script.id = 'pdfjs-sdk';
+    script.src = '/yearend/assets/vendor/pdf.min.js';
+    script.async = true;
+    script.dataset.loaded = 'false';
+    script.onload = () => {
+      script.dataset.loaded = 'true';
+      const pdfjsLib = window.pdfjsLib;
+      if (!pdfjsLib?.getDocument) {
+        reject(new Error('PDF.js 로드에 실패했습니다.'));
+        return;
+      }
+      if (pdfjsLib.GlobalWorkerOptions) {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = '/yearend/assets/vendor/pdf.worker.min.js';
+      }
+      resolve(pdfjsLib);
+    };
+    script.onerror = () => reject(new Error('PDF.js 스크립트를 불러오지 못했습니다.'));
+    if (!existing) document.head.appendChild(script);
+  });
+
+  return pdfjsSdkPromise;
 };
 
 function CoupangAd({ title = '추천 상품' }) {
@@ -155,6 +193,7 @@ function TaxWizard() {
     withheld_income_tax: '',
     withheld_local_provided: false,
     withheld_local_tax: '',
+    social_insurance: '',
     spouse: false,
     childrenAges: '',
     parentAges: '',
@@ -171,6 +210,20 @@ function TaxWizard() {
     rent_paid: '',
     rent_eligible: false,
   }));
+
+  const [paystubFile, setPaystubFile] = useState(null);
+  const [paystubParse, setPaystubParse] = useState(() => ({
+    status: 'idle',
+    message: '',
+    extracted: null,
+  }));
+
+  useEffect(() => {
+    if (calculator !== 'yearend') {
+      setPaystubFile(null);
+      setPaystubParse({ status: 'idle', message: '', extracted: null });
+    }
+  }, [calculator]);
 
   const [corporateInputs, setCorporateInputs] = useState(() => ({
     type: 'SME',
@@ -240,12 +293,15 @@ function TaxWizard() {
     setStep('select');
     setDocReady([]);
     setStageIndex(0);
+    setPaystubFile(null);
+    setPaystubParse({ status: 'idle', message: '', extracted: null });
     setYearendInputs((prev) => ({ ...prev, gross_salary: '' }));
     setYearendInputs({
       gross_salary: '',
       withheld_income_tax: '',
       withheld_local_provided: false,
       withheld_local_tax: '',
+      social_insurance: '',
       spouse: false,
       childrenAges: '',
       parentAges: '',
@@ -290,6 +346,78 @@ function TaxWizard() {
       prepaidLocal: '',
       taxCreditOther: '',
     });
+  };
+
+  const parseAndApplyPaystub = async () => {
+    if (!paystubFile) {
+      setPaystubParse({ status: 'error', message: 'PDF 파일을 선택해 주세요.', extracted: null });
+      return;
+    }
+    if (paystubFile.type && paystubFile.type !== 'application/pdf') {
+      setPaystubParse({ status: 'error', message: 'PDF 형식의 파일만 업로드할 수 있어요.', extracted: null });
+      return;
+    }
+
+    setPaystubParse({ status: 'loading', message: 'PDF를 분석 중입니다…', extracted: null });
+
+    try {
+      const pdfjsLib = await loadPdfJs();
+
+      let result = null;
+      try {
+        result = await parsePaystubPdf(paystubFile, pdfjsLib);
+      } catch (error) {
+        const msg = String(error?.message || error).toLowerCase();
+        if (msg.includes('worker')) {
+          result = await parsePaystubPdf(paystubFile, pdfjsLib, { disableWorker: true });
+        } else {
+          throw error;
+        }
+      }
+
+      if (!result?.hasText) {
+        setPaystubParse({
+          status: 'error',
+          message: 'PDF에서 텍스트를 찾지 못했습니다. (스캔본/이미지 PDF는 인식이 어려울 수 있어요.)',
+          extracted: result,
+        });
+        return;
+      }
+
+      const filled = [];
+      const missing = [];
+
+      if (result.grossSalary != null) filled.push('총급여');
+      else missing.push('총급여');
+      if (result.withheldIncomeTax != null) filled.push('소득세');
+      else missing.push('소득세');
+      if (result.withheldLocalTax != null) filled.push('지방소득세');
+      else missing.push('지방소득세');
+      if (result.socialInsurance != null) filled.push('사회보험료');
+      else missing.push('사회보험료');
+
+      setYearendInputs((prev) => {
+        const next = { ...prev };
+        if (result.grossSalary != null) next.gross_salary = result.grossSalary;
+        if (result.withheldIncomeTax != null) next.withheld_income_tax = result.withheldIncomeTax;
+        if (result.withheldLocalTax != null) {
+          next.withheld_local_provided = true;
+          next.withheld_local_tax = result.withheldLocalTax;
+        }
+        if (result.socialInsurance != null) next.social_insurance = result.socialInsurance;
+        return next;
+      });
+
+      const headline = filled.length ? `자동입력 완료: ${filled.join(', ')}` : '인식된 값이 없어 자동입력하지 못했습니다.';
+      const tail = missing.length ? ` (미인식: ${missing.join(', ')})` : '';
+      setPaystubParse({ status: 'success', message: headline + tail, extracted: result });
+    } catch (error) {
+      setPaystubParse({
+        status: 'error',
+        message: `PDF 분석에 실패했습니다. (${error?.message ? String(error.message) : '알 수 없는 오류'})`,
+        extracted: null,
+      });
+    }
   };
 
   const yearendForm = useMemo(() => {
@@ -362,6 +490,7 @@ function TaxWizard() {
       self_disabled: Boolean(yearendInputs.self_disabled),
       single_parent: Boolean(yearendInputs.single_parent),
       female_head: Boolean(yearendInputs.female_head),
+      social_insurance: toNumber(yearendInputs.social_insurance),
       credit_card_spend: toNumber(yearendInputs.credit_card_spend),
       debit_card_spend: toNumber(yearendInputs.debit_card_spend),
       market_transport_spend: toNumber(yearendInputs.market_transport_spend),
@@ -619,6 +748,38 @@ function TaxWizard() {
 
     const YearendIncome = () => (
       <>
+        <div className="upload-box">
+          <div className="upload-head">
+            <div>
+              <div className="upload-title">급여명세서 PDF 자동입력(선택)</div>
+              <div className="hint">PDF에서 총급여/원천세/사회보험료를 읽어와 아래 입력칸을 채웁니다.</div>
+            </div>
+            <span className="pill">beta</span>
+          </div>
+          <div className="upload-row">
+            <input
+              className="file-input"
+              type="file"
+              accept="application/pdf"
+              onChange={(e) => {
+                const file = e.target.files?.[0] ?? null;
+                setPaystubFile(file);
+                setPaystubParse({ status: 'idle', message: '', extracted: null });
+              }}
+            />
+            <button
+              className="btn primary"
+              type="button"
+              disabled={!paystubFile || paystubParse.status === 'loading'}
+              onClick={parseAndApplyPaystub}
+            >
+              {paystubParse.status === 'loading' ? '분석 중…' : 'PDF 분석'}
+            </button>
+          </div>
+          {paystubParse.status !== 'idle' && (
+            <div className={`callout ${paystubParse.status === 'error' ? 'warn' : ''}`}>{paystubParse.message}</div>
+          )}
+        </div>
         <div className="form-grid">
           <div className="field">
             <label>총급여(원)</label>
@@ -668,6 +829,22 @@ function TaxWizard() {
               placeholder="예: 300000"
             />
             <div className="hint">미입력 시 소득세의 10%로 자동 추정됩니다.</div>
+          </div>
+          <div className="field">
+            <label>사회보험료 합계(원, 선택)</label>
+            <input
+              inputMode="numeric"
+              type="number"
+              value={yearendInputs.social_insurance}
+              onChange={(e) =>
+                setYearendInputs((p) => ({
+                  ...p,
+                  social_insurance: e.target.value === '' ? '' : Number(e.target.value),
+                }))
+              }
+              placeholder="예: 2500000"
+            />
+            <div className="hint">국민연금/건강보험/장기요양/고용보험 합계(급여명세서 PDF 자동입력 지원).</div>
           </div>
         </div>
       </>
