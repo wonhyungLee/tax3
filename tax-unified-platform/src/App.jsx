@@ -4,9 +4,14 @@ import {
   calculateCorporateTax,
   calculateFinancialTax,
   calculateYearEndTax,
+  formatSignedWon,
   formatWon,
 } from './lib/tax-calculations';
 import { parsePaystubPdf } from './lib/paystub-parser';
+import {
+  parseCorporateFinancialStatementPdf,
+  parseCorporateTaxReturnPdf,
+} from './lib/corporate-pdf-parser';
 
 const calculators = [
   { id: 'yearend', name: '연말정산', blurb: '근로소득 환급/추납' },
@@ -503,6 +508,20 @@ function TaxWizard() {
     extracted: null,
   }));
 
+  const [corporateFsFile, setCorporateFsFile] = useState(null);
+  const [corporateFsParse, setCorporateFsParse] = useState(() => ({
+    status: 'idle',
+    message: '',
+    extracted: null,
+  }));
+
+  const [corporateReturnFile, setCorporateReturnFile] = useState(null);
+  const [corporateReturnParse, setCorporateReturnParse] = useState(() => ({
+    status: 'idle',
+    message: '',
+    extracted: null,
+  }));
+
   useEffect(() => {
     if (calculator !== 'yearend') {
       setPaystubFile(null);
@@ -510,13 +529,25 @@ function TaxWizard() {
     }
   }, [calculator]);
 
+  useEffect(() => {
+    if (calculator !== 'corporate') {
+      setCorporateFsFile(null);
+      setCorporateFsParse({ status: 'idle', message: '', extracted: null });
+      setCorporateReturnFile(null);
+      setCorporateReturnParse({ status: 'idle', message: '', extracted: null });
+    }
+  }, [calculator]);
+
   const [corporateInputs, setCorporateInputs] = useState(() => ({
     type: 'SME',
     filingYear: 2025,
     rateTable: '2025',
+    baseMode: 'pbt',
     netIncome: '',
     revenue: '',
     expense: '',
+    taxAdjustmentAdd: '',
+    taxAdjustmentDeduct: '',
     lossCarryforward: '',
     prepaidTax: '',
     rdCurrent: '',
@@ -610,9 +641,12 @@ function TaxWizard() {
       type: 'SME',
       filingYear: 2025,
       rateTable: '2025',
+      baseMode: 'pbt',
       netIncome: '',
       revenue: '',
       expense: '',
+      taxAdjustmentAdd: '',
+      taxAdjustmentDeduct: '',
       lossCarryforward: '',
       prepaidTax: '',
       rdCurrent: '',
@@ -708,6 +742,133 @@ function TaxWizard() {
     }
   };
 
+  const parseAndApplyCorporateFs = async () => {
+    if (!corporateFsFile) {
+      setCorporateFsParse({ status: 'error', message: 'PDF 파일을 선택해 주세요.', extracted: null });
+      return;
+    }
+    if (corporateFsFile.type && corporateFsFile.type !== 'application/pdf') {
+      setCorporateFsParse({ status: 'error', message: 'PDF 형식의 파일만 업로드할 수 있어요.', extracted: null });
+      return;
+    }
+
+    setCorporateFsParse({ status: 'loading', message: 'PDF를 분석 중입니다…', extracted: null });
+
+    try {
+      const pdfjsLib = await loadPdfJs();
+      let result = null;
+      try {
+        result = await parseCorporateFinancialStatementPdf(corporateFsFile, pdfjsLib);
+      } catch (error) {
+        const msg = String(error?.message || error).toLowerCase();
+        if (msg.includes('worker')) {
+          result = await parseCorporateFinancialStatementPdf(corporateFsFile, pdfjsLib, { disableWorker: true });
+        } else {
+          throw error;
+        }
+      }
+
+      if (!result?.hasText) {
+        setCorporateFsParse({
+          status: 'error',
+          message: 'PDF에서 텍스트를 찾지 못했습니다. (스캔본/이미지 PDF는 인식이 어려울 수 있어요.)',
+          extracted: result,
+        });
+        return;
+      }
+
+      const filled = [];
+      if (result.sales != null) filled.push('매출액');
+      if (result.profitBeforeTax != null) filled.push('법인세차감전이익');
+      if (result.netIncome != null) filled.push('당기순이익');
+
+      setCorporateInputs((prev) => {
+        const next = { ...prev, baseMode: 'pbt' };
+        if (result.sales != null) next.revenue = result.sales;
+        if (result.profitBeforeTax != null) next.netIncome = result.profitBeforeTax;
+        return next;
+      });
+
+      setCorporateFsParse({
+        status: 'success',
+        message: filled.length ? `추출 완료: ${filled.join(', ')} 입력칸에 반영했습니다.` : 'PDF에서 유효한 금액을 찾지 못했습니다.',
+        extracted: result,
+      });
+    } catch (error) {
+      setCorporateFsParse({
+        status: 'error',
+        message: `PDF 분석 중 오류가 발생했습니다: ${String(error?.message || error)}`,
+        extracted: null,
+      });
+    }
+  };
+
+  const parseAndApplyCorporateReturn = async () => {
+    if (!corporateReturnFile) {
+      setCorporateReturnParse({ status: 'error', message: 'PDF 파일을 선택해 주세요.', extracted: null });
+      return;
+    }
+    if (corporateReturnFile.type && corporateReturnFile.type !== 'application/pdf') {
+      setCorporateReturnParse({ status: 'error', message: 'PDF 형식의 파일만 업로드할 수 있어요.', extracted: null });
+      return;
+    }
+
+    setCorporateReturnParse({ status: 'loading', message: 'PDF를 분석 중입니다…', extracted: null });
+
+    try {
+      const pdfjsLib = await loadPdfJs();
+      let result = null;
+      try {
+        result = await parseCorporateTaxReturnPdf(corporateReturnFile, pdfjsLib);
+      } catch (error) {
+        const msg = String(error?.message || error).toLowerCase();
+        if (msg.includes('worker')) {
+          result = await parseCorporateTaxReturnPdf(corporateReturnFile, pdfjsLib, { disableWorker: true });
+        } else {
+          throw error;
+        }
+      }
+
+      if (!result?.hasText) {
+        setCorporateReturnParse({
+          status: 'error',
+          message: 'PDF에서 텍스트를 찾지 못했습니다. (스캔본/이미지 PDF는 인식이 어려울 수 있어요.)',
+          extracted: result,
+        });
+        return;
+      }
+
+      const filled = [];
+      if (result.taxBase != null) filled.push('과세표준');
+      if (result.prepaidTax != null) filled.push('기납부세액');
+      if (result.creditTotal != null) filled.push('세액공제(추정)');
+
+      setCorporateInputs((prev) => {
+        const next = { ...prev, baseMode: 'taxBase' };
+        next.rateTable = '2018-2022';
+        next.filingYear = 2021;
+        if (result.taxBase != null) next.netIncome = result.taxBase;
+        if (result.prepaidTax != null) next.prepaidTax = result.prepaidTax;
+        if (result.creditTotal != null) next.otherCredit = result.creditTotal;
+        return next;
+      });
+
+      setCorporateReturnParse({
+        status: 'success',
+        message: filled.length
+          ? `추출 완료: ${filled.join(', ')} 입력칸에 반영했습니다.`
+          : 'PDF에서 유효한 금액을 찾지 못했습니다.',
+        extracted: result,
+      });
+    } catch (error) {
+      setCorporateReturnParse({
+        status: 'error',
+        message: `PDF 분석 중 오류가 발생했습니다: ${String(error?.message || error)}`,
+        extracted: null,
+      });
+    }
+  };
+
   const yearendForm = useMemo(() => {
     const base = {
       annual_salary: 0,
@@ -797,12 +958,18 @@ function TaxWizard() {
   const yearendResult = useMemo(() => calculateYearEndTax(yearendForm), [yearendForm]);
 
   const corporatePayload = useMemo(() => {
+    const baseMode = corporateInputs.baseMode || 'pbt';
     const revenue = toNumber(corporateInputs.revenue);
     const expense = toNumber(corporateInputs.expense);
     const netIncome =
-      corporateInputs.revenue !== '' || corporateInputs.expense !== ''
-        ? revenue - expense
-        : toNumber(corporateInputs.netIncome);
+      baseMode === 'taxBase'
+        ? toNumber(corporateInputs.netIncome)
+        : corporateInputs.revenue !== '' && corporateInputs.expense !== ''
+          ? revenue - expense
+          : toNumber(corporateInputs.netIncome);
+    const taxAdjustmentAdd = baseMode === 'taxBase' ? 0 : toNumber(corporateInputs.taxAdjustmentAdd);
+    const taxAdjustmentDeduct = baseMode === 'taxBase' ? 0 : toNumber(corporateInputs.taxAdjustmentDeduct);
+    const lossCarryforward = baseMode === 'taxBase' ? 0 : toNumber(corporateInputs.lossCarryforward);
 
     return {
       filingYear: Number(corporateInputs.filingYear) || 2025,
@@ -833,11 +1000,11 @@ function TaxWizard() {
         excessRetainedOverride: 0,
       },
       adjustments: {
-        manualIncomeAdd: 0,
-        manualIncomeExclude: 0,
+        manualIncomeAdd: taxAdjustmentAdd,
+        manualIncomeExclude: taxAdjustmentDeduct,
         manualExpenseDisallow: 0,
         manualExpenseAllow: 0,
-        lossCarryforward: { totalAvailable: toNumber(corporateInputs.lossCarryforward), originYear: 2020 },
+        lossCarryforward: { totalAvailable: lossCarryforward, originYear: 2020 },
         prepaidTax: toNumber(corporateInputs.prepaidTax),
       },
       donations: { specialLimitRate: 0.5, generalLimitRate: 0.1, specialCarry: 0, specialCurrent: 0, generalCarry: 0, generalCurrent: 0 },
@@ -1383,43 +1550,180 @@ function TaxWizard() {
             <option value="2018-2022">2018~2022(1구간 10%)</option>
           </select>
         </div>
+        <div className="field">
+          <label>입력 기준</label>
+          <select
+            value={corporateInputs.baseMode}
+            onChange={(e) => setCorporateInputs((p) => ({ ...p, baseMode: e.target.value }))}
+          >
+            <option value="pbt">재무제표(법인세차감전이익) 기준</option>
+            <option value="taxBase">신고서(과세표준) 직접입력</option>
+          </select>
+          <div className="hint">재무제표만으로는 세무조정이 필요할 수 있어요.</div>
+        </div>
       </div>
     );
 
     const CorporateIncome = () => (
       <>
+        <div className="upload-box">
+          <div className="upload-head">
+            <div>
+              <div className="upload-title">재무제표 PDF 자동입력(선택)</div>
+              <div className="hint">매출액/법인세차감전이익을 읽어와 아래 입력칸을 채웁니다.</div>
+            </div>
+            <span className="pill">beta</span>
+          </div>
+          <div className="upload-row">
+            <input
+              id="corporate-fs-pdf"
+              className="file-input-hidden"
+              type="file"
+              accept="application/pdf"
+              onChange={(e) => {
+                const file = e.target.files?.[0] ?? null;
+                setCorporateFsFile(file);
+                setCorporateFsParse({ status: 'idle', message: '', extracted: null });
+              }}
+            />
+            <label className="btn ghost" htmlFor="corporate-fs-pdf">
+              {corporateFsFile ? 'PDF 변경' : 'PDF 선택'}
+            </label>
+            <div className={`file-display ${corporateFsFile ? '' : 'muted'}`} title={corporateFsFile?.name || ''}>
+              {corporateFsFile ? corporateFsFile.name : '선택된 파일 없음'}
+            </div>
+            <button
+              className="btn primary"
+              type="button"
+              disabled={!corporateFsFile || corporateFsParse.status === 'loading'}
+              onClick={parseAndApplyCorporateFs}
+            >
+              {corporateFsParse.status === 'loading' ? '분석 중…' : 'PDF 분석'}
+            </button>
+          </div>
+          {corporateFsParse.status !== 'idle' && (
+            <div className={`callout ${corporateFsParse.status === 'error' ? 'warn' : ''}`}>{corporateFsParse.message}</div>
+          )}
+        </div>
+        <div className="upload-box">
+          <div className="upload-head">
+            <div>
+              <div className="upload-title">법인세 신고서 PDF 자동입력(선택)</div>
+              <div className="hint">과세표준/기납부세액/세액공제(산출-총부담)를 읽어옵니다.</div>
+            </div>
+            <span className="pill">beta</span>
+          </div>
+          <div className="upload-row">
+            <input
+              id="corporate-return-pdf"
+              className="file-input-hidden"
+              type="file"
+              accept="application/pdf"
+              onChange={(e) => {
+                const file = e.target.files?.[0] ?? null;
+                setCorporateReturnFile(file);
+                setCorporateReturnParse({ status: 'idle', message: '', extracted: null });
+              }}
+            />
+            <label className="btn ghost" htmlFor="corporate-return-pdf">
+              {corporateReturnFile ? 'PDF 변경' : 'PDF 선택'}
+            </label>
+            <div
+              className={`file-display ${corporateReturnFile ? '' : 'muted'}`}
+              title={corporateReturnFile?.name || ''}
+            >
+              {corporateReturnFile ? corporateReturnFile.name : '선택된 파일 없음'}
+            </div>
+            <button
+              className="btn primary"
+              type="button"
+              disabled={!corporateReturnFile || corporateReturnParse.status === 'loading'}
+              onClick={parseAndApplyCorporateReturn}
+            >
+              {corporateReturnParse.status === 'loading' ? '분석 중…' : 'PDF 분석'}
+            </button>
+          </div>
+          {corporateReturnParse.status !== 'idle' && (
+            <div className={`callout ${corporateReturnParse.status === 'error' ? 'warn' : ''}`}>{corporateReturnParse.message}</div>
+          )}
+        </div>
+        {corporateFsParse.extracted?.profitBeforeTax != null && corporateReturnParse.extracted?.taxBase != null ? (
+          <div className="callout">
+            <div className="muted">
+              PDF 비교(참고): 손익계산서 법인세차감전이익 {formatWon(corporateFsParse.extracted.profitBeforeTax)} vs 신고서 과세표준{' '}
+              {formatWon(corporateReturnParse.extracted.taxBase)} (차이 {formatSignedWon(corporateReturnParse.extracted.taxBase - corporateFsParse.extracted.profitBeforeTax)}
+              )
+            </div>
+          </div>
+        ) : null}
         <div className="form-grid">
           <div className="field">
-            <label>당기순이익(원)</label>
+            <label>
+              {corporateInputs.baseMode === 'taxBase' ? '과세표준(원)' : '법인세비용차감전이익(원)'}
+            </label>
             <input
               inputMode="numeric"
               type="number"
               value={corporateInputs.netIncome}
               onChange={(e) => setCorporateInputs((p) => ({ ...p, netIncome: e.target.value === '' ? '' : Number(e.target.value) }))}
-              placeholder="예: 500000000"
+              placeholder={corporateInputs.baseMode === 'taxBase' ? '예: 90000000' : '예: 50000000'}
             />
-            <div className="hint">모르면 아래 매출/비용으로 입력해도 됩니다.</div>
+            {corporateInputs.baseMode === 'taxBase' ? (
+              <div className="hint">신고서의 ‘과세표준’ 값을 그대로 입력합니다.</div>
+            ) : (
+              <div className="hint">손익계산서의 ‘법인세차감전이익’을 입력하세요. (모르면 아래 매출/비용으로 추정)</div>
+            )}
           </div>
-          <div className="field">
-            <label>매출(원, 선택)</label>
-            <input
-              inputMode="numeric"
-              type="number"
-              value={corporateInputs.revenue}
-              onChange={(e) => setCorporateInputs((p) => ({ ...p, revenue: e.target.value === '' ? '' : Number(e.target.value) }))}
-              placeholder="예: 1500000000"
-            />
-          </div>
-          <div className="field">
-            <label>비용(원, 선택)</label>
-            <input
-              inputMode="numeric"
-              type="number"
-              value={corporateInputs.expense}
-              onChange={(e) => setCorporateInputs((p) => ({ ...p, expense: e.target.value === '' ? '' : Number(e.target.value) }))}
-              placeholder="예: 1000000000"
-            />
-          </div>
+          {corporateInputs.baseMode !== 'taxBase' ? (
+            <>
+              <div className="field">
+                <label>매출(원, 선택)</label>
+                <input
+                  inputMode="numeric"
+                  type="number"
+                  value={corporateInputs.revenue}
+                  onChange={(e) => setCorporateInputs((p) => ({ ...p, revenue: e.target.value === '' ? '' : Number(e.target.value) }))}
+                  placeholder="예: 1500000000"
+                />
+              </div>
+              <div className="field">
+                <label>비용(원, 선택)</label>
+                <input
+                  inputMode="numeric"
+                  type="number"
+                  value={corporateInputs.expense}
+                  onChange={(e) => setCorporateInputs((p) => ({ ...p, expense: e.target.value === '' ? '' : Number(e.target.value) }))}
+                  placeholder="예: 1000000000"
+                />
+              </div>
+              <div className="field">
+                <label>세무조정 가산(+)(선택)</label>
+                <input
+                  inputMode="numeric"
+                  type="number"
+                  value={corporateInputs.taxAdjustmentAdd}
+                  onChange={(e) =>
+                    setCorporateInputs((p) => ({ ...p, taxAdjustmentAdd: e.target.value === '' ? '' : Number(e.target.value) }))
+                  }
+                  placeholder="예: 10000000"
+                />
+                <div className="hint">익금산입/손금불산입 등 과세소득에 더해지는 금액</div>
+              </div>
+              <div className="field">
+                <label>세무조정 차감(-)(선택)</label>
+                <input
+                  inputMode="numeric"
+                  type="number"
+                  value={corporateInputs.taxAdjustmentDeduct}
+                  onChange={(e) =>
+                    setCorporateInputs((p) => ({ ...p, taxAdjustmentDeduct: e.target.value === '' ? '' : Number(e.target.value) }))
+                  }
+                  placeholder="예: 10000000"
+                />
+                <div className="hint">익금불산입/손금산입 등 과세소득에서 빠지는 금액</div>
+              </div>
+            </>
+          ) : null}
         </div>
       </>
     );
@@ -1432,11 +1736,15 @@ function TaxWizard() {
             inputMode="numeric"
             type="number"
             value={corporateInputs.lossCarryforward}
+            disabled={corporateInputs.baseMode === 'taxBase'}
             onChange={(e) =>
               setCorporateInputs((p) => ({ ...p, lossCarryforward: e.target.value === '' ? '' : Number(e.target.value) }))
             }
             placeholder="예: 100000000"
           />
+          {corporateInputs.baseMode === 'taxBase' ? (
+            <div className="hint">과세표준 직접입력 모드에서는 이월결손금을 별도로 적용하지 않습니다.</div>
+          ) : null}
         </div>
         <div className="field">
           <label>기납부세액(원천징수/중간예납)</label>
