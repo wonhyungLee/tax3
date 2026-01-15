@@ -108,6 +108,21 @@ const loadPdfJs = () => {
   return pdfjsSdkPromise;
 };
 
+function CardFrame({ title, subtitle, children, actions }) {
+  return (
+    <div className="wizard-card card-anim">
+      <div className="wizard-card-head">
+        <div>
+          <h2 className="wizard-title">{title}</h2>
+          {subtitle && <p className="muted wizard-subtitle">{subtitle}</p>}
+        </div>
+        {actions && <div className="wizard-actions">{actions}</div>}
+      </div>
+      {children}
+    </div>
+  );
+}
+
 function CoupangAd({ title = '추천 상품', showHeader = true }) {
   const containerRef = useRef(null);
   const [ad] = useState(() => coupangAds[Math.floor(Math.random() * coupangAds.length)]);
@@ -900,19 +915,6 @@ function TaxWizard() {
     else setStep('docs');
   };
 
-  const CardFrame = ({ title, subtitle, children, actions }) => (
-    <div className="wizard-card card-anim">
-      <div className="wizard-card-head">
-        <div>
-          <h2 className="wizard-title">{title}</h2>
-          {subtitle && <p className="muted wizard-subtitle">{subtitle}</p>}
-        </div>
-        {actions && <div className="wizard-actions">{actions}</div>}
-      </div>
-      {children}
-    </div>
-  );
-
   const SelectCard = () => (
     <CardFrame
       title="어떤 계산을 진행할까요?"
@@ -1587,20 +1589,20 @@ function TaxWizard() {
 
     const renderStage = () => {
       if (calculator === 'yearend') {
-        if (stage === 'y_income') return <YearendIncome />;
-        if (stage === 'y_family') return <YearendFamily />;
-        return <YearendDeductions />;
+        if (stage === 'y_income') return YearendIncome();
+        if (stage === 'y_family') return YearendFamily();
+        return YearendDeductions();
       }
       if (calculator === 'corporate') {
-        if (stage === 'c_basic') return <CorporateBasic />;
-        if (stage === 'c_income') return <CorporateIncome />;
-        if (stage === 'c_loss') return <CorporateLoss />;
-        return <CorporateCredits />;
+        if (stage === 'c_basic') return CorporateBasic();
+        if (stage === 'c_income') return CorporateIncome();
+        if (stage === 'c_loss') return CorporateLoss();
+        return CorporateCredits();
       }
       if (calculator === 'financial') {
-        if (stage === 'f_income') return <FinancialIncome />;
-        if (stage === 'f_other') return <FinancialOther />;
-        return <FinancialPrepaid />;
+        if (stage === 'f_income') return FinancialIncome();
+        if (stage === 'f_other') return FinancialOther();
+        return FinancialPrepaid();
       }
       return null;
     };
@@ -1615,16 +1617,16 @@ function TaxWizard() {
           </button>
         }
       >
-        <SubStep />
+        {SubStep()}
         {calculator === 'yearend' && stage === 'y_family' ? (
           <div className="wizard-stack">
             <div className="wizard-main">{renderStage()}</div>
-            <SummarySideCard />
+            {SummarySideCard()}
           </div>
         ) : (
           <div className="wizard-grid">
             <div className="wizard-main">{renderStage()}</div>
-            <SummarySideCard />
+            {SummarySideCard()}
           </div>
         )}
         <div className="wizard-nav">
@@ -1739,10 +1741,10 @@ function TaxWizard() {
         </div>
 
         <div key={cardKey} className="wizard-body">
-          {step === 'select' && <SelectCard />}
-          {step === 'docs' && <DocsCard />}
-          {step === 'input' && <InputCard />}
-          {step === 'review' && <ReviewCard />}
+          {step === 'select' && SelectCard()}
+          {step === 'docs' && DocsCard()}
+          {step === 'input' && InputCard()}
+          {step === 'review' && ReviewCard()}
         </div>
       </div>
     </section>
