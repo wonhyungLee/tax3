@@ -1025,7 +1025,8 @@ function TaxWizard() {
           </div>
           <div className="upload-row">
             <input
-              className="file-input"
+              id="paystub-pdf"
+              className="file-input-hidden"
               type="file"
               accept="application/pdf"
               onChange={(e) => {
@@ -1034,6 +1035,12 @@ function TaxWizard() {
                 setPaystubParse({ status: 'idle', message: '', extracted: null });
               }}
             />
+            <label className="btn ghost" htmlFor="paystub-pdf">
+              {paystubFile ? 'PDF 변경' : 'PDF 선택'}
+            </label>
+            <div className={`file-display ${paystubFile ? '' : 'muted'}`} title={paystubFile?.name || ''}>
+              {paystubFile ? paystubFile.name : '선택된 파일 없음'}
+            </div>
             <button
               className="btn primary"
               type="button"
