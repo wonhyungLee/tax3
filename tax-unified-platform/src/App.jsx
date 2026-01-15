@@ -485,6 +485,9 @@ function TaxWizard() {
     credit_card_spend: '',
     debit_card_spend: '',
     market_transport_spend: '',
+    pension_savings: '',
+    irp_contribution: '',
+    isa_transfer: '',
     insurance_premiums: '',
     medical_expenses: '',
     education_k12: '',
@@ -593,6 +596,9 @@ function TaxWizard() {
       credit_card_spend: '',
       debit_card_spend: '',
       market_transport_spend: '',
+      pension_savings: '',
+      irp_contribution: '',
+      isa_transfer: '',
       insurance_premiums: '',
       medical_expenses: '',
       education_k12: '',
@@ -776,6 +782,9 @@ function TaxWizard() {
       credit_card_spend: toNumber(yearendInputs.credit_card_spend),
       debit_card_spend: toNumber(yearendInputs.debit_card_spend),
       market_transport_spend: toNumber(yearendInputs.market_transport_spend),
+      pension_contribution: toNumber(yearendInputs.pension_savings) + toNumber(yearendInputs.irp_contribution),
+      pension_with_irp: toNumber(yearendInputs.irp_contribution) > 0,
+      isa_transfer: toNumber(yearendInputs.isa_transfer),
       insurance_premiums: toNumber(yearendInputs.insurance_premiums),
       medical_expenses: toNumber(yearendInputs.medical_expenses),
       education_k12: toNumber(yearendInputs.education_k12),
@@ -1230,6 +1239,47 @@ function TaxWizard() {
               onChange={(e) => setYearendInputs((p) => ({ ...p, market_transport_spend: e.target.value === '' ? '' : Number(e.target.value) }))}
               placeholder="예: 500000"
             />
+          </div>
+        </div>
+        <div className="form-grid">
+          <div className="field">
+            <label>연금저축 납입액(원, 선택)</label>
+            <input
+              inputMode="numeric"
+              type="number"
+              value={yearendInputs.pension_savings}
+              onChange={(e) =>
+                setYearendInputs((p) => ({ ...p, pension_savings: e.target.value === '' ? '' : Number(e.target.value) }))
+              }
+              placeholder="예: 4000000"
+            />
+          </div>
+          <div className="field">
+            <label>IRP 납입액(원, 선택)</label>
+            <input
+              inputMode="numeric"
+              type="number"
+              value={yearendInputs.irp_contribution}
+              onChange={(e) =>
+                setYearendInputs((p) => ({ ...p, irp_contribution: e.target.value === '' ? '' : Number(e.target.value) }))
+              }
+              placeholder="예: 3000000"
+            />
+          </div>
+          <div className="field">
+            <label>ISA 만기자금 연금계좌 전환액(원, 선택)</label>
+            <input
+              inputMode="numeric"
+              type="number"
+              value={yearendInputs.isa_transfer}
+              onChange={(e) =>
+                setYearendInputs((p) => ({ ...p, isa_transfer: e.target.value === '' ? '' : Number(e.target.value) }))
+              }
+              placeholder="예: 0"
+            />
+            <div className="hint">
+              연금계좌 세액공제는 납입액 한도 내에서 적용됩니다(총급여 5,500만원 이하면 15%, 초과는 12%).
+            </div>
           </div>
         </div>
         <div className="form-grid">
