@@ -821,7 +821,7 @@ function TaxWizard() {
         debt: 0,
         isRealEstateRental: false,
       },
-      roundingMode: 'round',
+      roundingMode: 'floor',
       financialData: {
         netIncome,
         revenue: { general: revenue, relatedParty: 0 },
