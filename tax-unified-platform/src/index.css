@@ -178,6 +178,17 @@ a { color: inherit; text-decoration: none; }
   align-items: center;
 }
 
+.mini-stack { display: flex; flex-direction: column; gap: 12px; }
+.mini-card {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: #ffffff;
+  padding: 12px;
+  box-shadow: 0 10px 22px rgba(31,36,48,0.06);
+}
+.mini-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 10px; }
+.mini-title { font-weight: 900; letter-spacing: -0.01em; }
+
 .file-input {
   flex: 1;
   min-width: 240px;

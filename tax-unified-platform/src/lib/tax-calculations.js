@@ -1045,15 +1045,23 @@ const computeOtherIncome = (otherIncome = {}, rules) => {
     }
   }
 
+  const extraDeductions = toKRW(otherIncome.deductions);
+  const taxableBeforeExtra = taxable + imputedRentalIncome;
+  const extraDeductionApplied = Math.min(Math.max(extraDeductions, 0), Math.max(taxableBeforeExtra, 0));
+  const taxableAfterExtra = Math.max(taxableBeforeExtra - extraDeductionApplied, 0);
+
   return {
     gross: grossSum,
     deductions: expenseSum,
-    taxable: taxable + imputedRentalIncome,
+    extraDeductions,
+    taxableBeforeExtra,
+    taxable: taxableAfterExtra,
     separateTax,
     prepaid,
     rentalSeparateUsed,
     rentalSeparateExcess,
     imputedRentalIncome,
+    extraDeductionApplied,
     warnings,
   };
 }

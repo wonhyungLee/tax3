@@ -4,6 +4,7 @@ import {
   calculateCorporateTax,
   calculateFinancialTax,
   calculateYearEndTax,
+  FINANCIAL_RULES,
   formatSignedWon,
   formatWon,
 } from './lib/tax-calculations';
@@ -558,14 +559,21 @@ function TaxWizard() {
   }));
 
   const [financialInputs, setFinancialInputs] = useState(() => ({
-    financialAmount: '',
+    interestAmount: '',
+    dividendAmount: '',
     withholdingRate: 0.14,
-    grossUpEligible: true,
+    dividendGrossUpEligible: true,
     grossUpRate: 0.1,
-    source: 'domestic',
-    foreignTaxPaid: '',
+    interestSource: 'domestic',
+    dividendSource: 'domestic',
+    foreignTaxPaidInterest: '',
+    foreignTaxPaidDividend: '',
+    otherMode: 'simple',
     otherIncomeGross: '',
     otherIncomeDeductions: '',
+    otherItems: [],
+    freelancerGross: '',
+    healthInsuranceProfile: 'unknown',
     prepaidNational: '',
     prepaidLocal: '',
     taxCreditOther: '',
@@ -590,8 +598,8 @@ function TaxWizard() {
     if (calculator === 'financial') {
       return [
         { id: 'f_income', label: '금융소득' },
-        { id: 'f_other', label: '기타소득' },
-        { id: 'f_prepaid', label: '기납부/옵션' },
+        { id: 'f_other', label: '다른소득·경비' },
+        { id: 'f_prepaid', label: '기납부·리스크' },
       ];
     }
     return [];
@@ -656,14 +664,21 @@ function TaxWizard() {
       otherCredit: '',
     });
     setFinancialInputs({
-      financialAmount: '',
+      interestAmount: '',
+      dividendAmount: '',
       withholdingRate: 0.14,
-      grossUpEligible: true,
+      dividendGrossUpEligible: true,
       grossUpRate: 0.1,
-      source: 'domestic',
-      foreignTaxPaid: '',
+      interestSource: 'domestic',
+      dividendSource: 'domestic',
+      foreignTaxPaidInterest: '',
+      foreignTaxPaidDividend: '',
+      otherMode: 'simple',
       otherIncomeGross: '',
       otherIncomeDeductions: '',
+      otherItems: [],
+      freelancerGross: '',
+      healthInsuranceProfile: 'unknown',
       prepaidNational: '',
       prepaidLocal: '',
       taxCreditOther: '',
@@ -1021,21 +1036,59 @@ function TaxWizard() {
   const corporateResult = useMemo(() => calculateCorporateTax(corporatePayload), [corporatePayload]);
 
   const financialInput = useMemo(() => {
+    const withholdingRate = Number(financialInputs.withholdingRate) || 0.14;
+    const interestAmount = toNumber(financialInputs.interestAmount);
+    const dividendAmount = toNumber(financialInputs.dividendAmount);
+
+    const financialIncomes = [
+      {
+        amount: dividendAmount,
+        withholdingRate,
+        grossUpEligible: Boolean(financialInputs.dividendGrossUpEligible),
+        source: financialInputs.dividendSource || 'domestic',
+        foreignTaxPaid: toNumber(financialInputs.foreignTaxPaidDividend),
+        prepaidTax: 0,
+      },
+      {
+        amount: interestAmount,
+        withholdingRate,
+        grossUpEligible: false,
+        source: financialInputs.interestSource || 'domestic',
+        foreignTaxPaid: toNumber(financialInputs.foreignTaxPaidInterest),
+        prepaidTax: 0,
+      },
+    ].filter((item) => item.amount > 0);
+
+    const otherItems = Array.isArray(financialInputs.otherItems) ? financialInputs.otherItems : [];
+    const normalizedOtherItems = otherItems.map((item) => ({
+      type: item.type || 'business',
+      label: item.label || '',
+      amount: toNumber(item.amount),
+      expenseMode: item.expenseMode || 'standard',
+      expenseRate:
+        item.expenseMode === 'standard'
+          ? item.expenseRate === '' || item.expenseRate == null
+            ? undefined
+            : Number(item.expenseRate)
+          : undefined,
+      expenseAmount: item.expenseMode === 'actual' ? toNumber(item.expenseAmount) : undefined,
+      separate: Boolean(item.separate),
+      separateRate:
+        item.separate && !(item.separateRate === '' || item.separateRate == null) ? Number(item.separateRate) : undefined,
+      deposit: toNumber(item.deposit),
+      houseCount: item.houseCount === '' || item.houseCount == null ? undefined : Number(item.houseCount),
+      months: item.months === '' || item.months == null ? undefined : Number(item.months),
+      prepaidTax: 0,
+    }));
+
+    const otherMode = financialInputs.otherMode || 'simple';
+
     return {
-      financialIncomes: [
-        {
-          amount: toNumber(financialInputs.financialAmount),
-          withholdingRate: Number(financialInputs.withholdingRate) || 0.14,
-          grossUpEligible: Boolean(financialInputs.grossUpEligible),
-          source: financialInputs.source || 'domestic',
-          foreignTaxPaid: toNumber(financialInputs.foreignTaxPaid),
-          prepaidTax: 0,
-        },
-      ],
+      financialIncomes,
       otherIncome: {
-        gross: toNumber(financialInputs.otherIncomeGross),
+        gross: otherMode === 'simple' ? toNumber(financialInputs.otherIncomeGross) : 0,
         deductions: toNumber(financialInputs.otherIncomeDeductions),
-        items: [],
+        items: otherMode === 'items' ? normalizedOtherItems : [],
       },
       taxCredits: { other: toNumber(financialInputs.taxCreditOther) },
       prepaid: { national: toNumber(financialInputs.prepaidNational), local: toNumber(financialInputs.prepaidLocal) },
@@ -1068,10 +1121,12 @@ function TaxWizard() {
     }
     if (calculator === 'financial') {
       const methodLabel = financialResult.chosenMethod === 'comprehensive' ? '종합과세' : '분리과세';
+      const payable = financialResult.taxes.totalPayable;
+      const payableLabel = payable >= 0 ? '추가 납부' : '환급 예상';
       return [
         { label: '비교과세', value: financialResult.comparisonNote },
         { label: '선택 방식', value: methodLabel },
-        { label: '총 납부세액', value: formatWon(Math.abs(financialResult.taxes.totalPayable)) },
+        { label: payableLabel, value: formatWon(Math.abs(payable)) },
       ];
     }
     return [];
@@ -1814,136 +1869,581 @@ function TaxWizard() {
       </div>
     );
 
-    const FinancialIncome = () => (
-      <div className="form-grid">
-        <div className="field">
-          <label>금융소득 총액(이자/배당)</label>
-          <input
-            inputMode="numeric"
-            type="number"
-            value={financialInputs.financialAmount}
-            onChange={(e) => setFinancialInputs((p) => ({ ...p, financialAmount: e.target.value === '' ? '' : Number(e.target.value) }))}
-            placeholder="예: 24000000"
-          />
-        </div>
-        <div className="field">
-          <label>원천세율</label>
-          <input
-            inputMode="decimal"
-            type="number"
-            step="0.01"
-            value={financialInputs.withholdingRate}
-            onChange={(e) => setFinancialInputs((p) => ({ ...p, withholdingRate: Number(e.target.value) }))}
-          />
-          <div className="hint">0.14(14%)가 일반적입니다.</div>
-        </div>
-        <div className="field">
-          <label>Gross-up 비율</label>
-          <input
-            inputMode="decimal"
-            type="number"
-            step="0.01"
-            value={financialInputs.grossUpRate}
-            onChange={(e) => setFinancialInputs((p) => ({ ...p, grossUpRate: Number(e.target.value) }))}
-          />
-        </div>
-        <label className="check">
-          <input
-            type="checkbox"
-            checked={financialInputs.grossUpEligible}
-            onChange={(e) => setFinancialInputs((p) => ({ ...p, grossUpEligible: e.target.checked }))}
-          />
-          <span>Gross-up 대상 배당 포함</span>
-        </label>
-      </div>
-    );
+    const makeOtherIncomeItem = (type = 'business') => {
+      const id = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+      const isRental = type === 'rental';
+      return {
+        id,
+        type,
+        label: isRental ? '임대' : '프리랜서/사업',
+        amount: '',
+        expenseMode: 'standard',
+        expenseRate: isRental ? 50 : '',
+        expenseAmount: '',
+        separate: isRental,
+        separateRate: isRental ? 14 : '',
+        deposit: '',
+        houseCount: '',
+        months: 12,
+      };
+    };
 
-    const FinancialOther = () => (
-      <div className="form-grid">
-        <div className="field">
-          <label>다른 종합소득금액(금융 제외)</label>
-          <input
-            inputMode="numeric"
-            type="number"
-            value={financialInputs.otherIncomeGross}
-            onChange={(e) => setFinancialInputs((p) => ({ ...p, otherIncomeGross: e.target.value === '' ? '' : Number(e.target.value) }))}
-            placeholder="예: 40000000"
-          />
-        </div>
-        <div className="field">
-          <label>소득공제 합계(선택)</label>
-          <input
-            inputMode="numeric"
-            type="number"
-            value={financialInputs.otherIncomeDeductions}
-            onChange={(e) =>
-              setFinancialInputs((p) => ({ ...p, otherIncomeDeductions: e.target.value === '' ? '' : Number(e.target.value) }))
-            }
-            placeholder="예: 10000000"
-          />
-        </div>
-      </div>
-    );
+    const normalizeRateInput = (raw) => {
+      const num = Number(raw);
+      if (!Number.isFinite(num) || num <= 0) return 0;
+      return num > 1 ? num / 100 : num;
+    };
 
-    const FinancialPrepaid = () => (
-      <>
-        <div className="form-grid">
-          <div className="field">
-            <label>해외소득 여부</label>
-            <select
-              value={financialInputs.source}
-              onChange={(e) => setFinancialInputs((p) => ({ ...p, source: e.target.value }))}
-            >
-              <option value="domestic">국내</option>
-              <option value="foreign">해외</option>
-            </select>
+    const calcOtherExpense = (item) => {
+      const gross = toNumber(item.amount);
+      if (!gross) return 0;
+      const mode = item.expenseMode || 'standard';
+      if (mode === 'actual') return Math.min(toNumber(item.expenseAmount), gross);
+      const isRental = (item.type || '').toLowerCase() === 'rental';
+      const fallback = isRental ? 0.5 : 0;
+      const rate =
+        item.expenseRate === '' || item.expenseRate == null ? fallback : normalizeRateInput(item.expenseRate);
+      return Math.min(Math.floor(gross * rate), gross);
+    };
+
+    const calcOtherTaxable = (item) => {
+      const gross = toNumber(item.amount);
+      const expense = calcOtherExpense(item);
+      return Math.max(gross - expense, 0);
+    };
+
+    const FinancialIncome = () => {
+      const interest = toNumber(financialInputs.interestAmount);
+      const dividend = toNumber(financialInputs.dividendAmount);
+      const total = interest + dividend;
+      const threshold = 20_000_000;
+
+      return (
+        <>
+          <div className="form-grid">
+            <div className="field">
+              <label>이자소득(원)</label>
+              <input
+                inputMode="numeric"
+                type="number"
+                value={financialInputs.interestAmount}
+                onChange={(e) =>
+                  setFinancialInputs((p) => ({ ...p, interestAmount: e.target.value === '' ? '' : Number(e.target.value) }))
+                }
+                placeholder="예: 8000000"
+              />
+            </div>
+            <div className="field">
+              <label>배당소득(원)</label>
+              <input
+                inputMode="numeric"
+                type="number"
+                value={financialInputs.dividendAmount}
+                onChange={(e) =>
+                  setFinancialInputs((p) => ({ ...p, dividendAmount: e.target.value === '' ? '' : Number(e.target.value) }))
+                }
+                placeholder="예: 16000000"
+              />
+              <label className="check" style={{ marginTop: 10 }}>
+                <input
+                  type="checkbox"
+                  checked={financialInputs.dividendGrossUpEligible}
+                  onChange={(e) => setFinancialInputs((p) => ({ ...p, dividendGrossUpEligible: e.target.checked }))}
+                />
+                <span>Gross-up 대상 배당 포함</span>
+              </label>
+            </div>
+            <div className="field">
+              <label>원천세율(국세)</label>
+              <input
+                inputMode="decimal"
+                type="number"
+                step="0.01"
+                value={financialInputs.withholdingRate}
+                onChange={(e) => setFinancialInputs((p) => ({ ...p, withholdingRate: Number(e.target.value) }))}
+              />
+              <div className="hint">국내 이자/배당은 보통 0.14(14%)입니다. 지방세(10%)는 별도 계산돼요.</div>
+            </div>
+            <div className="field">
+              <label>Gross-up 비율</label>
+              <input
+                inputMode="decimal"
+                type="number"
+                step="0.01"
+                value={financialInputs.grossUpRate}
+                onChange={(e) => setFinancialInputs((p) => ({ ...p, grossUpRate: Number(e.target.value) }))}
+              />
+              <div className="hint">배당이 종합과세로 넘어갈 때(2천만원 초과) 참고됩니다.</div>
+            </div>
+            <div className="field">
+              <label>이자소득 출처</label>
+              <select
+                value={financialInputs.interestSource}
+                onChange={(e) => setFinancialInputs((p) => ({ ...p, interestSource: e.target.value }))}
+              >
+                <option value="domestic">국내</option>
+                <option value="foreign">해외</option>
+              </select>
+            </div>
+            <div className="field">
+              <label>배당소득 출처</label>
+              <select
+                value={financialInputs.dividendSource}
+                onChange={(e) => setFinancialInputs((p) => ({ ...p, dividendSource: e.target.value }))}
+              >
+                <option value="domestic">국내</option>
+                <option value="foreign">해외</option>
+              </select>
+            </div>
+            {financialInputs.interestSource === 'foreign' ? (
+              <div className="field">
+                <label>외국납부세액(이자, 선택)</label>
+                <input
+                  inputMode="numeric"
+                  type="number"
+                  value={financialInputs.foreignTaxPaidInterest}
+                  onChange={(e) =>
+                    setFinancialInputs((p) => ({
+                      ...p,
+                      foreignTaxPaidInterest: e.target.value === '' ? '' : Number(e.target.value),
+                    }))
+                  }
+                  placeholder="예: 500000"
+                />
+              </div>
+            ) : null}
+            {financialInputs.dividendSource === 'foreign' ? (
+              <div className="field">
+                <label>외국납부세액(배당, 선택)</label>
+                <input
+                  inputMode="numeric"
+                  type="number"
+                  value={financialInputs.foreignTaxPaidDividend}
+                  onChange={(e) =>
+                    setFinancialInputs((p) => ({
+                      ...p,
+                      foreignTaxPaidDividend: e.target.value === '' ? '' : Number(e.target.value),
+                    }))
+                  }
+                  placeholder="예: 500000"
+                />
+              </div>
+            ) : null}
           </div>
-          <div className="field">
-            <label>외국납부세액(해외인 경우)</label>
-            <input
-              inputMode="numeric"
-              type="number"
-              value={financialInputs.foreignTaxPaid}
-              onChange={(e) => setFinancialInputs((p) => ({ ...p, foreignTaxPaid: e.target.value === '' ? '' : Number(e.target.value) }))}
-              placeholder="예: 500000"
-            />
+          <div className="callout">
+            <div className="muted">
+              금융소득 합계 {formatWon(total)} · 2천만원 기준{' '}
+              {total > threshold ? `초과(${formatWon(total - threshold)})` : '이하'} · 비교과세 메모: {financialResult.comparisonNote}
+            </div>
           </div>
-          <div className="field">
-            <label>기납부 국세(선택)</label>
-            <input
-              inputMode="numeric"
-              type="number"
-              value={financialInputs.prepaidNational}
-              onChange={(e) => setFinancialInputs((p) => ({ ...p, prepaidNational: e.target.value === '' ? '' : Number(e.target.value) }))}
-              placeholder="예: 0"
-            />
+        </>
+      );
+    };
+
+    const FinancialOther = () => {
+      const otherMode = financialInputs.otherMode || 'simple';
+      const items = Array.isArray(financialInputs.otherItems) ? financialInputs.otherItems : [];
+
+      const ensureItems = () => {
+        if (items.length > 0) return;
+        setFinancialInputs((p) => ({ ...p, otherItems: [makeOtherIncomeItem('business')] }));
+      };
+
+      const updateItem = (id, patch) => {
+        setFinancialInputs((prev) => ({
+          ...prev,
+          otherItems: (prev.otherItems || []).map((it) => (it.id === id ? { ...it, ...patch } : it)),
+        }));
+      };
+
+      const removeItem = (id) => {
+        setFinancialInputs((prev) => ({ ...prev, otherItems: (prev.otherItems || []).filter((it) => it.id !== id) }));
+      };
+
+      const addItem = (type) => {
+        setFinancialInputs((prev) => ({ ...prev, otherItems: [...(prev.otherItems || []), makeOtherIncomeItem(type)] }));
+      };
+
+      const grossSum = otherMode === 'items' ? items.reduce((sum, it) => sum + toNumber(it.amount), 0) : toNumber(financialInputs.otherIncomeGross);
+      const taxableSum =
+        otherMode === 'items' ? items.reduce((sum, it) => sum + calcOtherTaxable(it), 0) : Math.max(grossSum - toNumber(financialInputs.otherIncomeDeductions), 0);
+
+      return (
+        <>
+          <div className="form-grid">
+            <div className="field">
+              <label>입력 방식</label>
+              <select
+                value={otherMode}
+                onChange={(e) => {
+                  const next = e.target.value;
+                  setFinancialInputs((p) => ({ ...p, otherMode: next }));
+                  if (next === 'items') ensureItems();
+                }}
+              >
+                <option value="simple">간단(합계만 입력)</option>
+                <option value="items">상세(사업/임대·경비)</option>
+              </select>
+              <div className="hint">“경비 증빙/경비율” 고민이 있으면 ‘상세’를 추천합니다.</div>
+            </div>
+            {otherMode === 'simple' ? (
+              <div className="field">
+                <label>다른 종합소득(금융 제외, 원)</label>
+                <input
+                  inputMode="numeric"
+                  type="number"
+                  value={financialInputs.otherIncomeGross}
+                  onChange={(e) =>
+                    setFinancialInputs((p) => ({ ...p, otherIncomeGross: e.target.value === '' ? '' : Number(e.target.value) }))
+                  }
+                  placeholder="예: 40000000"
+                />
+                <div className="hint">근로/사업/임대 등 금융을 제외한 합계(대략)를 입력하세요.</div>
+              </div>
+            ) : null}
+            <div className="field">
+              <label>{otherMode === 'items' ? '추가 공제(선택)' : '공제/경비(선택)'}</label>
+              <input
+                inputMode="numeric"
+                type="number"
+                value={financialInputs.otherIncomeDeductions}
+                onChange={(e) =>
+                  setFinancialInputs((p) => ({
+                    ...p,
+                    otherIncomeDeductions: e.target.value === '' ? '' : Number(e.target.value),
+                  }))
+                }
+                placeholder="예: 10000000"
+              />
+              <div className="hint">
+                {otherMode === 'items'
+                  ? '상세 모드에서는 (수입-필요경비) 계산 후, 여기 입력한 공제를 한 번 더 차감합니다.'
+                  : '간단 모드에서는 “다른 종합소득 - 공제/경비”로 과세표준을 대략 추정합니다.'}
+              </div>
+            </div>
           </div>
-          <div className="field">
-            <label>기납부 지방세(선택)</label>
-            <input
-              inputMode="numeric"
-              type="number"
-              value={financialInputs.prepaidLocal}
-              onChange={(e) => setFinancialInputs((p) => ({ ...p, prepaidLocal: e.target.value === '' ? '' : Number(e.target.value) }))}
-              placeholder="예: 0"
-            />
+
+          {otherMode === 'items' ? (
+            <div className="mini-stack" style={{ marginTop: 12 }}>
+              {items.length === 0 ? (
+                <div className="muted">항목을 추가해 주세요.</div>
+              ) : (
+                items.map((item, idx) => {
+                  const taxable = calcOtherTaxable(item);
+                  const expense = calcOtherExpense(item);
+                  const isRental = (item.type || '').toLowerCase() === 'rental';
+                  return (
+                    <div key={item.id} className="mini-card">
+                      <div className="mini-head">
+                        <div className="mini-title">
+                          {idx + 1}. {item.label || (isRental ? '임대' : '프리랜서/사업')}
+                        </div>
+                        <button type="button" className="btn ghost sm" onClick={() => removeItem(item.id)}>
+                          삭제
+                        </button>
+                      </div>
+                      <div className="form-grid">
+                        <div className="field">
+                          <label>유형</label>
+                          <select
+                            value={item.type}
+                            onChange={(e) => {
+                              const nextType = e.target.value;
+                              const patch = { type: nextType };
+                              if (nextType === 'rental') {
+                                patch.label = item.label || '임대';
+                                patch.expenseRate = item.expenseRate === '' ? 50 : item.expenseRate;
+                                patch.separate = true;
+                                patch.separateRate = item.separateRate === '' ? 14 : item.separateRate;
+                              }
+                              updateItem(item.id, patch);
+                            }}
+                          >
+                            <option value="business">사업/프리랜서</option>
+                            <option value="rental">임대</option>
+                          </select>
+                        </div>
+                        <div className="field">
+                          <label>수입금액(원)</label>
+                          <input
+                            inputMode="numeric"
+                            type="number"
+                            value={item.amount}
+                            onChange={(e) => updateItem(item.id, { amount: e.target.value === '' ? '' : Number(e.target.value) })}
+                            placeholder="예: 30000000"
+                          />
+                        </div>
+                        <div className="field">
+                          <label>경비 방식</label>
+                          <select
+                            value={item.expenseMode}
+                            onChange={(e) => updateItem(item.id, { expenseMode: e.target.value })}
+                          >
+                            <option value="standard">경비율(추정)</option>
+                            <option value="actual">실제경비</option>
+                          </select>
+                        </div>
+                        {item.expenseMode === 'actual' ? (
+                          <div className="field">
+                            <label>실제경비(원)</label>
+                            <input
+                              inputMode="numeric"
+                              type="number"
+                              value={item.expenseAmount}
+                              onChange={(e) =>
+                                updateItem(item.id, { expenseAmount: e.target.value === '' ? '' : Number(e.target.value) })
+                              }
+                              placeholder="예: 12000000"
+                            />
+                          </div>
+                        ) : (
+                          <div className="field">
+                            <label>경비율(%)</label>
+                            <input
+                              inputMode="decimal"
+                              type="number"
+                              step="0.1"
+                              value={item.expenseRate}
+                              onChange={(e) => updateItem(item.id, { expenseRate: e.target.value === '' ? '' : Number(e.target.value) })}
+                              placeholder={isRental ? '기본 50' : '예: 60'}
+                            />
+                            <div className="hint">예: 60(=60%), 0.6도 가능</div>
+                          </div>
+                        )}
+                        {isRental ? (
+                          <>
+                            <div className="field">
+                              <label className="inline">
+                                <input
+                                  type="checkbox"
+                                  checked={Boolean(item.separate)}
+                                  onChange={(e) => updateItem(item.id, { separate: e.target.checked })}
+                                />
+                                임대 분리과세(연 2천만원 한도)
+                              </label>
+                              <div className="hint">초과분은 종합과세로 자동 전환됩니다.</div>
+                            </div>
+                            {item.separate ? (
+                              <div className="field">
+                                <label>분리과세 세율(국세)</label>
+                                <input
+                                  inputMode="decimal"
+                                  type="number"
+                                  step="0.01"
+                                  value={item.separateRate}
+                                  onChange={(e) =>
+                                    updateItem(item.id, { separateRate: e.target.value === '' ? '' : Number(e.target.value) })
+                                  }
+                                  placeholder="예: 0.14"
+                                />
+                              </div>
+                            ) : null}
+                            <div className="field">
+                              <label>보증금 합계(선택)</label>
+                              <input
+                                inputMode="numeric"
+                                type="number"
+                                value={item.deposit}
+                                onChange={(e) => updateItem(item.id, { deposit: e.target.value === '' ? '' : Number(e.target.value) })}
+                                placeholder="예: 400000000"
+                              />
+                              <div className="hint">2주택 이상 등 조건에 따라 간주임대료가 발생할 수 있어요.</div>
+                            </div>
+                            <div className="field">
+                              <label>주택 수(선택)</label>
+                              <input
+                                inputMode="numeric"
+                                type="number"
+                                value={item.houseCount}
+                                onChange={(e) =>
+                                  updateItem(item.id, { houseCount: e.target.value === '' ? '' : Number(e.target.value) })
+                                }
+                                placeholder="예: 2"
+                              />
+                            </div>
+                          </>
+                        ) : null}
+                      </div>
+                      <div className="hint">
+                        필요경비 {formatWon(expense)} · 과세 대상(수입-경비) {formatWon(taxable)}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+              <div className="actions" style={{ marginTop: 6 }}>
+                <button type="button" className="btn ghost sm" onClick={() => addItem('business')}>
+                  + 사업/프리랜서 추가
+                </button>
+                <button type="button" className="btn ghost sm" onClick={() => addItem('rental')}>
+                  + 임대 추가
+                </button>
+              </div>
+            </div>
+          ) : null}
+
+          <div className="callout" style={{ marginTop: 12 }}>
+            <div className="muted">
+              다른 소득(대략) {formatWon(grossSum)} · 과세 대상(대략) {formatWon(taxableSum)}
+            </div>
           </div>
-          <div className="field">
-            <label>기타 세액공제(선택)</label>
-            <input
-              inputMode="numeric"
-              type="number"
-              value={financialInputs.taxCreditOther}
-              onChange={(e) => setFinancialInputs((p) => ({ ...p, taxCreditOther: e.target.value === '' ? '' : Number(e.target.value) }))}
-              placeholder="예: 0"
-            />
+        </>
+      );
+    };
+
+    const FinancialPrepaid = () => {
+      const otherMode = financialInputs.otherMode || 'simple';
+      const otherItems = Array.isArray(financialInputs.otherItems) ? financialInputs.otherItems : [];
+      const otherGross =
+        otherMode === 'items'
+          ? otherItems.reduce((sum, it) => sum + toNumber(it.amount), 0)
+          : toNumber(financialInputs.otherIncomeGross);
+
+      const extraIncomeGross = financialResult.financialTotal + otherGross;
+      const comprehensiveBase = financialResult.progressive?.comprehensive?.taxable ?? 0;
+      const bracketUsed = financialResult.progressive?.comprehensive?.bracketUsed ?? null;
+      const progressiveRates = FINANCIAL_RULES.progressiveRates || [];
+      const bracketIndex = bracketUsed
+        ? progressiveRates.findIndex(
+            (b) =>
+              b.threshold === bracketUsed.threshold &&
+              b.rate === bracketUsed.rate &&
+              b.deduction === bracketUsed.deduction,
+          )
+        : -1;
+      const nextBracket = bracketIndex >= 0 ? progressiveRates[bracketIndex + 1] : null;
+
+      const bracketUpper = bracketUsed?.threshold ?? null;
+      const remainingToUpper = bracketUpper == null ? null : Math.max(bracketUpper - comprehensiveBase, 0);
+
+      const calcProgressiveTax = (taxable) => {
+        const base = Math.max(Number(taxable) || 0, 0);
+        if (!progressiveRates.length) return 0;
+        const bracket =
+          progressiveRates.find((b) => b.threshold == null || base <= b.threshold) || progressiveRates[progressiveRates.length - 1];
+        const tax = base * bracket.rate - bracket.deduction;
+        return Math.floor(tax);
+      };
+      const inc1m = calcProgressiveTax(comprehensiveBase + 1_000_000) - calcProgressiveTax(comprehensiveBase);
+
+      const healthProfile = financialInputs.healthInsuranceProfile || 'unknown';
+      const hiThreshold = 20_000_000;
+      const hiRisk =
+        healthProfile === 'dependent' && extraIncomeGross > hiThreshold
+          ? '피부양자는 소득 기준에 따라 자격이 박탈되어 지역가입자로 전환될 수 있어요.'
+          : healthProfile === 'employee' && extraIncomeGross > hiThreshold
+            ? '직장가입자는 추가 소득이 커지면 “소득월액보험료”가 추가될 수 있어요.'
+            : healthProfile === 'local'
+              ? '지역가입자는 소득/재산 등에 따라 건보료가 조정될 수 있어요.'
+              : null;
+
+      return (
+        <>
+          <div className="form-grid">
+            <div className="field">
+              <label>기납부 국세(선택)</label>
+              <input
+                inputMode="numeric"
+                type="number"
+                value={financialInputs.prepaidNational}
+                onChange={(e) =>
+                  setFinancialInputs((p) => ({ ...p, prepaidNational: e.target.value === '' ? '' : Number(e.target.value) }))
+                }
+                placeholder="예: 0"
+              />
+            </div>
+            <div className="field">
+              <label>기납부 지방세(선택)</label>
+              <input
+                inputMode="numeric"
+                type="number"
+                value={financialInputs.prepaidLocal}
+                onChange={(e) => setFinancialInputs((p) => ({ ...p, prepaidLocal: e.target.value === '' ? '' : Number(e.target.value) }))}
+                placeholder="예: 0"
+              />
+            </div>
+            <div className="field">
+              <label>기타 세액공제(선택)</label>
+              <input
+                inputMode="numeric"
+                type="number"
+                value={financialInputs.taxCreditOther}
+                onChange={(e) =>
+                  setFinancialInputs((p) => ({ ...p, taxCreditOther: e.target.value === '' ? '' : Number(e.target.value) }))
+                }
+                placeholder="예: 0"
+              />
+            </div>
+            <div className="field">
+              <label>건강보험 가입 형태(참고)</label>
+              <select
+                value={financialInputs.healthInsuranceProfile}
+                onChange={(e) => setFinancialInputs((p) => ({ ...p, healthInsuranceProfile: e.target.value }))}
+              >
+                <option value="unknown">선택 안 함</option>
+                <option value="dependent">피부양자</option>
+                <option value="employee">직장가입자(투잡/부업)</option>
+                <option value="local">지역가입자/기타</option>
+              </select>
+              <div className="hint">건보료는 규정이 복잡해 “리스크 경고” 중심으로만 안내합니다.</div>
+            </div>
           </div>
-        </div>
-        <div className="callout">
-          <div className="muted">{financialResult.comparisonNote}</div>
-        </div>
-      </>
-    );
+
+          <div className="upload-box" style={{ marginTop: 12 }}>
+            <div className="upload-head">
+              <div>
+                <div className="upload-title">프리랜서 3.3% 원천징수 자동입력(선택)</div>
+                <div className="hint">입력한 수입금액 기준으로 국세 3% + 지방세 0.3%를 기납부에 더합니다.</div>
+              </div>
+              <span className="pill">helper</span>
+            </div>
+            <div className="upload-row">
+              <input
+                className="file-display"
+                inputMode="numeric"
+                type="number"
+                value={financialInputs.freelancerGross}
+                onChange={(e) =>
+                  setFinancialInputs((p) => ({ ...p, freelancerGross: e.target.value === '' ? '' : Number(e.target.value) }))
+                }
+                placeholder="3.3% 원천징수 대상 수입(원)"
+              />
+              <button
+                type="button"
+                className="btn primary sm"
+                onClick={() => {
+                  const base = toNumber(financialInputs.freelancerGross);
+                  if (!base) return;
+                  const addNational = Math.floor(base * 0.03);
+                  const addLocal = Math.floor(base * 0.003);
+                  setFinancialInputs((prev) => ({
+                    ...prev,
+                    prepaidNational: toNumber(prev.prepaidNational) + addNational,
+                    prepaidLocal: toNumber(prev.prepaidLocal) + addLocal,
+                  }));
+                }}
+              >
+                기납부에 반영
+              </button>
+            </div>
+          </div>
+
+          <div className="callout">
+            <div className="muted" style={{ whiteSpace: 'pre-line', lineHeight: 1.5 }}>
+              종합 과세표준(추정) {formatWon(comprehensiveBase)} · 현재 구간 {Math.round((bracketUsed?.rate ?? 0) * 100)}%
+              {bracketUpper == null ? '' : ` (상한 ${formatWon(bracketUpper)}까지 ${formatWon(remainingToUpper)} 남음)`}
+              {nextBracket ? ` · 다음 구간 ${Math.round(nextBracket.rate * 100)}%` : ''}
+              {'\n'}
+              과세표준 +100만원 시 국세(누진) 약 {formatWon(Math.max(inc1m, 0))} 증가(대략)
+              {'\n'}
+              {hiRisk ? `건보료 리스크: ${hiRisk}` : '건보료 리스크: 가입 형태를 선택하면 경고를 표시합니다.'}
+              {'\n'}
+              추가 소득(대략) {formatWon(extraIncomeGross)} (금융 {formatWon(financialResult.financialTotal)} + 기타 {formatWon(otherGross)})
+            </div>
+          </div>
+        </>
+      );
+    };
 
     const renderStage = () => {
       if (calculator === 'yearend') {
@@ -2053,9 +2553,17 @@ function TaxWizard() {
               <div className="result-body">
                 {financial.comparisonNote}
                 {'\n'}
-                금융소득 {formatWon(financial.financialTotal)}
+                금융소득 합계 {formatWon(financial.financialTotal)} (2천만원 초과분 {formatWon(financial.excessFinancial)})
                 {'\n'}
-                총 납부세액 {formatWon(Math.abs(financial.taxes.totalPayable))}
+                종합 계산(국세) {formatWon(financial.taxes.methodATax)} / 분리 계산(국세) {formatWon(financial.taxes.methodBTax)}
+                {'\n'}
+                종합 과세표준(추정) {formatWon(financial.progressive.comprehensive.taxable)}
+                {'\n'}
+                국세 {formatWon(financial.taxes.nationalTax)} / 지방세 {formatWon(financial.taxes.localIncomeTax)}
+                {'\n'}
+                기납부 {formatWon(financial.prepaid.prepaidNational + financial.prepaid.prepaidLocal + financial.prepaid.prepaidOther)}
+                {'\n'}
+                {financial.taxes.totalPayable >= 0 ? '추가 납부' : '환급 예상'} {formatWon(Math.abs(financial.taxes.totalPayable))}
               </div>
             </div>
           )}
