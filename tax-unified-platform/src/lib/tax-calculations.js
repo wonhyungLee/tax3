@@ -970,11 +970,10 @@ const computeOtherIncome = (otherIncome = {}, rules) => {
   const items = Array.isArray(otherIncome.items) ? otherIncome.items : [];
   if (!items.length) {
     const gross = toKRW(otherIncome.gross);
-    const deductions = toKRW(otherIncome.deductions);
     return {
       gross,
-      deductions,
-      taxable: Math.max(gross - deductions, 0),
+      deductions: 0,
+      taxable: Math.max(gross, 0),
       separateTax: 0,
       prepaid: 0,
       warnings,
@@ -1045,23 +1044,15 @@ const computeOtherIncome = (otherIncome = {}, rules) => {
     }
   }
 
-  const extraDeductions = toKRW(otherIncome.deductions);
-  const taxableBeforeExtra = taxable + imputedRentalIncome;
-  const extraDeductionApplied = Math.min(Math.max(extraDeductions, 0), Math.max(taxableBeforeExtra, 0));
-  const taxableAfterExtra = Math.max(taxableBeforeExtra - extraDeductionApplied, 0);
-
   return {
     gross: grossSum,
     deductions: expenseSum,
-    extraDeductions,
-    taxableBeforeExtra,
-    taxable: taxableAfterExtra,
+    taxable: taxable + imputedRentalIncome,
     separateTax,
     prepaid,
     rentalSeparateUsed,
     rentalSeparateExcess,
     imputedRentalIncome,
-    extraDeductionApplied,
     warnings,
   };
 }
@@ -1126,6 +1117,7 @@ export const calculateFinancialTax = (input = {}) => {
   const financialIncomes = Array.isArray(input.financialIncomes) ? input.financialIncomes : [];
   const otherIncomeResult = computeOtherIncome(input.otherIncome, rules);
   warnings.push(...otherIncomeResult.warnings);
+  const otherIncomeDeduction = toKRW(input.otherIncome?.deductions);
   const otherTaxableBase = otherIncomeResult.taxable;
 
   const withAlloc = allocateFinancialThreshold(financialIncomes, threshold);
@@ -1161,9 +1153,13 @@ export const calculateFinancialTax = (input = {}) => {
   }
 
   const grossUpAmount = toKRW(grossUpBase * grossUpRate);
-  const comprehensiveTaxableBase = Math.max(otherTaxableBase + excessFinancial + grossUpAmount, 0);
+  const comprehensiveTaxableBaseBeforeDeductions = Math.max(otherTaxableBase + excessFinancial + grossUpAmount, 0);
+  const otherTaxableBaseBeforeDeductions = Math.max(otherTaxableBase, 0);
+  const comprehensiveTaxableBase = Math.max(comprehensiveTaxableBaseBeforeDeductions - otherIncomeDeduction, 0);
+  const otherTaxableBaseAfterDeductions = Math.max(otherTaxableBaseBeforeDeductions - otherIncomeDeduction, 0);
+
   const progressiveComprehensive = computeProgressiveTaxFinancial(comprehensiveTaxableBase, progressiveRates, roundingTax);
-  const progressiveOtherOnly = computeProgressiveTaxFinancial(otherTaxableBase, progressiveRates, roundingTax);
+  const progressiveOtherOnly = computeProgressiveTaxFinancial(otherTaxableBaseAfterDeductions, progressiveRates, roundingTax);
 
   const separateOtherTax = otherIncomeResult.separateTax;
 
@@ -1223,12 +1219,18 @@ export const calculateFinancialTax = (input = {}) => {
       thresholdTax,
       separateFinancialTax,
       separateOtherTax,
+      otherTaxableBase,
+      otherIncomeDeduction,
+      comprehensiveTaxableBaseBeforeDeductions,
+      comprehensiveTaxableBaseAfterDeductions: comprehensiveTaxableBase,
+      otherTaxableBaseBeforeDeductions,
+      otherTaxableBaseAfterDeductions,
     },
     {
       step: 'Progressive',
       comprehensiveTaxableBase,
       progressiveComprehensive: progressiveComprehensive.tax,
-      otherTaxableBase,
+      otherTaxableBase: otherTaxableBaseAfterDeductions,
       progressiveOtherOnly: progressiveOtherOnly.tax,
     },
     {
@@ -1256,6 +1258,13 @@ export const calculateFinancialTax = (input = {}) => {
     thresholdUsed,
     excessFinancial,
     grossUpAmount,
+    incomeDeductions: otherIncomeDeduction,
+    bases: {
+      comprehensiveBeforeDeductions: comprehensiveTaxableBaseBeforeDeductions,
+      comprehensiveAfterDeductions: comprehensiveTaxableBase,
+      otherBeforeDeductions: otherTaxableBaseBeforeDeductions,
+      otherAfterDeductions: otherTaxableBaseAfterDeductions,
+    },
     progressive: {
       comprehensive: progressiveComprehensive,
       otherOnly: progressiveOtherOnly,

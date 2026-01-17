@@ -570,6 +570,7 @@ function TaxWizard() {
     foreignTaxPaidDividend: '',
     otherMode: 'simple',
     otherIncomeGross: '',
+    personalDeductionPeople: 1,
     otherIncomeDeductions: '',
     otherItems: [],
     freelancerGross: '',
@@ -675,6 +676,7 @@ function TaxWizard() {
       foreignTaxPaidDividend: '',
       otherMode: 'simple',
       otherIncomeGross: '',
+      personalDeductionPeople: 1,
       otherIncomeDeductions: '',
       otherItems: [],
       freelancerGross: '',
@@ -1040,6 +1042,11 @@ function TaxWizard() {
     const interestAmount = toNumber(financialInputs.interestAmount);
     const dividendAmount = toNumber(financialInputs.dividendAmount);
 
+    const people = Math.max(1, Math.min(10, parseInt(financialInputs.personalDeductionPeople, 10) || 1));
+    const personalDeduction = people * 1_500_000;
+    const extraIncomeDeductions = toNumber(financialInputs.otherIncomeDeductions);
+    const incomeDeductionsTotal = personalDeduction + extraIncomeDeductions;
+
     const financialIncomes = [
       {
         amount: dividendAmount,
@@ -1087,7 +1094,7 @@ function TaxWizard() {
       financialIncomes,
       otherIncome: {
         gross: otherMode === 'simple' ? toNumber(financialInputs.otherIncomeGross) : 0,
-        deductions: toNumber(financialInputs.otherIncomeDeductions),
+        deductions: incomeDeductionsTotal,
         items: otherMode === 'items' ? normalizedOtherItems : [],
       },
       taxCredits: { other: toNumber(financialInputs.taxCreditOther) },
@@ -2043,6 +2050,10 @@ function TaxWizard() {
     const FinancialOther = () => {
       const otherMode = financialInputs.otherMode || 'simple';
       const items = Array.isArray(financialInputs.otherItems) ? financialInputs.otherItems : [];
+      const people = Math.max(1, Math.min(10, parseInt(financialInputs.personalDeductionPeople, 10) || 1));
+      const personalDeduction = people * 1_500_000;
+      const extraIncomeDeductions = toNumber(financialInputs.otherIncomeDeductions);
+      const incomeDeductionsTotal = personalDeduction + extraIncomeDeductions;
 
       const ensureItems = () => {
         if (items.length > 0) return;
@@ -2064,9 +2075,9 @@ function TaxWizard() {
         setFinancialInputs((prev) => ({ ...prev, otherItems: [...(prev.otherItems || []), makeOtherIncomeItem(type)] }));
       };
 
-      const grossSum = otherMode === 'items' ? items.reduce((sum, it) => sum + toNumber(it.amount), 0) : toNumber(financialInputs.otherIncomeGross);
-      const taxableSum =
-        otherMode === 'items' ? items.reduce((sum, it) => sum + calcOtherTaxable(it), 0) : Math.max(grossSum - toNumber(financialInputs.otherIncomeDeductions), 0);
+      const otherIncomeBeforeDeductions =
+        otherMode === 'items' ? items.reduce((sum, it) => sum + calcOtherTaxable(it), 0) : toNumber(financialInputs.otherIncomeGross);
+      const otherAfterDeductions = Math.max(otherIncomeBeforeDeductions - incomeDeductionsTotal, 0);
 
       return (
         <>
@@ -2088,7 +2099,7 @@ function TaxWizard() {
             </div>
             {otherMode === 'simple' ? (
               <div className="field">
-                <label>다른 종합소득(금융 제외, 원)</label>
+                <label>다른 종합소득(금융 제외, 소득금액 기준)</label>
                 <input
                   inputMode="numeric"
                   type="number"
@@ -2098,11 +2109,25 @@ function TaxWizard() {
                   }
                   placeholder="예: 40000000"
                 />
-                <div className="hint">근로/사업/임대 등 금융을 제외한 합계(대략)를 입력하세요.</div>
+                <div className="hint">근로/사업/임대 등 금융을 제외한 “소득금액” 합계(대략)를 입력하세요.</div>
               </div>
             ) : null}
             <div className="field">
-              <label>{otherMode === 'items' ? '추가 공제(선택)' : '공제/경비(선택)'}</label>
+              <label>인적공제(기본공제) 인원</label>
+              <select
+                value={financialInputs.personalDeductionPeople}
+                onChange={(e) => setFinancialInputs((p) => ({ ...p, personalDeductionPeople: Number(e.target.value) }))}
+              >
+                {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+                  <option key={n} value={n}>
+                    {n}명(본인 포함)
+                  </option>
+                ))}
+              </select>
+              <div className="hint">단순화: 1인당 1,500,000원(기본공제)으로 계산합니다.</div>
+            </div>
+            <div className="field">
+              <label>추가 소득공제(선택)</label>
               <input
                 inputMode="numeric"
                 type="number"
@@ -2115,11 +2140,7 @@ function TaxWizard() {
                 }
                 placeholder="예: 10000000"
               />
-              <div className="hint">
-                {otherMode === 'items'
-                  ? '상세 모드에서는 (수입-필요경비) 계산 후, 여기 입력한 공제를 한 번 더 차감합니다.'
-                  : '간단 모드에서는 “다른 종합소득 - 공제/경비”로 과세표준을 대략 추정합니다.'}
-              </div>
+              <div className="hint">연금저축/보험료/기부금 등 소득공제·세액공제와는 구분됩니다(간단 모델).</div>
             </div>
           </div>
 
@@ -2284,7 +2305,7 @@ function TaxWizard() {
 
           <div className="callout" style={{ marginTop: 12 }}>
             <div className="muted">
-              다른 소득(대략) {formatWon(grossSum)} · 과세 대상(대략) {formatWon(taxableSum)}
+              다른 소득금액(추정) {formatWon(otherIncomeBeforeDeductions)} · 소득공제 합계(인적+추가) {formatWon(incomeDeductionsTotal)} · 공제 후 {formatWon(otherAfterDeductions)}
             </div>
           </div>
         </>
@@ -2430,7 +2451,13 @@ function TaxWizard() {
 
           <div className="callout">
             <div className="muted" style={{ whiteSpace: 'pre-line', lineHeight: 1.5 }}>
-              종합 과세표준(추정) {formatWon(comprehensiveBase)} · 현재 구간 {Math.round((bracketUsed?.rate ?? 0) * 100)}%
+              비교과세(국세): 종합 {formatWon(financialResult.taxes.methodATax)} / 분리 {formatWon(financialResult.taxes.methodBTax)} → 큰 값이 적용됩니다.
+              {'\n'}
+              소득공제(인적공제 포함) {formatWon(financialResult.incomeDeductions)} · 종합 과세표준(공제 후) {formatWon(comprehensiveBase)}
+              {'\n'}
+              분리과세 기준(다른소득 과세표준, 공제 후) {formatWon(financialResult.bases.otherAfterDeductions)}
+              {'\n'}
+              종합 과세표준(공제 후) 기준 현재 구간 {Math.round((bracketUsed?.rate ?? 0) * 100)}%
               {bracketUpper == null ? '' : ` (상한 ${formatWon(bracketUpper)}까지 ${formatWon(remainingToUpper)} 남음)`}
               {nextBracket ? ` · 다음 구간 ${Math.round(nextBracket.rate * 100)}%` : ''}
               {'\n'}
@@ -2557,7 +2584,11 @@ function TaxWizard() {
                 {'\n'}
                 종합 계산(국세) {formatWon(financial.taxes.methodATax)} / 분리 계산(국세) {formatWon(financial.taxes.methodBTax)}
                 {'\n'}
-                종합 과세표준(추정) {formatWon(financial.progressive.comprehensive.taxable)}
+                소득공제(인적공제 포함) {formatWon(financial.incomeDeductions)}
+                {'\n'}
+                종합 과세표준(공제 전) {formatWon(financial.bases.comprehensiveBeforeDeductions)}
+                {'\n'}
+                종합 과세표준(공제 후) {formatWon(financial.bases.comprehensiveAfterDeductions)}
                 {'\n'}
                 국세 {formatWon(financial.taxes.nationalTax)} / 지방세 {formatWon(financial.taxes.localIncomeTax)}
                 {'\n'}
