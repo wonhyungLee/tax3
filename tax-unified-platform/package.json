@@ -4,7 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "node ./node_modules/vite/bin/vite.js",
-    "build": "node ./node_modules/vite/bin/vite.js build && npm run copy-static",
+    "build:client": "node ./node_modules/vite/bin/vite.js build",
+    "build:ssr": "node ./node_modules/vite/bin/vite.js build --ssr src/entry-server.jsx --outDir dist-ssr",
+    "prerender": "node scripts/prerender.mjs",
+    "build": "npm run build:client && npm run build:ssr && npm run prerender && npm run copy-static",
     "preview": "node ./node_modules/vite/bin/vite.js preview",
     "copy-static": "mkdir -p dist && cp -R yearend dist/ && cp -R corporate dist/ && cp -R financial dist/ && cp -R board dist/ && cp share.html dist/",
     "test:e2e": "BASE_URL=${BASE_URL:-http://localhost:4173} playwright test",

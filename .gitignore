@@ -1,5 +1,6 @@
 tax-unified-platform/node_modules
 tax-unified-platform/dist
+tax-unified-platform/dist-ssr
 tax-unified-platform/.DS_Store
 쿠팡파트너스api정보*.txt
 지급명세서*.pdf

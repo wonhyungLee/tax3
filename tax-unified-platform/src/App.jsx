@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Route, Routes } from 'react-router-dom';
+import { Link, Route, Routes } from 'react-router-dom';
 import {
   calculateCorporateTax,
   calculateFinancialTax,
@@ -467,9 +467,11 @@ const stepLabels = {
   review: '결과',
 };
 
-function TaxWizard() {
-  const [calculator, setCalculator] = useState(null);
-  const [step, setStep] = useState('select');
+function TaxWizard({ initialCalculator = null }) {
+  const normalizedInitial =
+    calculators.some((c) => c.id === initialCalculator) ? initialCalculator : null;
+  const [calculator, setCalculator] = useState(normalizedInitial);
+  const [step, setStep] = useState(normalizedInitial ? 'docs' : 'select');
   const stepIndex = Math.max(0, stepOrder.indexOf(step));
   const pct = ((stepIndex + 1) / stepOrder.length) * 100;
 
@@ -614,8 +616,8 @@ function TaxWizard() {
   }, [calculator]);
 
   const resetAll = () => {
-    setCalculator(null);
-    setStep('select');
+    setCalculator(normalizedInitial);
+    setStep(normalizedInitial ? 'docs' : 'select');
     setDocReady([]);
     setStageIndex(0);
     setPaystubFile(null);
@@ -2674,6 +2676,144 @@ const IframePage = ({ title, src }) => (
   </PageLayout>
 );
 
+const landingConfigs = {
+  yearend: {
+    path: '/yearend-tax',
+    pill: '연말정산 계산기',
+    h1: '연말정산 계산기',
+    lede: '급여·원천세·부양가족·공제를 카드형 단계로 입력하면 환급/추납을 빠르게 추정합니다.',
+    badges: ['PDF 업로드(급여명세서)', '부양가족 공제', '세액공제/소득공제', '결과 실시간 미리보기'],
+    points: [
+      '근로소득/원천징수세액을 기반으로 환급(또는 추가납부) 규모를 가늠할 수 있어요.',
+      '부양가족/자녀/부모 등 인적공제 입력을 단계로 분리해 입력 피로도를 줄였습니다.',
+      '연금저축/IRP, 카드 사용액, 보험/의료/교육/기부 등 주요 공제 항목을 반영합니다.',
+      'PDF 업로드로 일부 입력값을 자동 추출(가능한 범위 내)합니다.',
+    ],
+    faq: [
+      {
+        q: 'PDF로 자동 입력이 가능한가요?',
+        a: '급여명세서/지급명세서 PDF에서 일부 항목을 추출해 입력을 줄이는 방식입니다. 양식이 다르면 일부 값은 직접 확인이 필요합니다.',
+      },
+      {
+        q: '계산 결과가 확정 세액과 다를 수 있나요?',
+        a: '네. 본 서비스는 추정치이며, 공제 적용 요건/한도/증빙 인정 여부에 따라 실제 신고·정산 결과가 달라질 수 있습니다.',
+      },
+    ],
+  },
+  corporate: {
+    path: '/corporate-tax',
+    pill: '법인세 계산기',
+    h1: '법인세 계산기',
+    lede: '손익·세무조정·결손금·기납부·세액공제를 단계로 입력해 법인세를 시뮬레이션합니다.',
+    badges: ['재무제표 PDF 참고', '세무조정 입력', '결손금/기납부', '세액공제 반영'],
+    points: [
+      '손익(매출·비용·순이익)과 세무조정(가산/차감)을 분리해 입력할 수 있어요.',
+      '결손금 공제, 기납부세액(중간예납 등), 세액공제 항목을 반영합니다.',
+      '재무제표/신고서 PDF에서 숫자 후보를 뽑아 입력을 보조합니다(가능한 범위 내).',
+    ],
+    faq: [
+      {
+        q: '세무조정까지 자동으로 되는 건가요?',
+        a: '자동 “판단”까지는 어렵고, 사용자가 금액(가산/차감)을 입력하면 계산에 반영되는 형태입니다.',
+      },
+      {
+        q: '세액공제는 어떤 것들이 있나요?',
+        a: 'R&D/투자 등 일부 항목을 입력받아 반영합니다. 실제 적용 가능 여부는 요건 충족/증빙에 따라 달라집니다.',
+      },
+    ],
+  },
+  financial: {
+    path: '/income-tax',
+    pill: '종합소득세 계산기',
+    h1: '종합소득세(금융소득 포함) 계산기',
+    lede: '이자/배당(2,000만 원 기준)과 다른 종합소득을 함께 놓고 “종합과세 vs 분리과세”를 비교합니다.',
+    badges: ['누진세율 구간', '건보료 리스크 안내', '경비/공제 입력', '기납부세액 반영'],
+    points: [
+      '금융소득(이자·배당) 2,000만 원 초과 시 종합과세 전환 영향을 비교해 볼 수 있어요.',
+      '누진세율 구간(과세표준 경계)을 보여줘 “마의 구간”에서 의사결정을 돕습니다.',
+      '프리랜서 3.3% 원천징수(기납부세액) 반영으로 환급/납부를 가늠할 수 있어요.',
+      '건강보험료(피부양자/소득월액보험료) 이슈를 체크리스트로 안내합니다.',
+    ],
+    faq: [
+      {
+        q: '종합과세/분리과세 비교가 중요한 이유는?',
+        a: '2,000만 원까지는 분리과세(원천징수로 종결)로 끝나지만, 초과분은 다른 소득과 합산되어 누진세율을 적용받아 세 부담이 급증할 수 있습니다.',
+      },
+      {
+        q: '건강보험료(소득월액/피부양자)까지 정확히 계산되나요?',
+        a: '정밀한 건보료 산정은 자격/재산/부과기준 등 변수가 많아 단순화된 안내 수준으로 제공됩니다. 실제 부과는 공단 기준에 따릅니다.',
+      },
+      {
+        q: '경비 처리는 어디까지 인정되나요?',
+        a: '업무 관련성/증빙 유무에 따라 달라집니다. 본 계산기는 입력한 경비/공제를 반영하지만, 인정 여부 판단은 세무서/세무대리인 확인이 필요합니다.',
+      },
+    ],
+  },
+};
+
+function CalculatorLandingPage({ calculatorId }) {
+  const config = landingConfigs[calculatorId] || null;
+  const fallbackTitle = '세금 계산기';
+
+  return (
+    <div>
+      <header className="hero">
+        <div>
+          <p className="pill">{config?.pill ?? fallbackTitle}</p>
+          <h1>{config?.h1 ?? fallbackTitle}</h1>
+          {config?.lede ? <p className="lede">{config.lede}</p> : null}
+          {config?.badges?.length ? (
+            <div className="hero-badges">
+              {config.badges.map((badge) => (
+                <span key={badge} className="pill">
+                  {badge}
+                </span>
+              ))}
+            </div>
+          ) : null}
+          <div className="actions">
+            <Link className="btn ghost" to="/">
+              전체 계산기
+            </Link>
+            <a className="btn ghost" href="/sitemap.xml">
+              사이트맵
+            </a>
+          </div>
+        </div>
+      </header>
+
+      {config?.points?.length ? (
+        <main className="shell">
+          <div className="card">
+            <h2>이 계산기로 해결하는 포인트</h2>
+            <ul>
+              {config.points.map((point) => (
+                <li key={point}>{point}</li>
+              ))}
+            </ul>
+          </div>
+
+          {config?.faq?.length ? (
+            <div className="card">
+              <h2>자주 묻는 질문</h2>
+              <div className="faq-list">
+                {config.faq.map((item) => (
+                  <details key={item.q}>
+                    <summary>{item.q}</summary>
+                    <p className="muted">{item.a}</p>
+                  </details>
+                ))}
+              </div>
+            </div>
+          ) : null}
+        </main>
+      ) : null}
+
+      <TaxWizard initialCalculator={calculatorId} />
+    </div>
+  );
+}
+
 function Home() {
   return (
     <div>
@@ -2687,6 +2827,17 @@ function Home() {
             <span className="pill">결과 실시간 미리보기</span>
             <span className="pill">원본 계산기 옵션</span>
           </div>
+          <div className="actions">
+            <Link className="btn primary" to={landingConfigs.yearend.path}>
+              연말정산 계산기
+            </Link>
+            <Link className="btn primary" to={landingConfigs.corporate.path}>
+              법인세 계산기
+            </Link>
+            <Link className="btn primary" to={landingConfigs.financial.path}>
+              종합소득세 계산기
+            </Link>
+          </div>
         </div>
       </header>
       <TaxWizard />
@@ -2698,6 +2849,9 @@ function App() {
   return (
     <Routes>
       <Route path="/" element={<Home />} />
+      <Route path={landingConfigs.yearend.path} element={<CalculatorLandingPage calculatorId="yearend" />} />
+      <Route path={landingConfigs.corporate.path} element={<CalculatorLandingPage calculatorId="corporate" />} />
+      <Route path={landingConfigs.financial.path} element={<CalculatorLandingPage calculatorId="financial" />} />
       {calculatorFrames.map((c) => (
         <Route key={c.id} path={`/${c.id}`} element={<IframePage title={c.title} src={c.src} />} />
       ))}
