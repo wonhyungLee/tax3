@@ -2771,7 +2771,6 @@ function TaxWizard({ initialCalculator = null }) {
           </div>
         )}
 
-        <CoupangBestCategoryAds title="추천 상품" />
       </CardFrame>
     );
   };
