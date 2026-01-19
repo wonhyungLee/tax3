@@ -2777,10 +2777,12 @@ function TaxWizard({ initialCalculator = null }) {
   };
 
   const cardKey = `${step}-${calculator ?? 'none'}-${stage ?? 'none'}`;
+  const showMobileNav = step === 'docs' || step === 'input';
+  const mobileNextLabel = step === 'docs' ? '다음' : stageIndex < inputStages.length - 1 ? '다음' : '결과 보기';
 
   return (
     <section className="shell">
-      <div className="wizard-wrap">
+      <div className={`wizard-wrap ${showMobileNav ? 'has-mobile-nav' : ''}`}>
         <div className="chat-head">
           <div className="progress">
             <div className="progress-bar" style={{ width: `${pct}%` }} />
@@ -2801,6 +2803,35 @@ function TaxWizard({ initialCalculator = null }) {
           {step === 'review' && ReviewCard()}
         </div>
       </div>
+
+      {showMobileNav ? (
+        <div className="wizard-mobile-nav" role="navigation" aria-label="단계 이동">
+          <button
+            className="btn ghost"
+            type="button"
+            onClick={() => {
+              if (step === 'docs') setStep('select');
+              else goPrevInput();
+            }}
+          >
+            이전
+          </button>
+          <button
+            className="btn primary"
+            type="button"
+            onClick={() => {
+              if (step === 'docs') {
+                setStageIndex(0);
+                setStep('input');
+              } else {
+                goNextInput();
+              }
+            }}
+          >
+            {mobileNextLabel}
+          </button>
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -3020,75 +3051,80 @@ function CalculatorLandingPage({ calculatorId }) {
         </div>
       </header>
 
-      <main className="shell">
-        {config?.glossary?.length ? (
-          <div className="card">
-            <h2>핵심 용어</h2>
-            <dl className="glossary">
-              {config.glossary.map((item) => (
-                <div key={item.term} className="glossary-row">
-                  <dt>{item.term}</dt>
-                  <dd>{item.desc}</dd>
-                </div>
-              ))}
-            </dl>
-          </div>
-        ) : null}
-
-        {config?.steps?.length ? (
-          <div className="card">
-            <h2>계산 흐름(입력 순서)</h2>
-            <ol className="list">
-              {config.steps.map((step) => (
-                <li key={step}>{step}</li>
-              ))}
-            </ol>
-          </div>
-        ) : null}
-
-        {config?.formulas?.length ? (
-          <div className="card">
-            <h2>핵심 계산식(요약)</h2>
-            <div className="formula-grid">
-              {config.formulas.map((item) => (
-                <div key={item.title} className="formula-block">
-                  <div className="formula-title">{item.title}</div>
-                  <pre className="formula-code">{item.formula}</pre>
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : null}
-
-        {config?.notes?.length ? (
-          <div className="card">
-            <h2>참고</h2>
-            <ul className="list">
-              {config.notes.map((note) => (
-                <li key={note} className="muted">
-                  {note}
-                </li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
-
-        {config?.faq?.length ? (
-          <div className="card">
-            <h2>자주 묻는 질문</h2>
-            <div className="faq-list">
-              {config.faq.map((item) => (
-                <details key={item.q}>
-                  <summary>{item.q}</summary>
-                  <p className="muted">{item.a}</p>
-                </details>
-              ))}
-            </div>
-          </div>
-        ) : null}
-      </main>
-
       <TaxWizard initialCalculator={calculatorId} />
+
+      <section className="shell">
+        <details className="seo-details">
+          <summary>용어 · 계산식 · FAQ 보기</summary>
+          <div className="seo-details-body">
+            {config?.glossary?.length ? (
+              <div className="card">
+                <h2>핵심 용어</h2>
+                <dl className="glossary">
+                  {config.glossary.map((item) => (
+                    <div key={item.term} className="glossary-row">
+                      <dt>{item.term}</dt>
+                      <dd>{item.desc}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+            ) : null}
+
+            {config?.steps?.length ? (
+              <div className="card">
+                <h2>계산 흐름(입력 순서)</h2>
+                <ol className="list">
+                  {config.steps.map((stepItem) => (
+                    <li key={stepItem}>{stepItem}</li>
+                  ))}
+                </ol>
+              </div>
+            ) : null}
+
+            {config?.formulas?.length ? (
+              <div className="card">
+                <h2>핵심 계산식(요약)</h2>
+                <div className="formula-grid">
+                  {config.formulas.map((item) => (
+                    <div key={item.title} className="formula-block">
+                      <div className="formula-title">{item.title}</div>
+                      <pre className="formula-code">{item.formula}</pre>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {config?.notes?.length ? (
+              <div className="card">
+                <h2>참고</h2>
+                <ul className="list">
+                  {config.notes.map((note) => (
+                    <li key={note} className="muted">
+                      {note}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
+            {config?.faq?.length ? (
+              <div className="card">
+                <h2>자주 묻는 질문</h2>
+                <div className="faq-list">
+                  {config.faq.map((item) => (
+                    <details key={item.q}>
+                      <summary>{item.q}</summary>
+                      <p className="muted">{item.a}</p>
+                    </details>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </details>
+      </section>
     </div>
   );
 }
@@ -3096,30 +3132,38 @@ function CalculatorLandingPage({ calculatorId }) {
 function Home() {
   return (
     <div>
-      <header className="hero">
-        <div>
-          <p className="pill">카드형 단계 진행</p>
-          <h1>단계별 카드로 세금 계산을 진행합니다</h1>
-          <p className="lede">복잡한 입력을 한 번에 보여주지 않고, 필요한 항목만 카드로 나눠서 입력합니다.</p>
-          <div className="hero-badges">
-            <span className="pill">Progressive Disclosure</span>
-            <span className="pill">결과 실시간 미리보기</span>
-            <span className="pill">원본 계산기 옵션</span>
-          </div>
-          <div className="actions">
-            <Link className="btn primary" to={landingConfigs.yearend.path}>
-              연말정산 계산기
-            </Link>
-            <Link className="btn primary" to={landingConfigs.corporate.path}>
-              법인세 계산기
-            </Link>
-            <Link className="btn primary" to={landingConfigs.financial.path}>
-              종합소득세 계산기
-            </Link>
-          </div>
-        </div>
-      </header>
       <TaxWizard />
+
+      <section className="shell">
+        <details className="seo-details">
+          <summary>서비스 소개 · 바로가기</summary>
+          <div className="seo-details-body">
+            <header className="hero hero-compact">
+              <div>
+                <p className="pill">카드형 단계 진행</p>
+                <h1>단계별 카드로 세금 계산을 진행합니다</h1>
+                <p className="lede">복잡한 입력을 한 번에 보여주지 않고, 필요한 항목만 카드로 나눠서 입력합니다.</p>
+                <div className="hero-badges">
+                  <span className="pill">Progressive Disclosure</span>
+                  <span className="pill">결과 실시간 미리보기</span>
+                  <span className="pill">원본 계산기 옵션</span>
+                </div>
+                <div className="actions">
+                  <Link className="btn primary" to={landingConfigs.yearend.path}>
+                    연말정산 계산기
+                  </Link>
+                  <Link className="btn primary" to={landingConfigs.corporate.path}>
+                    법인세 계산기
+                  </Link>
+                  <Link className="btn primary" to={landingConfigs.financial.path}>
+                    종합소득세 계산기
+                  </Link>
+                </div>
+              </div>
+            </header>
+          </div>
+        </details>
+      </section>
     </div>
   );
 }
