@@ -472,7 +472,7 @@ function TaxWizard({ initialCalculator = null }) {
   const normalizedInitial =
     calculators.some((c) => c.id === initialCalculator) ? initialCalculator : null;
   const [calculator, setCalculator] = useState(normalizedInitial);
-  const [step, setStep] = useState(normalizedInitial ? 'docs' : 'select');
+  const [step, setStep] = useState('select');
   const stepIndex = Math.max(0, stepOrder.indexOf(step));
   const pct = ((stepIndex + 1) / stepOrder.length) * 100;
 
@@ -631,7 +631,7 @@ function TaxWizard({ initialCalculator = null }) {
 
   const resetAll = () => {
     setCalculator(normalizedInitial);
-    setStep(normalizedInitial ? 'docs' : 'select');
+    setStep('select');
     setDocReady([]);
     setStageIndex(0);
     setPaystubFile(null);
@@ -1282,12 +1282,35 @@ function TaxWizard({ initialCalculator = null }) {
       title="어떤 계산을 진행할까요?"
       subtitle="각 계산은 단계별 카드로 나누어 부담을 줄였습니다."
     >
+      {calculator ? (
+        <div className="callout">
+          <div className="muted">
+            {currentCalc?.name || '선택한 계산기'}로 시작합니다. 변경하려면 아래에서 다른 계산기를 선택하세요.
+          </div>
+          <div className="actions">
+            <button className="btn primary" type="button" onClick={() => setStep('docs')}>
+              다음
+            </button>
+            <button
+              className="btn ghost"
+              type="button"
+              onClick={() => {
+                setStageIndex(0);
+                setStep('input');
+              }}
+            >
+              입력 바로가기
+            </button>
+          </div>
+        </div>
+      ) : null}
       <div className="calc-grid">
         {calculators.map((c) => (
           <button
             key={c.id}
             type="button"
-            className="calc-card"
+            className={`calc-card ${calculator === c.id ? 'active' : ''}`}
+            aria-pressed={calculator === c.id}
             onClick={() => {
               setCalculator(c.id);
               setDocReady([]);
