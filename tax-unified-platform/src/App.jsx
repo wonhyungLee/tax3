@@ -8,6 +8,7 @@ import {
   formatSignedWon,
   formatWon,
 } from './lib/tax-calculations';
+import { createShareImageDataUrl } from './lib/share-image';
 import { parsePaystubPdf } from './lib/paystub-parser';
 import {
   parseCorporateFinancialStatementPdf,
@@ -615,6 +616,19 @@ function TaxWizard({ initialCalculator = null }) {
     setStageIndex(0);
   }, [calculator]);
 
+  const [shareState, setShareState] = useState(() => ({
+    status: 'idle',
+    url: '',
+    error: '',
+    copied: false,
+  }));
+
+  useEffect(() => {
+    if (step !== 'review') {
+      setShareState({ status: 'idle', url: '', error: '', copied: false });
+    }
+  }, [step, calculator]);
+
   const resetAll = () => {
     setCalculator(normalizedInitial);
     setStep(normalizedInitial ? 'docs' : 'select');
@@ -1106,6 +1120,114 @@ function TaxWizard({ initialCalculator = null }) {
   }, [financialInputs]);
 
   const financialResult = useMemo(() => calculateFinancialTax(financialInput), [financialInput]);
+
+  const shareDraft = useMemo(() => {
+    if (calculator === 'yearend') {
+      const refund = yearendResult?.outputs?.refundAmount ?? 0;
+      const label = refund >= 0 ? '환급' : '추납';
+      const sign = refund >= 0 ? '+' : '';
+      const title = `연말정산 · ${label} ${sign}${formatWon(Math.abs(refund))}`;
+      const subtitle = `결정세액 ${formatWon(yearendResult.outputs.totalDeterminedTax)} · 기납부 ${formatWon(yearendResult.outputs.withheldTotalTax)}`;
+      return {
+        calculatorId: 'yearend',
+        targetPath: '/yearend-tax',
+        title,
+        subtitle,
+        lines: [
+          `과세표준 ${formatWon(yearendResult.outputs.taxableIncome)}`,
+          `산출세액 ${formatWon(yearendResult.outputs.calculatedTax)}`,
+        ],
+      };
+    }
+
+    if (calculator === 'corporate') {
+      const payable = corporateResult?.payableTax ?? 0;
+      const label = payable >= 0 ? '납부' : '환급';
+      const title = `법인세 · ${label} ${formatWon(Math.abs(payable))}`;
+      const subtitle = `최종세액 ${formatWon(corporateResult.finalTax)} · 과세표준 ${formatWon(corporateResult.taxBase)}`;
+      return {
+        calculatorId: 'corporate',
+        targetPath: '/corporate-tax',
+        title,
+        subtitle,
+        lines: [
+          `산출세액 ${formatWon(corporateResult.calculatedTax)} · 최저한세 ${formatWon(corporateResult.minimumTax)}`,
+          `기납부세액 ${formatWon(corporateResult.prepaidTax)}`,
+        ],
+      };
+    }
+
+    if (calculator === 'financial') {
+      const payable = financialResult?.taxes?.totalPayable ?? 0;
+      const label = payable >= 0 ? '납부' : '환급';
+      const method = financialResult?.chosenMethod === 'comprehensive' ? '종합과세' : '분리과세';
+      const title = `종합소득세 · ${label} ${formatWon(Math.abs(payable))}`;
+      const subtitle = `선택: ${method} · 금융소득 ${formatWon(financialResult.financialTotal)}`;
+      return {
+        calculatorId: 'financial',
+        targetPath: '/income-tax',
+        title,
+        subtitle,
+        lines: [
+          `A(종합) ${formatWon(financialResult.taxes.methodATax)} / B(분리) ${formatWon(financialResult.taxes.methodBTax)}`,
+          `국세 ${formatWon(financialResult.taxes.nationalTax)} · 지방세 ${formatWon(financialResult.taxes.localIncomeTax)}`,
+          `기납부 ${formatWon(financialResult.prepaid.prepaidNational + financialResult.prepaid.prepaidLocal + financialResult.prepaid.prepaidOther)}`,
+        ],
+      };
+    }
+
+    return null;
+  }, [calculator, yearendResult, corporateResult, financialResult]);
+
+  const copyShareUrl = async (urlToCopy) => {
+    const text = String(urlToCopy || '').trim();
+    if (!text) return false;
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+    } catch {
+      return false;
+    }
+    return false;
+  };
+
+  const createShareLink = async () => {
+    if (!shareDraft) return;
+    setShareState({ status: 'loading', url: '', error: '', copied: false });
+
+    try {
+      const imageDataUrl = await createShareImageDataUrl({
+        title: shareDraft.title,
+        subtitle: shareDraft.subtitle,
+        lines: shareDraft.lines,
+      });
+
+      const res = await fetch('/api/share', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ ...shareDraft, imageDataUrl }),
+      });
+
+      const contentType = res.headers.get('content-type') || '';
+      const data = contentType.includes('application/json') ? await res.json().catch(() => ({})) : {};
+      if (!res.ok || !data?.ok || !data?.url) {
+        throw new Error(data?.error || '공유 링크 생성에 실패했습니다.');
+      }
+
+      const url = String(data.url);
+      const copied = await copyShareUrl(url);
+      setShareState({ status: 'success', url, error: '', copied });
+    } catch (error) {
+      setShareState({
+        status: 'error',
+        url: '',
+        error: error?.message || '공유 링크 생성에 실패했습니다.',
+        copied: false,
+      });
+    }
+  };
 
   const currentCalc = calculators.find((c) => c.id === calculator);
 
@@ -2613,6 +2735,39 @@ function TaxWizard({ initialCalculator = null }) {
                 입력 수정
               </button>
             </div>
+          </div>
+        )}
+
+        {shareDraft && (
+          <div className="callout">
+            <div className="muted">카카오톡에 링크를 붙여넣으면 결과 이미지 미리보기가 표시됩니다.</div>
+            <div className="actions">
+              <button className="btn primary" type="button" onClick={createShareLink} disabled={shareState.status === 'loading'}>
+                {shareState.status === 'loading' ? '공유 링크 생성 중…' : '결과 공유 링크 만들기'}
+              </button>
+              {shareState.url ? (
+                <>
+                  <button
+                    className="btn ghost"
+                    type="button"
+                    onClick={async () => {
+                      const copied = await copyShareUrl(shareState.url);
+                      setShareState((prev) => ({ ...prev, copied }));
+                    }}
+                  >
+                    링크 복사
+                  </button>
+                  <a className="btn ghost" href={shareState.url} target="_blank" rel="noreferrer">
+                    미리보기 열기
+                  </a>
+                </>
+              ) : null}
+            </div>
+            {shareState.status === 'success' && shareState.copied ? (
+              <div className="muted">링크를 복사했습니다. 카카오톡 채팅창에 붙여넣어 보세요.</div>
+            ) : null}
+            {shareState.status === 'error' ? <div className="muted">{shareState.error}</div> : null}
+            {shareState.url ? <div className="share-url mono">{shareState.url}</div> : null}
           </div>
         )}
 
