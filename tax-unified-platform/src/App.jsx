@@ -130,49 +130,34 @@ function CardFrame({ title, subtitle, children, actions }) {
   );
 }
 
-function CoupangAd({ title = '추천 상품', showHeader = true }) {
-  const containerRef = useRef(null);
-  const [ad] = useState(() => coupangAds[Math.floor(Math.random() * coupangAds.length)]);
+const COUPANG_POOL_CACHE_KEY = 'tax3.coupangPoolCache.v1';
+const COUPANG_POOL_CACHE_TTL_MS = 1000 * 60 * 60 * 48;
 
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return undefined;
-    container.innerHTML = '';
-
-    let cancelled = false;
-    loadCoupangSdk()
-      .then(() => {
-        if (cancelled) return;
-        const inline = document.createElement('script');
-        inline.type = 'text/javascript';
-        inline.text = `new PartnersCoupang.G(${JSON.stringify(ad)});`;
-        container.appendChild(inline);
-      })
-      .catch(() => {
-        if (cancelled) return;
-        container.textContent = '광고를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.';
-      });
-
-    return () => {
-      cancelled = true;
-      container.innerHTML = '';
-    };
-  }, [ad]);
-
-  if (!showHeader) {
-    return <div ref={containerRef} className="ad-embed-slot" />;
+const readCoupangPoolCache = () => {
+  try {
+    if (typeof window === 'undefined' || !window.localStorage) return null;
+    const raw = window.localStorage.getItem(COUPANG_POOL_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    const products = Array.isArray(parsed?.products) ? parsed.products : null;
+    if (!products?.length) return null;
+    const ts = typeof parsed?.ts === 'number' ? parsed.ts : Date.parse(parsed?.fetchedAt || '');
+    if (Number.isFinite(ts) && Date.now() - ts > COUPANG_POOL_CACHE_TTL_MS) return null;
+    return products;
+  } catch {
+    return null;
   }
+};
 
-  return (
-    <div className="ad-embed">
-      <div className="ad-embed-head">
-        <span className="pill">쿠팡 파트너스</span>
-        <span className="muted">{title}</span>
-      </div>
-      <div ref={containerRef} className="ad-embed-slot" />
-    </div>
-  );
-}
+const writeCoupangPoolCache = (products) => {
+  try {
+    if (typeof window === 'undefined' || !window.localStorage) return;
+    const payload = { ts: Date.now(), products };
+    window.localStorage.setItem(COUPANG_POOL_CACHE_KEY, JSON.stringify(payload));
+  } catch {
+    // ignore
+  }
+};
 
 const COUPANG_ROTATE_INTERVAL_MS = 10_000;
 let coupangProductCursor = Math.floor(Math.random() * 1_000_000);
@@ -273,7 +258,13 @@ function CoupangBestCategoryAds({ title = '추천 상품' }) {
     let active = true;
 
     const desiredCount = 4;
-    setState({ status: 'loading', products: [], error: null });
+    const cached = readCoupangPoolCache();
+    if (cached?.length) {
+      poolRef.current = cached;
+      setState({ status: 'success', products: pickRotatedDistinctGroups(cached, desiredCount), error: null });
+    } else {
+      setState({ status: 'loading', products: [], error: null });
+    }
 
     const load = async () => {
       try {
@@ -288,22 +279,23 @@ function CoupangBestCategoryAds({ title = '추천 상품' }) {
 
         if (!active) return;
         if (!res.ok || !isJson || !data?.ok) {
-          setState({ status: 'error', products: [], error: '광고 데이터를 불러오지 못했습니다.' });
+          if (!cached?.length) setState({ status: 'error', products: [], error: '광고 데이터를 불러오지 못했습니다.' });
           return;
         }
 
         const pool = Array.isArray(data?.products) ? data.products : [];
         if (!pool.length) {
-          setState({ status: 'error', products: [], error: '광고 데이터를 불러오지 못했습니다.' });
+          if (!cached?.length) setState({ status: 'error', products: [], error: '광고 데이터를 불러오지 못했습니다.' });
           return;
         }
 
         poolRef.current = pool;
+        writeCoupangPoolCache(pool);
         setState({ status: 'success', products: pickRotatedDistinctGroups(pool, desiredCount), error: null });
       } catch (error) {
         if (error?.name === 'AbortError') return;
         if (!active) return;
-        setState({ status: 'error', products: [], error: '광고 데이터를 불러오지 못했습니다.' });
+        if (!cached?.length) setState({ status: 'error', products: [], error: '광고 데이터를 불러오지 못했습니다.' });
         return;
       }
     };
@@ -374,9 +366,6 @@ function CoupangBestCategoryAds({ title = '추천 상품' }) {
       ) : state.status === 'error' ? (
         <div className="muted">{state.error || '광고를 불러오지 못했습니다.'}</div>
       ) : null}
-      <div className="ad-fallback">
-        <CoupangAd title="추천 상품" showHeader={false} />
-      </div>
     </div>
   );
 }
