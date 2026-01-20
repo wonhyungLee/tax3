@@ -20,6 +20,10 @@ const escapeHtml = (value) =>
 
 const buildDescription = (meta) => {
   const parts = [];
+  if (meta?.tier) {
+    const tierTitle = meta?.tierTitle ? String(meta.tierTitle) : '';
+    parts.push(tierTitle ? `${meta.tier}등급 · ${tierTitle}` : `${meta.tier}등급`);
+  }
   if (meta?.subtitle) parts.push(meta.subtitle);
   if (Array.isArray(meta?.lines) && meta.lines.length) {
     parts.push(...meta.lines.slice(0, 3));
@@ -52,6 +56,13 @@ export const onRequestGet = async ({ request, env, params }) => {
   const listHtml = bodyLines.length
     ? `<ul>${bodyLines.map((line) => `<li>${escapeHtml(line)}</li>`).join('')}</ul>`
     : '';
+
+  const tierHtml =
+    meta?.tier && meta?.tierTitle
+      ? `<p class="muted">${escapeHtml(`${meta.tier}등급 · ${meta.tierTitle}`)}</p>`
+      : meta?.tier
+        ? `<p class="muted">${escapeHtml(`${meta.tier}등급`)}</p>`
+        : '';
 
   const html = `<!doctype html>
 <html lang="ko">
@@ -90,6 +101,7 @@ export const onRequestGet = async ({ request, env, params }) => {
     <div class="wrap">
       <div class="card">
         <h1>${escapeHtml(title)}</h1>
+        ${tierHtml}
         <p class="muted">${escapeHtml(meta?.subtitle || '')}</p>
         ${listHtml}
         <p class="muted">이 페이지는 공유용 미리보기입니다. 실제 신고/정산 결과는 달라질 수 있습니다.</p>
@@ -107,4 +119,3 @@ export const onRequestGet = async ({ request, env, params }) => {
     },
   });
 };
-

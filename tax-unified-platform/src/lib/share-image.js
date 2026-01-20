@@ -70,6 +70,7 @@ export async function createShareImageDataUrl({
   lines = [],
   theme = DEFAULT_THEME,
   badge = 'Tax Unified',
+  tier = null,
   footnote = '추정 결과 · 실제 신고/정산은 다를 수 있음',
 }) {
   if (typeof document === 'undefined') {
@@ -134,6 +135,26 @@ export async function createShareImageDataUrl({
   ctx.fillStyle = theme.muted;
   const dateWidth = ctx.measureText(dateText).width;
   ctx.fillText(dateText, innerX + innerW - dateWidth, badgeY + badgeH / 2);
+
+  if (tier?.tier && tier?.title) {
+    const tierText = `${tier.tier}등급 · ${tier.title}`;
+    ctx.font = '900 18px "Noto Sans KR","Space Grotesk",system-ui,sans-serif';
+    const tierW = Math.min(innerW, Math.max(160, ctx.measureText(tierText).width + 26));
+    const tierH = 34;
+    const tierX = innerX + innerW - tierW;
+    const tierY = badgeY + badgeH + 12;
+    const a = tier?.palette?.accentA || theme.accentA;
+    const b = tier?.palette?.accentB || theme.accentB;
+    const tierGrad = ctx.createLinearGradient(tierX, tierY, tierX + tierW, tierY + tierH);
+    tierGrad.addColorStop(0, a);
+    tierGrad.addColorStop(1, b);
+    ctx.fillStyle = tierGrad;
+    drawRoundedRect(ctx, tierX, tierY, tierW, tierH, 18);
+    ctx.fill();
+    ctx.fillStyle = '#0d1c2b';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(tierText, tierX + 14, tierY + tierH / 2);
+  }
 
   const titleMaxWidth = innerW;
   const titleFontSize = title.length > 28 ? 52 : 64;

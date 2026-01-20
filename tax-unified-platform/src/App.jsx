@@ -9,6 +9,7 @@ import {
   formatWon,
 } from './lib/tax-calculations';
 import { createShareImageDataUrl } from './lib/share-image';
+import { getTaxGamification } from './lib/tax-gamification';
 import { parsePaystubPdf } from './lib/paystub-parser';
 import {
   parseCorporateFinancialStatementPdf,
@@ -611,10 +612,12 @@ function TaxWizard({ initialCalculator = null }) {
     error: '',
     copied: false,
   }));
+  const [shareModalOpen, setShareModalOpen] = useState(false);
 
   useEffect(() => {
     if (step !== 'review') {
       setShareState({ status: 'idle', url: '', error: '', copied: false });
+      setShareModalOpen(false);
     }
   }, [step, calculator]);
 
@@ -1110,6 +1113,19 @@ function TaxWizard({ initialCalculator = null }) {
 
   const financialResult = useMemo(() => calculateFinancialTax(financialInput), [financialInput]);
 
+  const gamification = useMemo(() => {
+    if (calculator === 'yearend') {
+      return getTaxGamification({ calculatorId: 'yearend', netBenefitWon: yearendResult.outputs.refundAmount });
+    }
+    if (calculator === 'corporate') {
+      return getTaxGamification({ calculatorId: 'corporate', netBenefitWon: -corporateResult.payableTax });
+    }
+    if (calculator === 'financial') {
+      return getTaxGamification({ calculatorId: 'financial', netBenefitWon: -financialResult.taxes.totalPayable });
+    }
+    return null;
+  }, [calculator, corporateResult.payableTax, financialResult.taxes.totalPayable, yearendResult.outputs.refundAmount]);
+
   const shareDraft = useMemo(() => {
     if (calculator === 'yearend') {
       const refund = yearendResult?.outputs?.refundAmount ?? 0;
@@ -1122,6 +1138,9 @@ function TaxWizard({ initialCalculator = null }) {
         targetPath: '/yearend-tax',
         title,
         subtitle,
+        tier: gamification?.tier,
+        tierTitle: gamification?.title,
+        tierTagline: gamification?.tagline,
         lines: [
           `과세표준 ${formatWon(yearendResult.outputs.taxableIncome)}`,
           `산출세액 ${formatWon(yearendResult.outputs.calculatedTax)}`,
@@ -1139,6 +1158,9 @@ function TaxWizard({ initialCalculator = null }) {
         targetPath: '/corporate-tax',
         title,
         subtitle,
+        tier: gamification?.tier,
+        tierTitle: gamification?.title,
+        tierTagline: gamification?.tagline,
         lines: [
           `산출세액 ${formatWon(corporateResult.calculatedTax)} · 최저한세 ${formatWon(corporateResult.minimumTax)}`,
           `기납부세액 ${formatWon(corporateResult.prepaidTax)}`,
@@ -1157,6 +1179,9 @@ function TaxWizard({ initialCalculator = null }) {
         targetPath: '/income-tax',
         title,
         subtitle,
+        tier: gamification?.tier,
+        tierTitle: gamification?.title,
+        tierTagline: gamification?.tagline,
         lines: [
           `A(종합) ${formatWon(financialResult.taxes.methodATax)} / B(분리) ${formatWon(financialResult.taxes.methodBTax)}`,
           `국세 ${formatWon(financialResult.taxes.nationalTax)} · 지방세 ${formatWon(financialResult.taxes.localIncomeTax)}`,
@@ -1166,7 +1191,7 @@ function TaxWizard({ initialCalculator = null }) {
     }
 
     return null;
-  }, [calculator, yearendResult, corporateResult, financialResult]);
+  }, [calculator, yearendResult, corporateResult, financialResult, gamification]);
 
   const copyShareUrl = async (urlToCopy) => {
     const text = String(urlToCopy || '').trim();
@@ -1191,6 +1216,7 @@ function TaxWizard({ initialCalculator = null }) {
         title: shareDraft.title,
         subtitle: shareDraft.subtitle,
         lines: shareDraft.lines,
+        tier: gamification,
       });
 
       const res = await fetch('/api/share', {
@@ -1206,8 +1232,7 @@ function TaxWizard({ initialCalculator = null }) {
       }
 
       const url = String(data.url);
-      const copied = await copyShareUrl(url);
-      setShareState({ status: 'success', url, error: '', copied });
+      setShareState({ status: 'success', url, error: '', copied: false });
     } catch (error) {
       setShareState({
         status: 'error',
@@ -2667,14 +2692,55 @@ function TaxWizard({ initialCalculator = null }) {
     const corporate = calculator === 'corporate' ? corporateResult : null;
     const financial = calculator === 'financial' ? financialResult : null;
 
+    const summaryLines = [];
+    if (calculator === 'yearend' && yearend) {
+      summaryLines.push(`결정세액(국세+지방) ${formatWon(yearend.outputs.totalDeterminedTax)}`);
+      summaryLines.push(`기납부(원천징수) ${formatWon(yearend.outputs.withheldTotalTax)}`);
+      summaryLines.push(`${yearend.outputs.refundAmount >= 0 ? '예상 환급' : '추가 납부'} ${formatWon(Math.abs(yearend.outputs.refundAmount))}`);
+      summaryLines.push(`과세표준 ${formatWon(yearend.outputs.taxableIncome)}`);
+    }
+    if (calculator === 'corporate' && corporate) {
+      summaryLines.push(`과세표준 ${formatWon(corporate.taxBase)}`);
+      summaryLines.push(`최종세액 ${formatWon(corporate.finalTax)}`);
+      summaryLines.push(`기납부세액 ${formatWon(corporate.prepaidTax)}`);
+      summaryLines.push(`${corporate.payableTax >= 0 ? '추가 납부' : '환급/차감'} ${formatWon(Math.abs(corporate.payableTax))}`);
+    }
+    if (calculator === 'financial' && financial) {
+      const methodLabel = financial.chosenMethod === 'comprehensive' ? '종합과세' : '분리과세';
+      const prepaidTotal = financial.prepaid.prepaidNational + financial.prepaid.prepaidLocal + financial.prepaid.prepaidOther;
+      summaryLines.push(`선택 방식 ${methodLabel}`);
+      summaryLines.push(`금융소득 ${formatWon(financial.financialTotal)} (초과 ${formatWon(financial.excessFinancial)})`);
+      summaryLines.push(`국세 ${formatWon(financial.taxes.nationalTax)} · 지방세 ${formatWon(financial.taxes.localIncomeTax)}`);
+      summaryLines.push(`기납부 ${formatWon(prepaidTotal)}`);
+      summaryLines.push(`${financial.taxes.totalPayable >= 0 ? '추가 납부' : '환급 예상'} ${formatWon(Math.abs(financial.taxes.totalPayable))}`);
+    }
+
+    const summaryText = summaryLines.map((line) => `• ${line}`).join('\n');
+    const tipsText = gamification?.tips?.length ? gamification.tips.map((line) => `• ${line}`).join('\n') : '';
+
     return (
       <CardFrame
         title={`${currentCalc?.name || '계산기'} · 결과`}
         subtitle="입력값을 수정하려면 이전으로 돌아가세요."
         actions={
-          <button className="btn ghost" type="button" onClick={resetAll}>
-            다시 시작
-          </button>
+          <>
+            <button
+              className="btn primary"
+              type="button"
+              onClick={() => {
+                setShareModalOpen(true);
+                if (shareDraft && shareState.status !== 'success' && shareState.status !== 'loading') {
+                  createShareLink();
+                }
+              }}
+              disabled={!shareDraft}
+            >
+              공유하기
+            </button>
+            <button className="btn ghost" type="button" onClick={resetAll}>
+              다시 시작
+            </button>
+          </>
         }
       >
         <div className="result-grid">
@@ -2734,6 +2800,27 @@ function TaxWizard({ initialCalculator = null }) {
               </div>
             </div>
           )}
+
+          {gamification ? (
+            <div className="result-card">
+              <div className="result-title">세금 등급(9등급)</div>
+              <div className="result-value">
+                {gamification.tier}등급 · {gamification.title}
+              </div>
+              <img className="meme-img" src={gamification.memeImageUrl} alt={`세금 등급 ${gamification.tier}등급`} loading="lazy" />
+              <div className="result-body">{gamification.tagline}</div>
+            </div>
+          ) : null}
+
+          {summaryText || tipsText ? (
+            <div className="result-card">
+              <div className="result-title">요약 & 팁</div>
+              <div className="result-body">
+                {summaryText}
+                {tipsText ? `\n\n${tipsText}` : ''}
+              </div>
+            </div>
+          ) : null}
         </div>
 
         {openOriginal && (
@@ -2750,39 +2837,6 @@ function TaxWizard({ initialCalculator = null }) {
           </div>
         )}
 
-        {shareDraft && (
-          <div className="callout">
-            <div className="muted">카카오톡에 링크를 붙여넣으면 결과 이미지 미리보기가 표시됩니다.</div>
-            <div className="actions">
-              <button className="btn primary" type="button" onClick={createShareLink} disabled={shareState.status === 'loading'}>
-                {shareState.status === 'loading' ? '공유 링크 생성 중…' : '결과 공유 링크 만들기'}
-              </button>
-              {shareState.url ? (
-                <>
-                  <button
-                    className="btn ghost"
-                    type="button"
-                    onClick={async () => {
-                      const copied = await copyShareUrl(shareState.url);
-                      setShareState((prev) => ({ ...prev, copied }));
-                    }}
-                  >
-                    링크 복사
-                  </button>
-                  <a className="btn ghost" href={shareState.url} target="_blank" rel="noreferrer">
-                    미리보기 열기
-                  </a>
-                </>
-              ) : null}
-            </div>
-            {shareState.status === 'success' && shareState.copied ? (
-              <div className="muted">링크를 복사했습니다. 카카오톡 채팅창에 붙여넣어 보세요.</div>
-            ) : null}
-            {shareState.status === 'error' ? <div className="muted">{shareState.error}</div> : null}
-            {shareState.url ? <div className="share-url mono">{shareState.url}</div> : null}
-          </div>
-        )}
-
       </CardFrame>
     );
   };
@@ -2790,6 +2844,19 @@ function TaxWizard({ initialCalculator = null }) {
   const cardKey = `${step}-${calculator ?? 'none'}-${stage ?? 'none'}`;
   const showMobileNav = step === 'docs' || step === 'input';
   const mobileNextLabel = step === 'docs' ? '다음' : stageIndex < inputStages.length - 1 ? '다음' : '결과 보기';
+  const nativeShareAvailable = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
+
+  const runNativeShare = async () => {
+    if (!shareDraft || !shareState.url) return;
+    try {
+      await navigator.share({
+        title: shareDraft.title,
+        text: shareDraft.subtitle || '세금 계산 결과 공유',
+        url: shareState.url,
+      });
+    } catch {
+    }
+  };
 
   return (
     <section className="shell">
@@ -2841,6 +2908,77 @@ function TaxWizard({ initialCalculator = null }) {
           >
             {mobileNextLabel}
           </button>
+        </div>
+      ) : null}
+
+      {shareModalOpen && shareDraft ? (
+        <div
+          className="modal-backdrop"
+          role="dialog"
+          aria-modal="true"
+          aria-label="결과 공유"
+          onClick={() => setShareModalOpen(false)}
+        >
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-head">
+              <div>
+                <div className="modal-title">공유하기</div>
+                <div className="muted">{shareDraft.title}</div>
+              </div>
+              <button className="icon-btn" type="button" onClick={() => setShareModalOpen(false)} aria-label="닫기">
+                ×
+              </button>
+            </div>
+
+            <div className="modal-body">
+              <div className="muted">
+                링크가 생성되면, 카카오톡/인스타 등은 모바일의 “시스템 공유”에서 선택할 수 있어요.
+              </div>
+
+              {shareState.status === 'loading' ? <div className="muted">링크 생성 중…</div> : null}
+              {shareState.status === 'error' ? <div className="muted">{shareState.error}</div> : null}
+              {shareState.url ? <div className="share-url mono">{shareState.url}</div> : null}
+
+              <div className="actions">
+                {shareState.url ? (
+                  <button
+                    className="btn primary"
+                    type="button"
+                    onClick={async () => {
+                      const copied = await copyShareUrl(shareState.url);
+                      setShareState((prev) => ({ ...prev, copied }));
+                    }}
+                  >
+                    URL 복사
+                  </button>
+                ) : (
+                  <button className="btn primary" type="button" onClick={createShareLink} disabled={shareState.status === 'loading'}>
+                    {shareState.status === 'loading' ? '링크 생성 중…' : '링크 생성'}
+                  </button>
+                )}
+
+                {nativeShareAvailable && shareState.url ? (
+                  <button className="btn ghost" type="button" onClick={runNativeShare}>
+                    시스템 공유
+                  </button>
+                ) : null}
+
+                {shareState.url ? (
+                  <a className="btn ghost" href={shareState.url} target="_blank" rel="noreferrer">
+                    미리보기 열기
+                  </a>
+                ) : null}
+
+                <button className="btn ghost" type="button" onClick={createShareLink} disabled={shareState.status === 'loading'}>
+                  다시 생성
+                </button>
+              </div>
+
+              {shareState.status === 'success' && shareState.copied ? (
+                <div className="muted">URL을 복사했습니다.</div>
+              ) : null}
+            </div>
+          </div>
         </div>
       ) : null}
     </section>

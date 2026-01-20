@@ -7,6 +7,8 @@ const MAX_TITLE_LEN = 120;
 const MAX_SUBTITLE_LEN = 180;
 const MAX_LINE_LEN = 140;
 const MAX_LINES = 6;
+const MAX_TIER_TITLE_LEN = 60;
+const MAX_TIER_TAGLINE_LEN = 140;
 
 const json = (data, init = {}) => {
   const headers = new Headers(init.headers);
@@ -81,6 +83,10 @@ export const onRequestPost = async ({ request, env }) => {
   const subtitle = sanitizeText(body?.subtitle, MAX_SUBTITLE_LEN);
   const lines = sanitizeLines(body?.lines);
   const targetPath = sanitizeText(body?.targetPath, 64);
+  const tierRaw = body?.tier == null ? null : parseInt(String(body.tier), 10);
+  const tier = Number.isFinite(tierRaw) ? Math.max(1, Math.min(9, tierRaw)) : null;
+  const tierTitle = sanitizeText(body?.tierTitle, MAX_TIER_TITLE_LEN);
+  const tierTagline = sanitizeText(body?.tierTagline, MAX_TIER_TAGLINE_LEN);
   const imageBytes = decodePngDataUrl(body?.imageDataUrl);
 
   if (!title || !imageBytes) {
@@ -111,6 +117,9 @@ export const onRequestPost = async ({ request, env }) => {
     subtitle,
     lines,
     targetPath,
+    tier,
+    tierTitle,
+    tierTagline,
   };
 
   const metaKey = `${META_PREFIX}${id}`;
@@ -140,4 +149,3 @@ export const onRequestOptions = async () => {
     },
   });
 };
-
