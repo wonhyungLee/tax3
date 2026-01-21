@@ -189,25 +189,22 @@ export async function createShareImageDataUrl({
     ctx.save();
     drawRoundedRect(ctx, memeX, memeY, memeW, memeH, radius);
     ctx.clip();
-    if (memeIsTemplate) {
-      const srcX = Math.floor(memeImage.naturalWidth * 0.42);
-      const srcY = 0;
-      const srcW = Math.max(1, memeImage.naturalWidth - srcX);
-      const srcH = memeImage.naturalHeight;
-      const scale = Math.min(memeW / srcW, memeH / srcH);
-      const drawW = srcW * scale;
-      const drawH = srcH * scale;
-      const drawX = memeX + (memeW - drawW) / 2;
-      const drawY = memeY + (memeH - drawH) / 2;
-      ctx.drawImage(memeImage, srcX, srcY, srcW, srcH, drawX, drawY, drawW, drawH);
-    } else {
-      const scale = Math.min(memeW / memeImage.naturalWidth, memeH / memeImage.naturalHeight);
-      const drawW = memeImage.naturalWidth * scale;
-      const drawH = memeImage.naturalHeight * scale;
-      const drawX = memeX + (memeW - drawW) / 2;
-      const drawY = memeY + (memeH - drawH) / 2;
-      ctx.drawImage(memeImage, drawX, drawY, drawW, drawH);
-    }
+    const naturalW = memeImage.naturalWidth || memeImage.width || 1;
+    const naturalH = memeImage.naturalHeight || memeImage.height || 1;
+    const aspect = naturalW / naturalH;
+    const cropWideTemplate = Boolean(memeIsTemplate && aspect >= 1.2);
+
+    const srcX = cropWideTemplate ? Math.floor(naturalW * 0.42) : 0;
+    const srcY = 0;
+    const srcW = cropWideTemplate ? Math.max(1, naturalW - srcX) : naturalW;
+    const srcH = naturalH;
+
+    const scale = Math.max(memeW / srcW, memeH / srcH);
+    const drawW = srcW * scale;
+    const drawH = srcH * scale;
+    const drawX = memeX + (memeW - drawW) / 2;
+    const drawY = memeY + (memeH - drawH) / 2;
+    ctx.drawImage(memeImage, srcX, srcY, srcW, srcH, drawX, drawY, drawW, drawH);
     ctx.restore();
 
     ctx.save();
