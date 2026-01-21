@@ -10,35 +10,39 @@ const getBase = (calculatorId) => CALC_BASE_WON[calculatorId] ?? 300_000;
 
 const buildBreakpoints = (base) => [-base * 30, -base * 10, -base * 3, -base, 0, base, base * 3, base * 10];
 
-const pickTier = (amountWon, breakpoints) => {
+const pickTierAscending = (amountWon, breakpoints) => {
   if (!Number.isFinite(amountWon)) return 5;
   let idx = 0;
   for (const b of breakpoints) if (amountWon >= b) idx += 1;
   return clampInt(idx + 1, 1, 9);
 };
 
+const invertTier = (tier) => clampInt(10 - tier, 1, 9);
+
+const pickTier = (amountWon, breakpoints) => invertTier(pickTierAscending(amountWon, breakpoints));
+
 const TIER_COPY = [
-  { title: '세금 보스', tagline: '오늘은 납부가 주인공… 다음엔 공제 아이템을 챙겨보자.' },
-  { title: '지갑이 운다', tagline: '납부는 아프지만, 증빙은 배신하지 않는다.' },
-  { title: '납부 숙련', tagline: '방심 금지. 한 번만 더 점검하면 체감이 달라진다.' },
-  { title: '아슬아슬', tagline: '거의 무승부. 놓친 공제/경비가 없는지 한 번만 더.' },
-  { title: '균형의 수호자', tagline: '크게 흔들리지 않는 편. 최적화 여지는 아직 있다.' },
-  { title: '환급 예고', tagline: '커피값 정도는 돌아올지도. 작은 항목이 큰 차이를 만든다.' },
-  { title: '환급 달인', tagline: '필수 체크를 잘 챙겼다. 남은 건 누락 방지!' },
-  { title: '환급 MVP', tagline: '공제/경비 운영이 깔끔하다. 이제는 “증빙”이 핵심.' },
   { title: '환급 레전드', tagline: '오늘은 세금이 당신 편. 결과 공유하고 뿌듯해하자.' },
+  { title: '환급 MVP', tagline: '공제/경비 운영이 깔끔하다. 이제는 “증빙”이 핵심.' },
+  { title: '환급 달인', tagline: '필수 체크를 잘 챙겼다. 남은 건 누락 방지!' },
+  { title: '환급 예고', tagline: '커피값 정도는 돌아올지도. 작은 항목이 큰 차이를 만든다.' },
+  { title: '균형의 수호자', tagline: '크게 흔들리지 않는 편. 최적화 여지는 아직 있다.' },
+  { title: '아슬아슬', tagline: '거의 무승부. 놓친 공제/경비가 없는지 한 번만 더.' },
+  { title: '납부 숙련', tagline: '방심 금지. 한 번만 더 점검하면 체감이 달라진다.' },
+  { title: '지갑이 운다', tagline: '납부는 아프지만, 증빙은 배신하지 않는다.' },
+  { title: '세금 보스', tagline: '오늘은 납부가 주인공… 다음엔 공제 아이템을 챙겨보자.' },
 ];
 
 const TIER_PALETTES = [
-  { bgA: '#fff1f3', bgB: '#ffe4e6', accentA: '#ff7aa2', accentB: '#ffb4a2' },
-  { bgA: '#fff7ed', bgB: '#ffe7d6', accentA: '#ffb86b', accentB: '#ff7aa2' },
-  { bgA: '#fffbe6', bgB: '#fff1c7', accentA: '#ffd66f', accentB: '#ffb4a2' },
-  { bgA: '#f6fff2', bgB: '#e9fff5', accentA: '#7be4c7', accentB: '#6fb4ff' },
-  { bgA: '#f7f9ff', bgB: '#fff1f7', accentA: '#6fb4ff', accentB: '#f6a5c0' },
-  { bgA: '#eef7ff', bgB: '#eaf6ff', accentA: '#6fb4ff', accentB: '#9dd4ff' },
-  { bgA: '#eafcff', bgB: '#e7fff3', accentA: '#7be4c7', accentB: '#6fb4ff' },
+  { bgA: '#e7fff3', bgB: '#e7f6ff', accentA: '#7be4c7', accentB: '#6fb4ff' },
   { bgA: '#e8fff6', bgB: '#e7f6ff', accentA: '#7be4c7', accentB: '#9dd4ff' },
-  { bgA: '#e7fff3', bgB: '#e7f6ff', accentA: '#7be4c7', accentB: '#f6a5c0' },
+  { bgA: '#eafcff', bgB: '#e7fff3', accentA: '#7be4c7', accentB: '#6fb4ff' },
+  { bgA: '#eef7ff', bgB: '#eaf6ff', accentA: '#6fb4ff', accentB: '#9dd4ff' },
+  { bgA: '#f7f9ff', bgB: '#fff1f7', accentA: '#6fb4ff', accentB: '#f6a5c0' },
+  { bgA: '#f6fff2', bgB: '#e9fff5', accentA: '#7be4c7', accentB: '#6fb4ff' },
+  { bgA: '#fffbe6', bgB: '#fff1c7', accentA: '#ffd66f', accentB: '#ffb4a2' },
+  { bgA: '#fff7ed', bgB: '#ffe7d6', accentA: '#ffb86b', accentB: '#ff7aa2' },
+  { bgA: '#fff1f3', bgB: '#ffe4e6', accentA: '#ff7aa2', accentB: '#ffb4a2' },
 ];
 
 const escapeXml = (value) =>
@@ -107,8 +111,8 @@ const buildTips = ({ calculatorId, tier, amountWon }) => {
     tips.push('입력값(특히 기납부/원천징수)부터 다시 확인해 보세요.');
   }
 
-  if (tier <= 3) tips.unshift('이번 결과는 “납부 구간”에 가깝습니다. 누락/입력 실수를 먼저 의심해 보세요.');
-  if (tier >= 8) tips.unshift('좋은 결과입니다. 공유 이미지로 남겨두면 다음 해 비교가 쉬워요.');
+  if (tier >= 8) tips.unshift('이번 결과는 “납부 구간”에 가깝습니다. 누락/입력 실수를 먼저 의심해 보세요.');
+  if (tier <= 3) tips.unshift('좋은 결과입니다. 공유 이미지로 남겨두면 다음 해 비교가 쉬워요.');
 
   return tips.slice(0, 4);
 };
@@ -139,4 +143,3 @@ export function getTaxGamification({ calculatorId, netBenefitWon }) {
     prevBoundary,
   };
 }
-

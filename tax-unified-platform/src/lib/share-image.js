@@ -71,6 +71,10 @@ export async function createShareImageDataUrl({
   theme = DEFAULT_THEME,
   badge = 'Tax Unified',
   tier = null,
+  primaryLabel = '',
+  primaryValue = '',
+  footerTitle = '',
+  footerText = '',
   footnote = '추정 결과 · 실제 신고/정산은 다를 수 있음',
 }) {
   if (typeof document === 'undefined') {
@@ -156,51 +160,130 @@ export async function createShareImageDataUrl({
     ctx.fillText(tierText, tierX + 14, tierY + tierH / 2);
   }
 
-  const titleMaxWidth = innerW;
-  const titleFontSize = title.length > 28 ? 52 : 64;
-  ctx.font = `900 ${titleFontSize}px "Noto Sans KR","Space Grotesk",system-ui,sans-serif`;
-  ctx.fillStyle = theme.text;
-  ctx.textBaseline = 'top';
-  const titleLines = wrapText(ctx, title, titleMaxWidth, 2);
-  let cursorY = badgeY + badgeH + 30;
-  for (const line of titleLines) {
-    ctx.fillText(line, innerX, cursorY);
-    cursorY += titleFontSize + 12;
-  }
+  const hasPrimary = Boolean(String(primaryValue || '').trim());
+  let cursorY = badgeY + badgeH + 28;
 
-  if (subtitle) {
-    ctx.font = '700 26px "Noto Sans KR","Space Grotesk",system-ui,sans-serif';
-    ctx.fillStyle = theme.muted;
-    const subLines = wrapText(ctx, subtitle, innerW, 2);
-    for (const line of subLines) {
-      ctx.fillText(line, innerX, cursorY);
-      cursorY += 34;
-    }
-    cursorY += 6;
-  } else {
-    cursorY += 10;
-  }
+  if (hasPrimary) {
+    const tierNumber = tier?.tier ? String(tier.tier) : '';
+    const tierTitle = tier?.title ? String(tier.title) : '';
+    const paletteA = tier?.palette?.accentA || theme.accentA;
+    const paletteB = tier?.palette?.accentB || theme.accentB;
+    const accent = ctx.createLinearGradient(innerX, cursorY, innerX + innerW, cursorY);
+    accent.addColorStop(0, paletteA);
+    accent.addColorStop(1, paletteB);
 
-  const list = Array.isArray(lines) ? lines.filter(Boolean).slice(0, 5) : [];
-  if (list.length) {
-    ctx.font = '700 22px "Noto Sans KR","Space Grotesk",system-ui,sans-serif';
-    ctx.fillStyle = theme.text;
-    for (const item of list) {
-      const bullet = `• ${item}`;
-      const bulletLines = wrapText(ctx, bullet, innerW, 2);
-      for (const line of bulletLines) {
-        ctx.fillText(line, innerX, cursorY);
-        cursorY += 30;
+    if (tierNumber) {
+      ctx.font = '900 74px "Noto Sans KR","Space Grotesk",system-ui,sans-serif';
+      ctx.fillStyle = accent;
+      ctx.textBaseline = 'top';
+      ctx.fillText(`${tierNumber}등급`, innerX, cursorY);
+      cursorY += 86;
+
+      if (tierTitle) {
+        ctx.font = '900 34px "Noto Sans KR","Space Grotesk",system-ui,sans-serif';
+        ctx.fillStyle = theme.text;
+        ctx.fillText(tierTitle, innerX, cursorY);
+        cursorY += 46;
+      } else {
+        cursorY += 8;
       }
-      cursorY += 4;
+    }
+
+    const labelText = String(primaryLabel || '').trim();
+    if (labelText) {
+      ctx.font = '900 22px "Noto Sans KR","Space Grotesk",system-ui,sans-serif';
+      const labelW = Math.max(120, ctx.measureText(labelText).width + 28);
+      const labelH = 40;
+      const labelX = innerX;
+      const labelY = cursorY;
+      ctx.fillStyle = accent;
+      drawRoundedRect(ctx, labelX, labelY, labelW, labelH, 18);
+      ctx.fill();
+      ctx.fillStyle = '#0d1c2b';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(labelText, labelX + 14, labelY + labelH / 2);
+      cursorY += labelH + 18;
+    }
+
+    const valueText = String(primaryValue || '').trim();
+    ctx.font = '900 92px "Space Grotesk","Noto Sans KR",system-ui,sans-serif';
+    ctx.fillStyle = theme.text;
+    ctx.textBaseline = 'top';
+    ctx.fillText(valueText, innerX, cursorY);
+    cursorY += 104;
+
+    const sub = String(subtitle || tier?.tagline || '').trim();
+    if (sub) {
+      ctx.font = '700 24px "Noto Sans KR","Space Grotesk",system-ui,sans-serif';
+      ctx.fillStyle = theme.muted;
+      const subLines = wrapText(ctx, sub, innerW, 2);
+      for (const line of subLines) {
+        ctx.fillText(line, innerX, cursorY);
+        cursorY += 32;
+      }
+    }
+  } else {
+    const titleMaxWidth = innerW;
+    const titleFontSize = title.length > 28 ? 52 : 64;
+    ctx.font = `900 ${titleFontSize}px "Noto Sans KR","Space Grotesk",system-ui,sans-serif`;
+    ctx.fillStyle = theme.text;
+    ctx.textBaseline = 'top';
+    const titleLines = wrapText(ctx, title, titleMaxWidth, 2);
+    for (const line of titleLines) {
+      ctx.fillText(line, innerX, cursorY);
+      cursorY += titleFontSize + 12;
+    }
+
+    if (subtitle) {
+      ctx.font = '700 26px "Noto Sans KR","Space Grotesk",system-ui,sans-serif';
+      ctx.fillStyle = theme.muted;
+      const subLines = wrapText(ctx, subtitle, innerW, 2);
+      for (const line of subLines) {
+        ctx.fillText(line, innerX, cursorY);
+        cursorY += 34;
+      }
+      cursorY += 6;
+    } else {
+      cursorY += 10;
+    }
+
+    const list = Array.isArray(lines) ? lines.filter(Boolean).slice(0, 5) : [];
+    if (list.length) {
+      ctx.font = '700 22px "Noto Sans KR","Space Grotesk",system-ui,sans-serif';
+      ctx.fillStyle = theme.text;
+      for (const item of list) {
+        const bullet = `• ${item}`;
+        const bulletLines = wrapText(ctx, bullet, innerW, 2);
+        for (const line of bulletLines) {
+          ctx.fillText(line, innerX, cursorY);
+          cursorY += 30;
+        }
+        cursorY += 4;
+      }
     }
   }
 
-  const footerY = cardY + cardH - 56;
-  ctx.font = '600 18px "Noto Sans KR","Space Grotesk",system-ui,sans-serif';
-  ctx.fillStyle = theme.muted;
+  const footerY = cardY + cardH - 58;
+  const footerTitleText = String(footerTitle || '').trim();
+  const footerBodyText = String(footerText || '').trim();
   ctx.textBaseline = 'alphabetic';
-  ctx.fillText(footnote, innerX, footerY);
+
+  if (footerTitleText || footerBodyText) {
+    if (footerTitleText) {
+      ctx.font = '900 20px "Noto Sans KR","Space Grotesk",system-ui,sans-serif';
+      ctx.fillStyle = theme.text;
+      ctx.fillText(footerTitleText, innerX, footerY - 22);
+    }
+    if (footerBodyText) {
+      ctx.font = '600 18px "Noto Sans KR","Space Grotesk",system-ui,sans-serif';
+      ctx.fillStyle = theme.muted;
+      ctx.fillText(footerBodyText, innerX, footerY);
+    }
+  } else {
+    ctx.font = '600 18px "Noto Sans KR","Space Grotesk",system-ui,sans-serif';
+    ctx.fillStyle = theme.muted;
+    ctx.fillText(footnote, innerX, footerY);
+  }
   ctx.restore();
 
   return canvas.toDataURL('image/png');

@@ -1129,10 +1129,10 @@ function TaxWizard({ initialCalculator = null }) {
   const shareDraft = useMemo(() => {
     if (calculator === 'yearend') {
       const refund = yearendResult?.outputs?.refundAmount ?? 0;
-      const label = refund >= 0 ? '환급' : '추납';
-      const sign = refund >= 0 ? '+' : '';
-      const title = `연말정산 · ${label} ${sign}${formatWon(Math.abs(refund))}`;
-      const subtitle = `결정세액 ${formatWon(yearendResult.outputs.totalDeterminedTax)} · 기납부 ${formatWon(yearendResult.outputs.withheldTotalTax)}`;
+      const outcomeLabel = refund >= 0 ? '환급' : '납부';
+      const amountText = formatWon(Math.abs(refund));
+      const title = `연말정산 · ${outcomeLabel} ${amountText} · ${gamification?.tier ?? '-'}등급`;
+      const subtitle = gamification?.tagline ? String(gamification.tagline) : '';
       return {
         calculatorId: 'yearend',
         targetPath: '/yearend-tax',
@@ -1141,18 +1141,18 @@ function TaxWizard({ initialCalculator = null }) {
         tier: gamification?.tier,
         tierTitle: gamification?.title,
         tierTagline: gamification?.tagline,
-        lines: [
-          `과세표준 ${formatWon(yearendResult.outputs.taxableIncome)}`,
-          `산출세액 ${formatWon(yearendResult.outputs.calculatedTax)}`,
-        ],
+        primaryLabel: outcomeLabel,
+        primaryValue: amountText,
+        lines: [],
       };
     }
 
     if (calculator === 'corporate') {
       const payable = corporateResult?.payableTax ?? 0;
-      const label = payable >= 0 ? '납부' : '환급';
-      const title = `법인세 · ${label} ${formatWon(Math.abs(payable))}`;
-      const subtitle = `최종세액 ${formatWon(corporateResult.finalTax)} · 과세표준 ${formatWon(corporateResult.taxBase)}`;
+      const outcomeLabel = payable >= 0 ? '납부' : '환급';
+      const amountText = formatWon(Math.abs(payable));
+      const title = `법인세 · ${outcomeLabel} ${amountText} · ${gamification?.tier ?? '-'}등급`;
+      const subtitle = gamification?.tagline ? String(gamification.tagline) : '';
       return {
         calculatorId: 'corporate',
         targetPath: '/corporate-tax',
@@ -1161,19 +1161,19 @@ function TaxWizard({ initialCalculator = null }) {
         tier: gamification?.tier,
         tierTitle: gamification?.title,
         tierTagline: gamification?.tagline,
-        lines: [
-          `산출세액 ${formatWon(corporateResult.calculatedTax)} · 최저한세 ${formatWon(corporateResult.minimumTax)}`,
-          `기납부세액 ${formatWon(corporateResult.prepaidTax)}`,
-        ],
+        primaryLabel: outcomeLabel,
+        primaryValue: amountText,
+        lines: [],
       };
     }
 
     if (calculator === 'financial') {
       const payable = financialResult?.taxes?.totalPayable ?? 0;
-      const label = payable >= 0 ? '납부' : '환급';
       const method = financialResult?.chosenMethod === 'comprehensive' ? '종합과세' : '분리과세';
-      const title = `종합소득세 · ${label} ${formatWon(Math.abs(payable))}`;
-      const subtitle = `선택: ${method} · 금융소득 ${formatWon(financialResult.financialTotal)}`;
+      const outcomeLabel = payable >= 0 ? '납부' : '환급';
+      const amountText = formatWon(Math.abs(payable));
+      const title = `종합소득세 · ${outcomeLabel} ${amountText} · ${gamification?.tier ?? '-'}등급`;
+      const subtitle = `선택: ${method}`;
       return {
         calculatorId: 'financial',
         targetPath: '/income-tax',
@@ -1182,11 +1182,9 @@ function TaxWizard({ initialCalculator = null }) {
         tier: gamification?.tier,
         tierTitle: gamification?.title,
         tierTagline: gamification?.tagline,
-        lines: [
-          `A(종합) ${formatWon(financialResult.taxes.methodATax)} / B(분리) ${formatWon(financialResult.taxes.methodBTax)}`,
-          `국세 ${formatWon(financialResult.taxes.nationalTax)} · 지방세 ${formatWon(financialResult.taxes.localIncomeTax)}`,
-          `기납부 ${formatWon(financialResult.prepaid.prepaidNational + financialResult.prepaid.prepaidLocal + financialResult.prepaid.prepaidOther)}`,
-        ],
+        primaryLabel: outcomeLabel,
+        primaryValue: amountText,
+        lines: [],
       };
     }
 
@@ -1217,6 +1215,10 @@ function TaxWizard({ initialCalculator = null }) {
         subtitle: shareDraft.subtitle,
         lines: shareDraft.lines,
         tier: gamification,
+        primaryLabel: shareDraft.primaryLabel,
+        primaryValue: shareDraft.primaryValue,
+        footerTitle: '연말정산 · 법인세 · 종합소득세',
+        footerText: '나의 세금 등급은 몇등급인지 자랑해볼까요?',
       });
 
       const res = await fetch('/api/share', {

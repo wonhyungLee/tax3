@@ -46,8 +46,10 @@ export const onRequestGet = async ({ request, env, params }) => {
   const origin = url.origin;
   const canonical = `${origin}/share/${encodeURIComponent(id)}`;
   const imageUrl = `${origin}/og/${encodeURIComponent(id)}.png`;
-  const title = meta?.title ? String(meta.title) : '세금 계산 결과';
+  const pageTitle = meta?.title ? String(meta.title) : '세금 계산 결과';
   const description = buildDescription(meta);
+  const ogTitle = '연말정산 · 법인세 · 종합소득세';
+  const ogDescription = '나의 세금 등급은 몇등급인지 자랑해볼까요?';
 
   const targetPath = meta?.targetPath && String(meta.targetPath).startsWith('/') ? meta.targetPath : '/';
   const ctaUrl = `${origin}${targetPath}`;
@@ -70,12 +72,12 @@ export const onRequestGet = async ({ request, env, params }) => {
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex, nofollow" />
-    <title>${escapeHtml(title)}</title>
+    <title>${escapeHtml(ogTitle)}</title>
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="ko_KR" />
     <meta property="og:site_name" content="Tax Unified" />
-    <meta property="og:title" content="${escapeHtml(title)}" />
-    <meta property="og:description" content="${escapeHtml(description)}" />
+    <meta property="og:title" content="${escapeHtml(ogTitle)}" />
+    <meta property="og:description" content="${escapeHtml(ogDescription)}" />
     <meta property="og:url" content="${escapeHtml(canonical)}" />
     <meta property="og:image" content="${escapeHtml(imageUrl)}" />
     <meta property="og:image:type" content="image/png" />
@@ -83,8 +85,8 @@ export const onRequestGet = async ({ request, env, params }) => {
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="세금 계산 결과 이미지" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="${escapeHtml(title)}" />
-    <meta name="twitter:description" content="${escapeHtml(description)}" />
+    <meta name="twitter:title" content="${escapeHtml(ogTitle)}" />
+    <meta name="twitter:description" content="${escapeHtml(ogDescription)}" />
     <meta name="twitter:image" content="${escapeHtml(imageUrl)}" />
     <style>
       body{margin:0;font-family:system-ui,-apple-system,'Noto Sans KR',sans-serif;background:#f6f7fb;color:#1f2430}
@@ -100,7 +102,7 @@ export const onRequestGet = async ({ request, env, params }) => {
   <body>
     <div class="wrap">
       <div class="card">
-        <h1>${escapeHtml(title)}</h1>
+        <h1>${escapeHtml(pageTitle)}</h1>
         ${tierHtml}
         <p class="muted">${escapeHtml(meta?.subtitle || '')}</p>
         ${listHtml}
