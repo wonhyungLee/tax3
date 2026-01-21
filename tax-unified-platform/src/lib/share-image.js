@@ -48,45 +48,6 @@ const loadImage = (src, timeoutMs = 2500) =>
     img.src = src;
   });
 
-const detectNonWhiteBounds = (ctx, x, y, w, h) => {
-  try {
-    const imageData = ctx.getImageData(x, y, w, h);
-    const { data } = imageData;
-    const white = 248;
-    const alphaMin = 12;
-    let minX = w;
-    let minY = h;
-    let maxX = -1;
-    let maxY = -1;
-
-    for (let py = 0; py < h; py += 1) {
-      for (let px = 0; px < w; px += 1) {
-        const idx = (py * w + px) * 4;
-        const a = data[idx + 3];
-        if (a < alphaMin) continue;
-        const r = data[idx];
-        const g = data[idx + 1];
-        const b = data[idx + 2];
-        if (r >= white && g >= white && b >= white) continue;
-        if (px < minX) minX = px;
-        if (py < minY) minY = py;
-        if (px > maxX) maxX = px;
-        if (py > maxY) maxY = py;
-      }
-    }
-
-    if (maxX < 0 || maxY < 0) return null;
-    return {
-      x: x + minX,
-      y: y + minY,
-      w: maxX - minX + 1,
-      h: maxY - minY + 1,
-    };
-  } catch {
-    return null;
-  }
-};
-
 const drawRoundedRect = (ctx, x, y, w, h, r) => {
   const radius = Math.max(0, Math.min(r, Math.min(w, h) / 2));
   ctx.beginPath();
@@ -164,47 +125,6 @@ export async function createShareImageDataUrl({
 	    const templateImage = await loadImage(tierTemplateUrl).catch(() => null);
 	    if (templateImage) {
 	      ctx.drawImage(templateImage, 0, 0, WIDTH, HEIGHT);
-
-	      const scanX = Math.floor(WIDTH * 0.46);
-	      const scanY = 0;
-	      const scanW = WIDTH - scanX;
-	      const scanH = Math.floor(HEIGHT * 0.68);
-	      const photoBox = detectNonWhiteBounds(ctx, scanX, scanY, scanW, scanH);
-	      if (photoBox && photoBox.w > 80 && photoBox.h > 80) {
-	        const radius = Math.min(34, Math.floor(Math.min(photoBox.w, photoBox.h) * 0.06));
-
-	        ctx.save();
-	        ctx.shadowColor = 'rgba(31,36,48,0.20)';
-	        ctx.shadowBlur = 18;
-	        ctx.shadowOffsetY = 10;
-	        ctx.fillStyle = 'rgba(255,255,255,0.92)';
-	        drawRoundedRect(ctx, photoBox.x - 8, photoBox.y - 8, photoBox.w + 16, photoBox.h + 16, radius + 10);
-	        ctx.fill();
-	        ctx.restore();
-
-	        ctx.save();
-	        drawRoundedRect(ctx, photoBox.x, photoBox.y, photoBox.w, photoBox.h, radius);
-	        ctx.clip();
-	        ctx.drawImage(
-	          templateImage,
-	          photoBox.x,
-	          photoBox.y,
-	          photoBox.w,
-	          photoBox.h,
-	          photoBox.x,
-	          photoBox.y,
-	          photoBox.w,
-	          photoBox.h,
-	        );
-	        ctx.restore();
-
-	        ctx.save();
-	        ctx.lineWidth = 3;
-	        ctx.strokeStyle = 'rgba(223,227,236,0.95)';
-	        drawRoundedRect(ctx, photoBox.x, photoBox.y, photoBox.w, photoBox.h, radius);
-	        ctx.stroke();
-	        ctx.restore();
-	      }
 
 	      const textX = 80;
 	      const textW = 520;
