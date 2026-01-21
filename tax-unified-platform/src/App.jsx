@@ -491,6 +491,7 @@ function TaxWizard({ initialCalculator = null }) {
     medical_expenses: '',
     education_k12: '',
     donations_general: '',
+    donations_political: '',
     rent_paid: '',
     rent_eligible: false,
   }));
@@ -651,6 +652,7 @@ function TaxWizard({ initialCalculator = null }) {
       medical_expenses: '',
       education_k12: '',
       donations_general: '',
+      donations_political: '',
       rent_paid: '',
       rent_eligible: false,
     });
@@ -975,6 +977,7 @@ function TaxWizard({ initialCalculator = null }) {
       medical_expenses: toNumber(yearendInputs.medical_expenses),
       education_k12: toNumber(yearendInputs.education_k12),
       donations_general: toNumber(yearendInputs.donations_general),
+      donations_political: toNumber(yearendInputs.donations_political),
       rent_paid: toNumber(yearendInputs.rent_paid),
       rent_eligible: Boolean(yearendInputs.rent_eligible),
     };
@@ -1715,6 +1718,19 @@ function TaxWizard({ initialCalculator = null }) {
               onChange={(e) => setYearendInputs((p) => ({ ...p, donations_general: e.target.value === '' ? '' : Number(e.target.value) }))}
               placeholder="예: 300000"
             />
+          </div>
+          <div className="field">
+            <label>정치자금 기부금(원, 선택)</label>
+            <input
+              inputMode="numeric"
+              type="number"
+              value={yearendInputs.donations_political}
+              onChange={(e) =>
+                setYearendInputs((p) => ({ ...p, donations_political: e.target.value === '' ? '' : Number(e.target.value) }))
+              }
+              placeholder="예: 100000"
+            />
+            <div className="hint">10만원까지는 100/110(약 90.909%) 비율로 세액공제가 적용됩니다.</div>
           </div>
           <div className="field">
             <label>월세(원)</label>

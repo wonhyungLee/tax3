@@ -362,7 +362,8 @@ export const calculateYearEndTax = (data) => {
     prematureEligible * 0.2 +
     infertilityEligible * 0.3;
 
-  const educationK12 = Math.min(Number(data.education_k12) || 0, 3_000_000);
+  const educationCapPeople = Math.max(1, eligibleCount);
+  const educationK12 = Math.min(Number(data.education_k12) || 0, 3_000_000 * educationCapPeople);
   const educationUniversity = Math.min(Number(data.education_university) || 0, 9_000_000);
   const educationSelf = Number(data.education_self) || 0;
   const educationTaxCredit = (educationK12 + educationUniversity + educationSelf) * 0.15;
