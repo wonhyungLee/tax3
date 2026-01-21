@@ -21,13 +21,13 @@ export const earnedIncomeDeduction = (gross) => {
 export const progressiveTax = (taxable) => {
   const brackets = [
     { limit: 14_000_000, rate: 0.06, deduction: 0 },
-    { limit: 50_000_000, rate: 0.15, deduction: 840_000 },
-    { limit: 88_000_000, rate: 0.24, deduction: 6_240_000 },
-    { limit: 150_000_000, rate: 0.35, deduction: 15_360_000 },
-    { limit: 300_000_000, rate: 0.38, deduction: 37_060_000 },
-    { limit: 500_000_000, rate: 0.4, deduction: 94_060_000 },
-    { limit: 1_000_000_000, rate: 0.42, deduction: 174_060_000 },
-    { limit: Infinity, rate: 0.45, deduction: 384_060_000 },
+    { limit: 50_000_000, rate: 0.15, deduction: 1_260_000 },
+    { limit: 88_000_000, rate: 0.24, deduction: 5_760_000 },
+    { limit: 150_000_000, rate: 0.35, deduction: 15_440_000 },
+    { limit: 300_000_000, rate: 0.38, deduction: 19_940_000 },
+    { limit: 500_000_000, rate: 0.4, deduction: 25_940_000 },
+    { limit: 1_000_000_000, rate: 0.42, deduction: 35_940_000 },
+    { limit: Infinity, rate: 0.45, deduction: 65_940_000 },
   ];
 
   const bracket = brackets.find((item) => taxable <= item.limit) || brackets[brackets.length - 1];
@@ -454,8 +454,8 @@ export const calculateYearEndTax = (data) => {
     otherTaxCredit;
 
   const determinedIncomeTaxRaw = Math.max(0, calculatedTax - totalTaxCredits);
-  const determinedIncomeTax = floor10(determinedIncomeTaxRaw);
-  const localTax = floor10(determinedIncomeTaxRaw * 0.1);
+  const determinedIncomeTax = Math.floor(determinedIncomeTaxRaw);
+  const localTax = Math.floor(determinedIncomeTaxRaw * 0.1);
   const totalDeterminedTax = determinedIncomeTax + localTax;
 
   const withheldTotal = withheldIncome + withheldLocal;
