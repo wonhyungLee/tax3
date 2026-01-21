@@ -121,125 +121,24 @@ export async function createShareImageDataUrl({
       ? `/tier-images/${Math.trunc(tierNumber)}.png`
       : '';
 
-	  if (tierTemplateUrl) {
-	    const templateImage = await loadImage(tierTemplateUrl).catch(() => null);
-	    if (templateImage) {
-	      ctx.drawImage(templateImage, 0, 0, WIDTH, HEIGHT);
+  let memeImage = null;
+  let memeIsTemplate = false;
+  if (hasPrimary) {
+    if (tierTemplateUrl) {
+      memeImage = await loadImage(tierTemplateUrl).catch(() => null);
+      memeIsTemplate = Boolean(memeImage);
+    }
+    if (!memeImage && tier?.memeImageUrl) {
+      memeImage = await loadImage(tier.memeImageUrl).catch(() => null);
+      memeIsTemplate = false;
+    }
+  }
 
-	      const textX = 80;
-	      const textW = 520;
-	      const headerY = 78;
-	      let cursorY = headerY;
-
-	      const paletteA = tier?.palette?.accentA || theme.accentA;
-	      const paletteB = tier?.palette?.accentB || theme.accentB;
-	      const accent = ctx.createLinearGradient(textX, cursorY, textX + textW, cursorY);
-	      accent.addColorStop(0, paletteA);
-	      accent.addColorStop(1, paletteB);
-
-	      ctx.textBaseline = 'middle';
-	      ctx.font = '900 20px "Space Grotesk","Noto Sans KR",system-ui,sans-serif';
-	      const pillText = 'TAX UNIFIED';
-	      const pillW = Math.min(textW, Math.max(140, ctx.measureText(pillText).width + 34));
-	      const pillH = 34;
-	      drawRoundedRect(ctx, textX, headerY, pillW, pillH, 18);
-	      ctx.fillStyle = accent;
-	      ctx.fill();
-	      ctx.fillStyle = '#0d1c2b';
-	      ctx.fillText(pillText, textX + 16, headerY + pillH / 2);
-
-	      ctx.font = '700 22px "Space Grotesk","Noto Sans KR",system-ui,sans-serif';
-	      ctx.fillStyle = theme.muted;
-	      ctx.fillText('Gamification', textX + pillW + 14, headerY + pillH / 2);
-
-	      cursorY = headerY + pillH + 26;
-	      ctx.textBaseline = 'top';
-
-	      if (Number.isFinite(tierNumber)) {
-	        const tierText = `${Math.trunc(tierNumber)}등급`;
-	        ctx.font = '900 86px "Noto Sans KR","Space Grotesk",system-ui,sans-serif';
-	        ctx.shadowColor = 'rgba(31,36,48,0.12)';
-	        ctx.shadowBlur = 12;
-	        ctx.shadowOffsetY = 6;
-	        ctx.fillStyle = accent;
-	        ctx.fillText(tierText, textX, cursorY);
-	        ctx.shadowColor = 'transparent';
-	        ctx.shadowBlur = 0;
-	        ctx.shadowOffsetY = 0;
-	        cursorY += 106;
-	      }
-
-	      const tierTitleText = String(tier?.title || '').trim();
-	      if (tierTitleText) {
-	        let titleSize = 54;
-	        while (titleSize > 38) {
-	          ctx.font = `900 ${titleSize}px "Noto Sans KR","Space Grotesk",system-ui,sans-serif`;
-	          if (ctx.measureText(tierTitleText).width <= textW) break;
-	          titleSize -= 2;
-	        }
-	        ctx.fillStyle = theme.text;
-	        ctx.fillText(tierTitleText, textX, cursorY);
-	        cursorY += 72;
-	      } else {
-	        cursorY += 18;
-	      }
-
-	      const labelText = String(primaryLabel || '').trim();
-	      const valueText = String(primaryValue || '').trim();
-	      const outcomeText = labelText ? `${labelText} ${valueText}` : valueText;
-	      let valueSize = 74;
-	      while (valueSize > 48) {
-	        ctx.font = `900 ${valueSize}px "Noto Sans KR","Space Grotesk",system-ui,sans-serif`;
-	        if (ctx.measureText(outcomeText).width <= textW) break;
-	        valueSize -= 2;
-	      }
-
-	      if (labelText) {
-	        const labelWithSpace = `${labelText} `;
-	        const labelWidth = ctx.measureText(labelWithSpace).width;
-	        ctx.fillStyle = accent;
-	        ctx.fillText(labelText, textX, cursorY);
-	        ctx.fillStyle = theme.text;
-	        ctx.fillText(valueText, textX + labelWidth, cursorY);
-	      } else {
-	        ctx.fillStyle = theme.text;
-	        ctx.fillText(valueText, textX, cursorY);
-	      }
-
-	      const frameInset = 18;
-	      const frameRadius = 32;
-	      const frameGrad = ctx.createLinearGradient(0, 0, WIDTH, HEIGHT);
-	      frameGrad.addColorStop(0, paletteA);
-	      frameGrad.addColorStop(1, paletteB);
-	      ctx.save();
-	      ctx.lineWidth = 14;
-	      ctx.strokeStyle = frameGrad;
-	      drawRoundedRect(ctx, frameInset, frameInset, WIDTH - frameInset * 2, HEIGHT - frameInset * 2, frameRadius);
-	      ctx.stroke();
-	      ctx.restore();
-
-	      ctx.save();
-	      ctx.lineWidth = 2;
-	      ctx.strokeStyle = 'rgba(255,255,255,0.85)';
-	      const innerInset = frameInset + 10;
-	      drawRoundedRect(
-	        ctx,
-	        innerInset,
-	        innerInset,
-	        WIDTH - innerInset * 2,
-	        HEIGHT - innerInset * 2,
-	        Math.max(12, frameRadius - 10),
-	      );
-	      ctx.stroke();
-	      ctx.restore();
-
-	      return canvas.toDataURL('image/png');
-	    }
-	  }
-
+  const bgA = tier?.palette?.bgA || theme.bgA;
+  const bgB = tier?.palette?.bgB || theme.bgB;
   const bg = ctx.createLinearGradient(0, 0, WIDTH, HEIGHT);
-  bg.addColorStop(0, theme.bgA);
-  bg.addColorStop(1, theme.bgB);
+  bg.addColorStop(0, bgA);
+  bg.addColorStop(1, bgB);
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
@@ -265,112 +164,163 @@ export async function createShareImageDataUrl({
   const innerX = cardX + 58;
   const innerY = cardY + 56;
   const innerW = cardW - 116;
+  const innerBottomY = cardY + cardH - 56;
+  const badgeY = innerY - 6;
+
+  const hasMeme = Boolean(hasPrimary && memeImage);
+  const memeW = hasMeme ? 360 : 0;
+  const memeGap = hasMeme ? 34 : 0;
+  const memeX = innerX + innerW - memeW;
+  const memeY = badgeY;
+  const memeH = hasMeme ? innerBottomY - memeY : 0;
+  const textW = hasMeme ? memeX - memeGap - innerX : innerW;
+
+  if (hasMeme) {
+    const radius = 22;
+    ctx.save();
+    ctx.shadowColor = 'rgba(31,36,48,0.16)';
+    ctx.shadowBlur = 24;
+    ctx.shadowOffsetY = 12;
+    ctx.fillStyle = 'rgba(255,255,255,0.92)';
+    drawRoundedRect(ctx, memeX, memeY, memeW, memeH, radius);
+    ctx.fill();
+    ctx.restore();
+
+    ctx.save();
+    drawRoundedRect(ctx, memeX, memeY, memeW, memeH, radius);
+    ctx.clip();
+    if (memeIsTemplate) {
+      const srcX = Math.floor(memeImage.naturalWidth * 0.42);
+      const srcY = 0;
+      const srcW = Math.max(1, memeImage.naturalWidth - srcX);
+      const srcH = memeImage.naturalHeight;
+      const scale = Math.min(memeW / srcW, memeH / srcH);
+      const drawW = srcW * scale;
+      const drawH = srcH * scale;
+      const drawX = memeX + (memeW - drawW) / 2;
+      const drawY = memeY + (memeH - drawH) / 2;
+      ctx.drawImage(memeImage, srcX, srcY, srcW, srcH, drawX, drawY, drawW, drawH);
+    } else {
+      const scale = Math.min(memeW / memeImage.naturalWidth, memeH / memeImage.naturalHeight);
+      const drawW = memeImage.naturalWidth * scale;
+      const drawH = memeImage.naturalHeight * scale;
+      const drawX = memeX + (memeW - drawW) / 2;
+      const drawY = memeY + (memeH - drawH) / 2;
+      ctx.drawImage(memeImage, drawX, drawY, drawW, drawH);
+    }
+    ctx.restore();
+
+    ctx.save();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = 'rgba(223,227,236,0.95)';
+    drawRoundedRect(ctx, memeX, memeY, memeW, memeH, radius);
+    ctx.stroke();
+    ctx.restore();
+  }
 
   ctx.save();
-  ctx.font = '700 22px "Space Grotesk","Noto Sans KR",system-ui,sans-serif';
-  const badgeW = Math.max(120, ctx.measureText(badge).width + 26);
-  const badgeH = 36;
-  const badgeX = innerX;
-  const badgeY = innerY - 6;
-  const badgeGrad = ctx.createLinearGradient(badgeX, badgeY, badgeX + badgeW, badgeY + badgeH);
-  badgeGrad.addColorStop(0, theme.accentA);
-  badgeGrad.addColorStop(1, theme.accentB);
-  ctx.fillStyle = badgeGrad;
-  drawRoundedRect(ctx, badgeX, badgeY, badgeW, badgeH, 18);
+  const paletteA = tier?.palette?.accentA || theme.accentA;
+  const paletteB = tier?.palette?.accentB || theme.accentB;
+  const accent = ctx.createLinearGradient(innerX, badgeY, innerX + Math.max(240, textW), badgeY);
+  accent.addColorStop(0, paletteA);
+  accent.addColorStop(1, paletteB);
+
+  ctx.textBaseline = 'middle';
+  ctx.font = '900 20px "Space Grotesk","Noto Sans KR",system-ui,sans-serif';
+  const pillText = 'TAX UNIFIED';
+  const pillW = Math.min(textW, Math.max(140, ctx.measureText(pillText).width + 34));
+  const pillH = 34;
+  drawRoundedRect(ctx, innerX, badgeY, pillW, pillH, 18);
+  ctx.fillStyle = accent;
   ctx.fill();
   ctx.fillStyle = '#0d1c2b';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(badge, badgeX + 14, badgeY + badgeH / 2);
+  ctx.fillText(pillText, innerX + 16, badgeY + pillH / 2);
+
+  ctx.font = '700 22px "Space Grotesk","Noto Sans KR",system-ui,sans-serif';
+  ctx.fillStyle = theme.muted;
+  const gamificationText = 'Gamification';
+  const gamificationW = ctx.measureText(gamificationText).width;
+  ctx.fillText(gamificationText, innerX + pillW + 14, badgeY + pillH / 2);
 
   const dateText = formatDateKst(new Date());
   ctx.font = '700 18px "Space Grotesk","Noto Sans KR",system-ui,sans-serif';
   ctx.fillStyle = theme.muted;
   const dateWidth = ctx.measureText(dateText).width;
-  ctx.fillText(dateText, innerX + innerW - dateWidth, badgeY + badgeH / 2);
+  const minDateX = innerX + pillW + 14 + gamificationW + 18;
+  const dateX = innerX + textW - dateWidth;
+  if (dateX >= minDateX) ctx.fillText(dateText, dateX, badgeY + pillH / 2);
 
-  if (tier?.tier && tier?.title) {
-    const tierText = `${tier.tier}등급 · ${tier.title}`;
-    ctx.font = '900 18px "Noto Sans KR","Space Grotesk",system-ui,sans-serif';
-    const tierW = Math.min(innerW, Math.max(160, ctx.measureText(tierText).width + 26));
-    const tierH = 34;
-    const tierX = innerX + innerW - tierW;
-    const tierY = badgeY + badgeH + 12;
-    const a = tier?.palette?.accentA || theme.accentA;
-    const b = tier?.palette?.accentB || theme.accentB;
-    const tierGrad = ctx.createLinearGradient(tierX, tierY, tierX + tierW, tierY + tierH);
-    tierGrad.addColorStop(0, a);
-    tierGrad.addColorStop(1, b);
-    ctx.fillStyle = tierGrad;
-    drawRoundedRect(ctx, tierX, tierY, tierW, tierH, 18);
-    ctx.fill();
-    ctx.fillStyle = '#0d1c2b';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(tierText, tierX + 14, tierY + tierH / 2);
-  }
-
-  let cursorY = badgeY + badgeH + 28;
+  let cursorY = badgeY + pillH + 26;
+  ctx.textBaseline = 'top';
 
   if (hasPrimary) {
     const tierNumber = tier?.tier ? String(tier.tier) : '';
     const tierTitle = tier?.title ? String(tier.title) : '';
-    const paletteA = tier?.palette?.accentA || theme.accentA;
-    const paletteB = tier?.palette?.accentB || theme.accentB;
-    const accent = ctx.createLinearGradient(innerX, cursorY, innerX + innerW, cursorY);
-    accent.addColorStop(0, paletteA);
-    accent.addColorStop(1, paletteB);
+    const accentLine = ctx.createLinearGradient(innerX, cursorY, innerX + Math.max(240, textW), cursorY);
+    accentLine.addColorStop(0, paletteA);
+    accentLine.addColorStop(1, paletteB);
 
     if (tierNumber) {
-      ctx.font = '900 74px "Noto Sans KR","Space Grotesk",system-ui,sans-serif';
-      ctx.fillStyle = accent;
+      let tierSize = 74;
+      while (tierSize > 52) {
+        ctx.font = `900 ${tierSize}px "Noto Sans KR","Space Grotesk",system-ui,sans-serif`;
+        if (ctx.measureText(`${tierNumber}등급`).width <= textW) break;
+        tierSize -= 2;
+      }
+      ctx.fillStyle = accentLine;
       ctx.textBaseline = 'top';
       ctx.fillText(`${tierNumber}등급`, innerX, cursorY);
-      cursorY += 86;
+      cursorY += tierSize + 12;
 
       if (tierTitle) {
-        ctx.font = '900 34px "Noto Sans KR","Space Grotesk",system-ui,sans-serif';
+        let titleSize = 38;
+        while (titleSize > 28) {
+          ctx.font = `900 ${titleSize}px "Noto Sans KR","Space Grotesk",system-ui,sans-serif`;
+          if (ctx.measureText(tierTitle).width <= textW) break;
+          titleSize -= 1;
+        }
         ctx.fillStyle = theme.text;
         ctx.fillText(tierTitle, innerX, cursorY);
-        cursorY += 46;
+        cursorY += titleSize + 14;
       } else {
         cursorY += 8;
       }
     }
 
     const labelText = String(primaryLabel || '').trim();
-    if (labelText) {
-      ctx.font = '900 22px "Noto Sans KR","Space Grotesk",system-ui,sans-serif';
-      const labelW = Math.max(120, ctx.measureText(labelText).width + 28);
-      const labelH = 40;
-      const labelX = innerX;
-      const labelY = cursorY;
-      ctx.fillStyle = accent;
-      drawRoundedRect(ctx, labelX, labelY, labelW, labelH, 18);
-      ctx.fill();
-      ctx.fillStyle = '#0d1c2b';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(labelText, labelX + 14, labelY + labelH / 2);
-      cursorY += labelH + 18;
+    const valueText = String(primaryValue || '').trim();
+    const outcomeText = labelText ? `${labelText} ${valueText}` : valueText;
+    let valueSize = 74;
+    while (valueSize > 48) {
+      ctx.font = `900 ${valueSize}px "Noto Sans KR","Space Grotesk",system-ui,sans-serif`;
+      if (ctx.measureText(outcomeText).width <= textW) break;
+      valueSize -= 2;
     }
 
-    const valueText = String(primaryValue || '').trim();
-    ctx.font = '900 92px "Space Grotesk","Noto Sans KR",system-ui,sans-serif';
-    ctx.fillStyle = theme.text;
-    ctx.textBaseline = 'top';
-    ctx.fillText(valueText, innerX, cursorY);
-    cursorY += 104;
+    if (labelText) {
+      ctx.fillStyle = accentLine;
+      ctx.fillText(labelText, innerX, cursorY);
+      const labelWidth = ctx.measureText(`${labelText} `).width;
+      ctx.fillStyle = theme.text;
+      ctx.fillText(valueText, innerX + labelWidth, cursorY);
+    } else {
+      ctx.fillStyle = theme.text;
+      ctx.fillText(valueText, innerX, cursorY);
+    }
+    cursorY += valueSize + 18;
 
     const sub = String(subtitle || tier?.tagline || '').trim();
     if (sub) {
       ctx.font = '700 24px "Noto Sans KR","Space Grotesk",system-ui,sans-serif';
       ctx.fillStyle = theme.muted;
-      const subLines = wrapText(ctx, sub, innerW, 2);
+      const subLines = wrapText(ctx, sub, textW, 2);
       for (const line of subLines) {
         ctx.fillText(line, innerX, cursorY);
         cursorY += 32;
       }
     }
   } else {
-    const titleMaxWidth = innerW;
+    const titleMaxWidth = textW;
     const titleFontSize = title.length > 28 ? 52 : 64;
     ctx.font = `900 ${titleFontSize}px "Noto Sans KR","Space Grotesk",system-ui,sans-serif`;
     ctx.fillStyle = theme.text;
@@ -384,7 +334,7 @@ export async function createShareImageDataUrl({
     if (subtitle) {
       ctx.font = '700 26px "Noto Sans KR","Space Grotesk",system-ui,sans-serif';
       ctx.fillStyle = theme.muted;
-      const subLines = wrapText(ctx, subtitle, innerW, 2);
+      const subLines = wrapText(ctx, subtitle, textW, 2);
       for (const line of subLines) {
         ctx.fillText(line, innerX, cursorY);
         cursorY += 34;
@@ -400,7 +350,7 @@ export async function createShareImageDataUrl({
       ctx.fillStyle = theme.text;
       for (const item of list) {
         const bullet = `• ${item}`;
-        const bulletLines = wrapText(ctx, bullet, innerW, 2);
+        const bulletLines = wrapText(ctx, bullet, textW, 2);
         for (const line of bulletLines) {
           ctx.fillText(line, innerX, cursorY);
           cursorY += 30;
