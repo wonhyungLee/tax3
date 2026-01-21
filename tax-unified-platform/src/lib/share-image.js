@@ -23,6 +23,31 @@ const waitForFonts = async (timeoutMs = 1200) => {
   }
 };
 
+const loadImage = (src, timeoutMs = 2500) =>
+  new Promise((resolve, reject) => {
+    const img = new Image();
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      reject(new Error(`image timeout: ${src}`));
+    }, timeoutMs);
+
+    img.onload = () => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve(img);
+    };
+    img.onerror = () => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      reject(new Error(`image load error: ${src}`));
+    };
+    img.src = src;
+  });
+
 const drawRoundedRect = (ctx, x, y, w, h, r) => {
   const radius = Math.max(0, Math.min(r, Math.min(w, h) / 2));
   ctx.beginPath();
@@ -88,6 +113,67 @@ export async function createShareImageDataUrl({
   canvas.height = HEIGHT;
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('2d context not available');
+
+  const hasPrimary = Boolean(String(primaryValue || '').trim());
+  const tierNumber = tier?.tier ? Number(tier.tier) : null;
+  const tierTemplateUrl =
+    hasPrimary && Number.isFinite(tierNumber) && tierNumber >= 1 && tierNumber <= 9
+      ? `/tier-images/${Math.trunc(tierNumber)}.png`
+      : '';
+
+  if (tierTemplateUrl) {
+    const templateImage = await loadImage(tierTemplateUrl).catch(() => null);
+    if (templateImage) {
+      ctx.drawImage(templateImage, 0, 0, WIDTH, HEIGHT);
+
+      const textX = 80;
+      const textW = 520;
+      let cursorY = 120;
+
+      const paletteA = tier?.palette?.accentA || theme.accentA;
+      const paletteB = tier?.palette?.accentB || theme.accentB;
+      const accent = ctx.createLinearGradient(textX, cursorY, textX + textW, cursorY);
+      accent.addColorStop(0, paletteA);
+      accent.addColorStop(1, paletteB);
+
+      ctx.textBaseline = 'top';
+
+      if (Number.isFinite(tierNumber)) {
+        const tierText = `${Math.trunc(tierNumber)}등급`;
+        ctx.font = '900 86px "Noto Sans KR","Space Grotesk",system-ui,sans-serif';
+        ctx.fillStyle = accent;
+        ctx.fillText(tierText, textX, cursorY);
+        cursorY += 108;
+      }
+
+      const labelText = String(primaryLabel || '').trim();
+      if (labelText) {
+        ctx.font = '900 26px "Noto Sans KR","Space Grotesk",system-ui,sans-serif';
+        const labelW = Math.max(120, Math.min(textW, ctx.measureText(labelText).width + 34));
+        const labelH = 46;
+        ctx.fillStyle = accent;
+        drawRoundedRect(ctx, textX, cursorY, labelW, labelH, 20);
+        ctx.fill();
+        ctx.fillStyle = '#0d1c2b';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(labelText, textX + 16, cursorY + labelH / 2);
+        ctx.textBaseline = 'top';
+        cursorY += labelH + 18;
+      }
+
+      const valueText = String(primaryValue || '').trim();
+      let valueSize = 96;
+      while (valueSize > 64) {
+        ctx.font = `900 ${valueSize}px "Space Grotesk","Noto Sans KR",system-ui,sans-serif`;
+        if (ctx.measureText(valueText).width <= textW) break;
+        valueSize -= 2;
+      }
+      ctx.fillStyle = '#1f2430';
+      ctx.fillText(valueText, textX, cursorY);
+
+      return canvas.toDataURL('image/png');
+    }
+  }
 
   const bg = ctx.createLinearGradient(0, 0, WIDTH, HEIGHT);
   bg.addColorStop(0, theme.bgA);
@@ -160,7 +246,6 @@ export async function createShareImageDataUrl({
     ctx.fillText(tierText, tierX + 14, tierY + tierH / 2);
   }
 
-  const hasPrimary = Boolean(String(primaryValue || '').trim());
   let cursorY = badgeY + badgeH + 28;
 
   if (hasPrimary) {
