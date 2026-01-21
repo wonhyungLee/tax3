@@ -308,7 +308,8 @@ export const calculateYearEndTax = (data) => {
   const pensionContribution = Number(data.pension_contribution) || 0;
   const isaTransfer = Number(data.isa_transfer) || 0;
   const pensionLimit = data.pension_with_irp ? 9_000_000 : 6_000_000;
-  const pensionEligible = Math.min(pensionContribution, pensionLimit) + Math.min(isaTransfer * 0.1, 3_000_000);
+  const isaEligible = Math.min(isaTransfer * 0.1, 3_000_000);
+  const pensionEligible = Math.min(pensionContribution + isaEligible, pensionLimit);
   const pensionRate = gross <= 55_000_000 ? 0.15 : 0.12;
   const pensionTaxCredit = pensionEligible * pensionRate;
 
