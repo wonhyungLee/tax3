@@ -484,12 +484,14 @@ function TaxWizard({ initialCalculator = null }) {
     credit_card_spend: '',
     debit_card_spend: '',
     market_transport_spend: '',
+    culture_expenses: '',
     pension_savings: '',
     irp_contribution: '',
     isa_transfer: '',
     insurance_premiums: '',
     medical_expenses: '',
     education_k12: '',
+    education_university: '',
     donations_general: '',
     donations_political: '',
     rent_paid: '',
@@ -645,12 +647,14 @@ function TaxWizard({ initialCalculator = null }) {
       credit_card_spend: '',
       debit_card_spend: '',
       market_transport_spend: '',
+      culture_expenses: '',
       pension_savings: '',
       irp_contribution: '',
       isa_transfer: '',
       insurance_premiums: '',
       medical_expenses: '',
       education_k12: '',
+      education_university: '',
       donations_general: '',
       donations_political: '',
       rent_paid: '',
@@ -970,12 +974,14 @@ function TaxWizard({ initialCalculator = null }) {
       credit_card_spend: toNumber(yearendInputs.credit_card_spend),
       debit_card_spend: toNumber(yearendInputs.debit_card_spend),
       market_transport_spend: toNumber(yearendInputs.market_transport_spend),
+      culture_expenses: toNumber(yearendInputs.culture_expenses),
       pension_contribution: toNumber(yearendInputs.pension_savings) + toNumber(yearendInputs.irp_contribution),
       pension_with_irp: toNumber(yearendInputs.irp_contribution) > 0,
       isa_transfer: toNumber(yearendInputs.isa_transfer),
       insurance_premiums: toNumber(yearendInputs.insurance_premiums),
       medical_expenses: toNumber(yearendInputs.medical_expenses),
       education_k12: toNumber(yearendInputs.education_k12),
+      education_university: toNumber(yearendInputs.education_university),
       donations_general: toNumber(yearendInputs.donations_general),
       donations_political: toNumber(yearendInputs.donations_political),
       rent_paid: toNumber(yearendInputs.rent_paid),
@@ -1636,6 +1642,19 @@ function TaxWizard({ initialCalculator = null }) {
               placeholder="예: 500000"
             />
           </div>
+          <div className="field">
+            <label>문화/체육 사용분(원, 선택)</label>
+            <input
+              inputMode="numeric"
+              type="number"
+              value={yearendInputs.culture_expenses}
+              onChange={(e) =>
+                setYearendInputs((p) => ({ ...p, culture_expenses: e.target.value === '' ? '' : Number(e.target.value) }))
+              }
+              placeholder="예: 115300"
+            />
+            <div className="hint">총급여 7,000만원 이하면 카드 소득공제 계산에 반영됩니다.</div>
+          </div>
         </div>
         <div className="form-grid">
           <div className="field">
@@ -1700,7 +1719,7 @@ function TaxWizard({ initialCalculator = null }) {
             />
           </div>
           <div className="field">
-            <label>교육비(원)</label>
+            <label>교육비(유치원/초·중·고, 원)</label>
             <input
               inputMode="numeric"
               type="number"
@@ -1708,6 +1727,20 @@ function TaxWizard({ initialCalculator = null }) {
               onChange={(e) => setYearendInputs((p) => ({ ...p, education_k12: e.target.value === '' ? '' : Number(e.target.value) }))}
               placeholder="예: 500000"
             />
+            <div className="hint">1인당 300만원 한도(입력 항목·요건에 따라 상한이 달라질 수 있어요).</div>
+          </div>
+          <div className="field">
+            <label>교육비(대학/대학원/본인, 원)</label>
+            <input
+              inputMode="numeric"
+              type="number"
+              value={yearendInputs.education_university}
+              onChange={(e) =>
+                setYearendInputs((p) => ({ ...p, education_university: e.target.value === '' ? '' : Number(e.target.value) }))
+              }
+              placeholder="예: 3776000"
+            />
+            <div className="hint">대학 교육비는 1인당 900만원 한도(본인 교육비는 별도 규정이 있을 수 있어요).</div>
           </div>
           <div className="field">
             <label>기부금(일반, 원)</label>
