@@ -128,7 +128,8 @@ export async function createShareImageDataUrl({
 
 	      const textX = 80;
 	      const textW = 520;
-	      let cursorY = 84;
+	      const headerY = 78;
+	      let cursorY = headerY;
 
 	      const paletteA = tier?.palette?.accentA || theme.accentA;
 	      const paletteB = tier?.palette?.accentB || theme.accentB;
@@ -136,12 +137,23 @@ export async function createShareImageDataUrl({
 	      accent.addColorStop(0, paletteA);
 	      accent.addColorStop(1, paletteB);
 
-	      ctx.textBaseline = 'top';
+	      ctx.textBaseline = 'middle';
+	      ctx.font = '900 20px "Space Grotesk","Noto Sans KR",system-ui,sans-serif';
+	      const pillText = 'TAX UNIFIED';
+	      const pillW = Math.min(textW, Math.max(140, ctx.measureText(pillText).width + 34));
+	      const pillH = 34;
+	      drawRoundedRect(ctx, textX, headerY, pillW, pillH, 18);
+	      ctx.fillStyle = accent;
+	      ctx.fill();
+	      ctx.fillStyle = '#0d1c2b';
+	      ctx.fillText(pillText, textX + 16, headerY + pillH / 2);
 
-	      ctx.font = '800 26px "Space Grotesk","Noto Sans KR",system-ui,sans-serif';
+	      ctx.font = '700 22px "Space Grotesk","Noto Sans KR",system-ui,sans-serif';
 	      ctx.fillStyle = theme.muted;
-	      ctx.fillText('Tax Unified · Gamification', textX, cursorY);
-	      cursorY += 46;
+	      ctx.fillText('Gamification', textX + pillW + 14, headerY + pillH / 2);
+
+	      cursorY = headerY + pillH + 26;
+	      ctx.textBaseline = 'top';
 
 	      if (Number.isFinite(tierNumber)) {
 	        const tierText = `${Math.trunc(tierNumber)}등급`;
