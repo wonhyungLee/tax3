@@ -1217,8 +1217,9 @@ function TaxWizard({ initialCalculator = null }) {
         tier: gamification,
         primaryLabel: shareDraft.primaryLabel,
         primaryValue: shareDraft.primaryValue,
-        footerTitle: '연말정산 · 법인세 · 종합소득세',
-        footerText: '나의 세금 등급은 몇등급인지 자랑해볼까요?',
+        footerTitle: '',
+        footerText: '',
+        footnote: '',
       });
 
       const res = await fetch('/api/share', {
