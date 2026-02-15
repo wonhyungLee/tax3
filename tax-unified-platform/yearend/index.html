@@ -386,6 +386,14 @@
               <legend>기본 정보</legend>
               <div class="field-grid">
                 <label>
+                  귀속연도
+                  <select id="tax_year">
+                    <option value="2025" selected>2025</option>
+                    <option value="2026">2026</option>
+                  </select>
+                  <span class="help">2026 선택 시 카드 기본한도(자녀 수 연동)·고향사랑기부금(10~20만원 40%) 개정이 반영됩니다.</span>
+                </label>
+                <label>
                   연간 근로소득(연봉, 비과세 포함)
                   <input type="number" id="annual_salary" min="0" step="10000" placeholder="예: 65000000" />
                   <span class="help">총급여 = 연간 근로소득 - 비과세소득</span>

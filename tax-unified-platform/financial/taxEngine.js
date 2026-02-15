@@ -1,4 +1,4 @@
-// 금융소득 종합과세 계산 엔진 (2024년 귀속, README 요약 반영)
+// 금융소득 종합과세 계산 엔진 (2026년 귀속, README 요약 반영)
 // 주요 처리:
 // - 금융소득 2천만원 분리/종합 비교과세
 // - Gross-up 대상 배당 가산 및 배당세액공제(단순화된 한도)
@@ -9,7 +9,7 @@ const fs = require('fs');
 const path = require('path');
 
 const DEFAULT_RULES = {
-  taxYear: 2024,
+  taxYear: 2026,
   financialThreshold: 20_000_000,
   grossUpRate: 0.1, // 배당가산율 (연도별 룰 파일에서 교체 가능)
   progressiveRates: [

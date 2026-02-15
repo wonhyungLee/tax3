@@ -34,7 +34,19 @@ export const progressiveTax = (taxable) => {
   return taxable * bracket.rate - bracket.deduction;
 };
 
-export const calcCardTargets = (gross) => {
+const resolveCardBaseCap = (gross, taxYear, childCount) => {
+  const baseCap = gross <= 70_000_000 ? 3_000_000 : 2_500_000;
+  const year = Number(taxYear) || 0;
+  if (year < 2026) return { baseCap, childCapAdd: 0 };
+
+  const children = Math.max(0, Math.floor(Number(childCount) || 0));
+  const perChild = gross <= 70_000_000 ? 500_000 : 250_000;
+  const maxAdd = gross <= 70_000_000 ? 1_000_000 : 500_000;
+  const childCapAdd = Math.min(children * perChild, maxAdd);
+  return { baseCap: baseCap + childCapAdd, childCapAdd };
+};
+
+export const calcCardTargets = (gross, { taxYear = null, childCount = 0 } = {}) => {
   if (!Number.isFinite(gross) || gross <= 0) {
     return {
       threshold: 0,
@@ -45,7 +57,7 @@ export const calcCardTargets = (gross) => {
   }
 
   const threshold = gross * 0.25;
-  const baseCap = gross <= 70_000_000 ? 3_000_000 : 2_500_000;
+  const { baseCap } = resolveCardBaseCap(gross, taxYear, childCount);
   const extraCap = gross <= 70_000_000 ? 3_000_000 : 2_000_000;
 
   const baseTarget = threshold + baseCap / 0.3;
@@ -104,8 +116,11 @@ export const calcCardDeduction = ({
   sports,
   cultureEligible,
   previousSpend,
+  taxYear,
+  childCount,
 }) => {
-  const cultureAmount = cultureEligible ? culture + sports : 0;
+  const sportsCapped = Math.min(Number(sports) || 0, 3_000_000);
+  const cultureAmount = cultureEligible ? culture + sportsCapped : 0;
   const total = credit + debit + market + cultureAmount;
   const threshold = gross * 0.25;
 
@@ -141,7 +156,7 @@ export const calcCardDeduction = ({
   }
 
   const possible = Math.max(0, creditDed + debitDed + cultureDed + marketDed - thresholdDeduction);
-  const baseCap = gross <= 70_000_000 ? 3_000_000 : 2_500_000;
+  const { baseCap, childCapAdd } = resolveCardBaseCap(gross, taxYear, childCount);
   const extraCap = gross <= 70_000_000 ? 3_000_000 : 2_000_000;
   const categorySum = gross <= 70_000_000 ? cultureDed + marketDed : marketDed;
 
@@ -149,7 +164,7 @@ export const calcCardDeduction = ({
     return {
       deduction: possible,
       breakdown: { credit: creditDed, debit: debitDed, market: marketDed, culture: cultureDed },
-      meta: { total, threshold, eligible: total - threshold, thresholdDeduction, possible, baseCap },
+      meta: { total, threshold, eligible: total - threshold, thresholdDeduction, possible, baseCap, childCapAdd },
     };
   }
 
@@ -158,7 +173,7 @@ export const calcCardDeduction = ({
   const remaining = Math.max(0, extraAmount - categoryAdd);
 
   let consumptionIncrease = 0;
-  if (previousSpend > 0) {
+  if ((Number(taxYear) || 0) === 2024 && previousSpend > 0) {
     const increase = total - previousSpend * 1.05;
     if (increase > 0) {
       consumptionIncrease = Math.min(increase * 0.1, 1_000_000);
@@ -178,6 +193,7 @@ export const calcCardDeduction = ({
       thresholdDeduction,
       possible,
       baseCap,
+      childCapAdd,
       categoryAdd,
       consumptionAdd,
     },
@@ -185,6 +201,7 @@ export const calcCardDeduction = ({
 };
 
 export const calculateYearEndTax = (data) => {
+  const taxYear = parseInt(data.tax_year, 10) || 2025;
   const annualSalary = Number(data.annual_salary) || 0;
   const nontaxableSalary = Number(data.nontaxable_salary) || 0;
   const useAnnualSalary = data.use_annual_salary;
@@ -239,9 +256,11 @@ export const calculateYearEndTax = (data) => {
     sports: sportsEligible,
     cultureEligible,
     previousSpend: previousCardSpend,
+    taxYear,
+    childCount: eligibleChildDependents,
   });
 
-  const cardTargets = calcCardTargets(gross);
+  const cardTargets = calcCardTargets(gross, { taxYear, childCount: eligibleChildDependents });
   const currentCardTotal = creditSpend + debitSpend + marketSpend + cultureSpend + sportsEligible;
   const additionalNeeded = Math.max(0, cardTargets.maxTarget - currentCardTotal);
 
@@ -388,8 +407,16 @@ export const calculateYearEndTax = (data) => {
   const hometownEligible = Math.min(donationsHometown, hometownLimit);
   const hometownFirst = Math.min(hometownEligible, 100_000) * rate100Over110;
   const hometownRemaining = Math.max(0, hometownEligible - 100_000);
-  const hometownRate = data.donations_hometown_disaster ? 0.3 : 0.15;
-  const donationsHometownCredit = hometownFirst + hometownRemaining * hometownRate;
+  let donationsHometownCredit = hometownFirst;
+  if (taxYear >= 2026) {
+    const secondSlice = Math.min(hometownRemaining, 100_000);
+    const thirdSlice = Math.max(0, hometownRemaining - 100_000);
+    const hometownRate = data.donations_hometown_disaster ? 0.3 : 0.15;
+    donationsHometownCredit += secondSlice * 0.4 + thirdSlice * hometownRate;
+  } else {
+    const hometownRate = data.donations_hometown_disaster ? 0.3 : 0.15;
+    donationsHometownCredit += hometownRemaining * hometownRate;
+  }
 
   const remainingAfterHometown = Math.max(0, remainingAfterPolitical - hometownEligible);
   const donationSpecialEligible = Math.min(donationsSpecial, remainingAfterHometown);
@@ -690,12 +717,20 @@ export const lossExpired = (loss, filingYear) => {
 
 export const rateTableForYear = (rateTable, filingYear) => {
   const preset = (rateTable || "").toString();
+  if (preset === "2026") {
+    return [
+      [200_000_000, 0.10, 0],
+      [20_000_000_000, 0.20, 20_000_000],
+      [300_000_000_000, 0.22, 420_000_000],
+      [null, 0.25, 9_420_000_000]
+    ];
+  }
   if (preset === "2021" || preset === "2018-2022") {
     return [
       [200_000_000, 0.10, 0],
       [20_000_000_000, 0.20, 20_000_000],
-      [300_000_000_000, 0.21, 420_000_000],
-      [null, 0.24, 9_420_000_000]
+      [300_000_000_000, 0.22, 420_000_000],
+      [null, 0.25, 9_420_000_000]
     ];
   }
   // default 2023~2025 (README 기준)
@@ -829,10 +864,11 @@ export const calculateCorporateTax = (payload) => {
   const revenueAdj = calculateRevenueAdjustments(payload.companyProfile, payload.financialData);
   const expenseAdj = calculateExpenseAdjustments(entityType, payload.financialData);
   const brackets = rateTableForYear(payload.rateTable, payload.filingYear);
-  const rateLabel =
-    payload.rateTable === "2021" || payload.rateTable === "2018-2022"
-      ? "2018~2022 세율표(1구간 10%)"
-      : "2023~2025 세율표(1구간 9%)";
+  let rateLabel = "2023~2025 세율표(1구간 9%)";
+  if (payload.rateTable === "2026") rateLabel = "2026~ 세율표(1구간 10%)";
+  else if (payload.rateTable === "2021" || payload.rateTable === "2018-2022") {
+    rateLabel = "2018~2022 세율표(1구간 10%)";
+  }
   const roundingMode = payload.roundingMode || "round";
 
   const manualAdditions =
@@ -909,7 +945,7 @@ export const calculateCorporateTax = (payload) => {
    ----------------------------------------- */
    
 export const FINANCIAL_RULES = {
-  taxYear: 2024,
+  taxYear: 2026,
   financialThreshold: 20_000_000,
   grossUpRate: 0.1, 
   progressiveRates: [

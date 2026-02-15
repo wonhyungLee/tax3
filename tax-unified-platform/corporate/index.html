@@ -299,17 +299,18 @@
             </select>
           </div>
           <div class="flex">
-            <div class="field">
-              <label for="filingYear">신고 연도</label>
-              <input id="filingYear" type="number" value="2025">
-            </div>
-            <div class="field">
-              <label for="rateTable">세율 테이블</label>
-              <select id="rateTable">
-                <option value="2025">2023~2025(1구간 9%)</option>
-                <option value="2018-2022">2018~2022(1구간 10%)</option>
-              </select>
-            </div>
+	            <div class="field">
+	              <label for="filingYear">신고 연도</label>
+	              <input id="filingYear" type="number" value="2026">
+	            </div>
+	            <div class="field">
+	              <label for="rateTable">세율 테이블</label>
+	              <select id="rateTable">
+	                <option value="2026">2026~(1구간 10%)</option>
+	                <option value="2025">2023~2025(1구간 9%)</option>
+	                <option value="2018-2022">2018~2022(1구간 10%)</option>
+	              </select>
+	            </div>
             <div class="field">
               <label for="roundingMode">반올림/절사</label>
               <select id="roundingMode">
@@ -596,12 +597,12 @@
   </div>
 
   <script>
-    const samplePayload = {
-      filingYear: 2025,
-      rateTable: "2025",
-      residency: "domestic",
-      shippingMode: "none",
-      shippingTonnageBase: 0,
+	    const samplePayload = {
+	      filingYear: 2026,
+	      rateTable: "2026",
+	      residency: "domestic",
+	      shippingMode: "none",
+	      shippingTonnageBase: 0,
       fiscalMonths: 12,
       tonnageShips: [
         { tonnage: 0, days: 0, rate: 0 },
@@ -694,8 +695,8 @@
       byId("debt").value = payload.companyProfile.debt ?? "";
       byId("location").value = payload.companyProfile.location ?? "";
       byId("realEstateRental").value = String(Boolean(payload.companyProfile.isRealEstateRental));
-      byId("filingYear").value = payload.filingYear ?? 2025;
-      byId("rateTable").value = payload.rateTable ?? "2025";
+      byId("filingYear").value = payload.filingYear ?? 2026;
+      byId("rateTable").value = payload.rateTable ?? "2026";
       byId("residency").value = payload.residency ?? "domestic";
       byId("shippingMode").value = payload.shippingMode ?? "none";
       byId("shippingTonnageBase").value = payload.shippingTonnageBase ?? 0;
@@ -767,8 +768,8 @@
 
     function readPayload() {
       return {
-        filingYear: toNumber(byId("filingYear").value) || 2025,
-        rateTable: byId("rateTable").value || "2025",
+        filingYear: toNumber(byId("filingYear").value) || 2026,
+        rateTable: byId("rateTable").value || "2026",
         roundingMode: byId("roundingMode").value || "round",
         residency: byId("residency").value || "domestic",
         shippingMode: byId("shippingMode").value || "none",
@@ -998,19 +999,27 @@
       return filingYear - loss.originYear >= allowedYears;
     }
 
-    function rateTableForYear(rateTable, filingYear) {
-      const preset = (rateTable || "").toString();
-      if (preset === "2021" || preset === "2018-2022") {
-        return [
-          [200_000_000, 0.10, 0],
-          [20_000_000_000, 0.20, 20_000_000],
-          [300_000_000_000, 0.21, 420_000_000],
-          [null, 0.24, 9_420_000_000]
-        ];
-      }
-      // default 2023~2025 (README 기준)
-      return [
-        [200_000_000, 0.09, 0],
+	    function rateTableForYear(rateTable, filingYear) {
+	      const preset = (rateTable || "").toString();
+	      if (preset === "2026") {
+	        return [
+	          [200_000_000, 0.10, 0],
+	          [20_000_000_000, 0.20, 20_000_000],
+	          [300_000_000_000, 0.22, 420_000_000],
+	          [null, 0.25, 9_420_000_000]
+	        ];
+	      }
+	      if (preset === "2021" || preset === "2018-2022") {
+	        return [
+	          [200_000_000, 0.10, 0],
+	          [20_000_000_000, 0.20, 20_000_000],
+	          [300_000_000_000, 0.22, 420_000_000],
+	          [null, 0.25, 9_420_000_000]
+	        ];
+	      }
+	      // default 2023~2025 (README 기준)
+	      return [
+	        [200_000_000, 0.09, 0],
         [20_000_000_000, 0.19, 20_000_000],
         [300_000_000_000, 0.21, 420_000_000],
         [null, 0.24, 9_420_000_000]
@@ -1137,13 +1146,15 @@
     function computeTax(payload) {
       const entityType = normalizeEntityType(payload.companyProfile.type);
       const revenueAdj = calculateRevenueAdjustments(payload.companyProfile, payload.financialData);
-      const expenseAdj = calculateExpenseAdjustments(entityType, payload.financialData);
-      const brackets = rateTableForYear(payload.rateTable, payload.filingYear);
-      const rateLabel =
-        payload.rateTable === "2021" || payload.rateTable === "2018-2022"
-          ? "2018~2022 세율표(1구간 10%)"
-          : "2023~2025 세율표(1구간 9%)";
-      const roundingMode = payload.roundingMode || "round";
+	      const expenseAdj = calculateExpenseAdjustments(entityType, payload.financialData);
+	      const brackets = rateTableForYear(payload.rateTable, payload.filingYear);
+	      const rateLabel =
+	        payload.rateTable === "2026"
+	          ? "2026~ 세율표(1구간 10%)"
+	          : payload.rateTable === "2021" || payload.rateTable === "2018-2022"
+	            ? "2018~2022 세율표(1구간 10%)"
+	            : "2023~2025 세율표(1구간 9%)";
+	      const roundingMode = payload.roundingMode || "round";
 
       const manualAdditions =
         (payload.adjustments.manualIncomeAdd || 0) +
@@ -1282,11 +1293,11 @@
         }
       ];
 
-      cards.push({
-        title: "적용 세율표",
-        value: result.rateLabel || "2025 세율표",
-        body: "신고연도별 세율 선택 가능(1구간 세율 차이 반영)."
-      });
+	      cards.push({
+	        title: "적용 세율표",
+	        value: result.rateLabel || "2026 세율표",
+	        body: "신고연도별 세율 선택 가능(1구간 세율 차이 반영)."
+	      });
 
       if (tonnageInfo) {
         cards.push({

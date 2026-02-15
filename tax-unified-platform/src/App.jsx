@@ -470,6 +470,7 @@ function TaxWizard({ initialCalculator = null }) {
   const docs = calculator ? docChecklists[calculator] || [] : [];
 
   const [yearendInputs, setYearendInputs] = useState(() => ({
+    tax_year: 2025,
     gross_salary: '',
     withheld_income_tax: '',
     withheld_local_provided: false,
@@ -537,8 +538,8 @@ function TaxWizard({ initialCalculator = null }) {
 
   const [corporateInputs, setCorporateInputs] = useState(() => ({
     type: 'SME',
-    filingYear: 2025,
-    rateTable: '2025',
+    filingYear: 2026,
+    rateTable: '2026',
     baseMode: 'pbt',
     netIncome: '',
     revenue: '',
@@ -633,6 +634,7 @@ function TaxWizard({ initialCalculator = null }) {
     setPaystubParse({ status: 'idle', message: '', extracted: null });
     setYearendInputs((prev) => ({ ...prev, gross_salary: '' }));
     setYearendInputs({
+      tax_year: 2025,
       gross_salary: '',
       withheld_income_tax: '',
       withheld_local_provided: false,
@@ -662,8 +664,8 @@ function TaxWizard({ initialCalculator = null }) {
     });
     setCorporateInputs({
       type: 'SME',
-      filingYear: 2025,
-      rateTable: '2025',
+      filingYear: 2026,
+      rateTable: '2026',
       baseMode: 'pbt',
       netIncome: '',
       revenue: '',
@@ -902,6 +904,7 @@ function TaxWizard({ initialCalculator = null }) {
 
   const yearendForm = useMemo(() => {
     const base = {
+      tax_year: 2025,
       annual_salary: 0,
       nontaxable_salary: 0,
       use_annual_salary: false,
@@ -962,6 +965,7 @@ function TaxWizard({ initialCalculator = null }) {
 
     return {
       ...base,
+      tax_year: Number(yearendInputs.tax_year) || 2025,
       gross_salary: toNumber(yearendInputs.gross_salary),
       withheld_income_tax: toNumber(yearendInputs.withheld_income_tax),
       withheld_local_provided: Boolean(yearendInputs.withheld_local_provided),
@@ -1006,8 +1010,8 @@ function TaxWizard({ initialCalculator = null }) {
     const lossCarryforward = baseMode === 'taxBase' ? 0 : toNumber(corporateInputs.lossCarryforward);
 
     return {
-      filingYear: Number(corporateInputs.filingYear) || 2025,
-      rateTable: corporateInputs.rateTable || '2025',
+      filingYear: Number(corporateInputs.filingYear) || 2026,
+      rateTable: corporateInputs.rateTable || '2026',
       residency: 'domestic',
       shippingMode: 'none',
       shippingTonnageBase: 0,
@@ -1469,6 +1473,17 @@ function TaxWizard({ initialCalculator = null }) {
         </div>
         <div className="form-grid">
           <div className="field">
+            <label>귀속연도</label>
+            <select
+              value={yearendInputs.tax_year}
+              onChange={(e) => setYearendInputs((p) => ({ ...p, tax_year: Number(e.target.value) }))}
+            >
+              <option value={2025}>2025</option>
+              <option value={2026}>2026</option>
+            </select>
+            <div className="hint">2026 선택 시 카드 기본한도(자녀 수 연동)·고향사랑기부금(10~20만원 40%) 개정이 반영됩니다.</div>
+          </div>
+          <div className="field">
             <label>총급여(원)</label>
             <input
               inputMode="numeric"
@@ -1821,6 +1836,7 @@ function TaxWizard({ initialCalculator = null }) {
             value={corporateInputs.rateTable}
             onChange={(e) => setCorporateInputs((p) => ({ ...p, rateTable: e.target.value }))}
           >
+            <option value="2026">2026~(1구간 10%)</option>
             <option value="2025">2023~2025(1구간 9%)</option>
             <option value="2018-2022">2018~2022(1구간 10%)</option>
           </select>

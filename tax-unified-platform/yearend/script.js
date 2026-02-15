@@ -51,7 +51,19 @@ const formatSignedWon = (value) => {
 const floor10 = (value) => Math.floor(value / 10) * 10;
 const rate100Over110 = 100 / 110;
 
-const calcCardTargets = (gross) => {
+const resolveCardBaseCap = (gross, taxYear, childCount) => {
+  const baseCap = gross <= 70_000_000 ? 3_000_000 : 2_500_000;
+  const year = Number(taxYear) || 0;
+  if (year < 2026) return { baseCap, childCapAdd: 0 };
+
+  const children = Math.max(0, Math.floor(Number(childCount) || 0));
+  const perChild = gross <= 70_000_000 ? 500_000 : 250_000;
+  const maxAdd = gross <= 70_000_000 ? 1_000_000 : 500_000;
+  const childCapAdd = Math.min(children * perChild, maxAdd);
+  return { baseCap: baseCap + childCapAdd, childCapAdd };
+};
+
+const calcCardTargets = (gross, { taxYear = null, childCount = 0 } = {}) => {
   if (!Number.isFinite(gross) || gross <= 0) {
     return {
       threshold: 0,
@@ -62,7 +74,7 @@ const calcCardTargets = (gross) => {
   }
 
   const threshold = gross * 0.25;
-  const baseCap = gross <= 70_000_000 ? 3_000_000 : 2_500_000;
+  const { baseCap } = resolveCardBaseCap(gross, taxYear, childCount);
   const extraCap = gross <= 70_000_000 ? 3_000_000 : 2_000_000;
 
   const baseTarget = threshold + baseCap / 0.3;
@@ -158,8 +170,11 @@ const calcCardDeduction = ({
   sports,
   cultureEligible,
   previousSpend,
+  taxYear,
+  childCount,
 }) => {
-  const cultureAmount = cultureEligible ? culture + sports : 0;
+  const sportsCapped = Math.min(Number(sports) || 0, 3_000_000);
+  const cultureAmount = cultureEligible ? culture + sportsCapped : 0;
   const total = credit + debit + market + cultureAmount;
   const threshold = gross * 0.25;
 
@@ -195,7 +210,7 @@ const calcCardDeduction = ({
   }
 
   const possible = Math.max(0, creditDed + debitDed + cultureDed + marketDed - thresholdDeduction);
-  const baseCap = gross <= 70_000_000 ? 3_000_000 : 2_500_000;
+  const { baseCap, childCapAdd } = resolveCardBaseCap(gross, taxYear, childCount);
   const extraCap = gross <= 70_000_000 ? 3_000_000 : 2_000_000;
   const categorySum = gross <= 70_000_000 ? cultureDed + marketDed : marketDed;
 
@@ -203,7 +218,7 @@ const calcCardDeduction = ({
     return {
       deduction: possible,
       breakdown: { credit: creditDed, debit: debitDed, market: marketDed, culture: cultureDed },
-      meta: { total, threshold, eligible: total - threshold, thresholdDeduction, possible, baseCap },
+      meta: { total, threshold, eligible: total - threshold, thresholdDeduction, possible, baseCap, childCapAdd },
     };
   }
 
@@ -212,7 +227,7 @@ const calcCardDeduction = ({
   const remaining = Math.max(0, extraAmount - categoryAdd);
 
   let consumptionIncrease = 0;
-  if (previousSpend > 0) {
+  if ((Number(taxYear) || 0) === 2024 && previousSpend > 0) {
     const increase = total - previousSpend * 1.05;
     if (increase > 0) {
       consumptionIncrease = Math.min(increase * 0.1, 1_000_000);
@@ -232,6 +247,7 @@ const calcCardDeduction = ({
       thresholdDeduction,
       possible,
       baseCap,
+      childCapAdd,
       categoryAdd,
       consumptionAdd,
     },
@@ -724,6 +740,7 @@ const setInputValue = (id, value) => {
 const collectFormData = () => {
   const withheldLocalInput = document.getElementById('withheld_local_tax');
   return {
+    tax_year: parseInt(getSelectValue('tax_year'), 10) || 2025,
     annual_salary: numberValue('annual_salary'),
     nontaxable_salary: numberValue('nontaxable_salary'),
     gross_salary: numberValue('gross_salary'),
@@ -855,6 +872,7 @@ const buildEstimateWarnings = (estimateConfig) => {
 };
 
 const computeResults = (data) => {
+  const taxYear = parseInt(data.tax_year, 10) || 2025;
   const annualSalary = data.annual_salary;
   const nontaxableSalary = data.nontaxable_salary;
   const useAnnualSalary = data.use_annual_salary;
@@ -907,9 +925,11 @@ const computeResults = (data) => {
     sports: sportsEligible,
     cultureEligible,
     previousSpend: previousCardSpend,
+    taxYear,
+    childCount: eligibleChildDependents,
   });
 
-  const cardTargets = calcCardTargets(gross);
+  const cardTargets = calcCardTargets(gross, { taxYear, childCount: eligibleChildDependents });
   const currentCardTotal = creditSpend + debitSpend + marketSpend + cultureSpend + sportsEligible;
   const additionalNeeded = Math.max(0, cardTargets.maxTarget - currentCardTotal);
 
@@ -1054,8 +1074,16 @@ const computeResults = (data) => {
   const hometownEligible = Math.min(donationsHometown, hometownLimit);
   const hometownFirst = Math.min(hometownEligible, 100_000) * rate100Over110;
   const hometownRemaining = Math.max(0, hometownEligible - 100_000);
-  const hometownRate = data.donations_hometown_disaster ? 0.3 : 0.15;
-  const donationsHometownCredit = hometownFirst + hometownRemaining * hometownRate;
+  let donationsHometownCredit = hometownFirst;
+  if (taxYear >= 2026) {
+    const secondSlice = Math.min(hometownRemaining, 100_000);
+    const thirdSlice = Math.max(0, hometownRemaining - 100_000);
+    const hometownRate = data.donations_hometown_disaster ? 0.3 : 0.15;
+    donationsHometownCredit += secondSlice * 0.4 + thirdSlice * hometownRate;
+  } else {
+    const hometownRate = data.donations_hometown_disaster ? 0.3 : 0.15;
+    donationsHometownCredit += hometownRemaining * hometownRate;
+  }
 
   const remainingAfterHometown = Math.max(0, remainingAfterPolitical - hometownEligible);
   const donationSpecialEligible = Math.min(donationsSpecial, remainingAfterHometown);

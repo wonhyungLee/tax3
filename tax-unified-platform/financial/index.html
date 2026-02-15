@@ -85,7 +85,7 @@
 <body>
   <header>
     <div>
-      <div class="badge">금융소득 종합과세 2024</div>
+      <div class="badge">금융소득 종합과세 2026</div>
       <h1>금융소득 종합과세 계산기 (비교과세)</h1>
     </div>
     <button id="calcBtn">계산 실행</button>
@@ -113,7 +113,7 @@
         <h2>기본 설정</h2>
         <div class="grid">
           <label>귀속연도
-            <input id="taxYear" type="number" value="2024">
+            <input id="taxYear" type="number" value="2026">
           </label>
           <label>금융소득 분리과세 한도
             <input id="threshold" type="number" value="20000000">
@@ -137,7 +137,7 @@
             <input id="rentalStdRate" type="number" value="0.5" placeholder="0.5 또는 50%">
           </label>
         </div>
-        <div class="muted" style="margin-top:6px;">누진세율표: 6 / 15 / 24 / 35 / 38 / 40 / 42 / 45% (2024년).</div>
+        <div class="muted" style="margin-top:6px;">누진세율표: 6 / 15 / 24 / 35 / 38 / 40 / 42 / 45% (2026년).</div>
       </section>
       <div style="display:flex;gap:10px;justify-content:flex-end;">
         <button class="secondary" type="button" data-next>다음 단계</button>
@@ -607,7 +607,7 @@
           local: parseNum('prepaidLocal'),
         },
         settings: {
-          taxYear: ensureNumber(byId('taxYear').value) || 2024,
+          taxYear: ensureNumber(byId('taxYear').value) || 2026,
           financialThreshold: parseNum('threshold') || DEFAULT_RULES.financialThreshold,
           grossUpRate: optionalRate('grossUpRate') ?? DEFAULT_RULES.grossUpRate,
           rentalSeparateThreshold: parseNum('rentalThreshold') || DEFAULT_RULES.rentalSeparateThreshold,
