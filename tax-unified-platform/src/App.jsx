@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, Route, Routes } from 'react-router-dom';
 import {
   calculateCorporateTax,
@@ -48,36 +48,143 @@ const calculatorFrames = [
   { id: 'financial', title: '금융소득 종합과세(원본)', src: '/financial/index.html' },
 ];
 
-const coupangAds = [
-  { id: 902948, trackingCode: 'AF7397099', subId: null, template: 'carousel', width: '360', height: '210' },
-  { id: 902947, trackingCode: 'AF7397099', subId: null, template: 'carousel', width: '360', height: '210' },
-  { id: 902949, trackingCode: 'AF7397099', subId: null, template: 'carousel', width: '360', height: '210' },
+const COUPANG_PROMO_ITEMS = [
+  { code: 'dPJvzF', link: 'https://link.coupang.com/a/dPJvzF', image: '/coupang-promo/dPJvzF_600.gif' },
+  { code: 'dPJzZu', link: 'https://link.coupang.com/a/dPJzZu', image: '/coupang-promo/dPJzZu_600.gif' },
+  { code: 'dPJC4g', link: 'https://link.coupang.com/a/dPJC4g', image: '/coupang-promo/dPJC4g_600.gif' },
+  { code: 'dPJQFz', link: 'https://link.coupang.com/a/dPJQFz', image: '/coupang-promo/dPJQFz_600.gif' },
+  { code: 'dPJVxr', link: 'https://link.coupang.com/a/dPJVxr', image: '/coupang-promo/dPJVxr_600.gif' },
+  { code: 'dPJ2jt', link: 'https://link.coupang.com/a/dPJ2jt', image: '/coupang-promo/dPJ2jt_600.gif' },
+  { code: 'dPKcZs', link: 'https://link.coupang.com/a/dPKcZs', image: '/coupang-promo/dPKcZs_600.gif' },
+  { code: 'dPKgU0', link: 'https://link.coupang.com/a/dPKgU0', image: '/coupang-promo/dPKgU0_600.gif' },
+  { code: 'dPKjlp', link: 'https://link.coupang.com/a/dPKjlp', image: '/coupang-promo/dPKjlp_600.gif' },
+  { code: 'dPKIZ9', link: 'https://link.coupang.com/a/dPKIZ9', image: '/coupang-promo/dPKIZ9_600.gif' },
+  { code: 'dPKoN6', link: 'https://link.coupang.com/a/dPKoN6', image: '/coupang-promo/dPKoN6_600.gif' },
+  { code: 'dPKr4O', link: 'https://link.coupang.com/a/dPKr4O', image: '/coupang-promo/dPKr4O_600.gif' },
+  { code: 'dPKvE3', link: 'https://link.coupang.com/a/dPKvE3', image: '/coupang-promo/dPKvE3_600.gif' },
+  { code: 'dPKzjf', link: 'https://link.coupang.com/a/dPKzjf', image: '/coupang-promo/dPKzjf_600.gif' },
+  { code: 'dPKFV8', link: 'https://link.coupang.com/a/dPKFV8', image: '/coupang-promo/dPKFV8_600.gif' },
+  { code: 'dPKI7T', link: 'https://link.coupang.com/a/dPKI7T', image: '/coupang-promo/dPKI7T_600.gif' },
 ];
+const COUPANG_PROMO_NEXT_AT_KEY = 'cp_promo_next_at_v1';
+const COUPANG_PROMO_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 
-let coupangSdkPromise;
-const loadCoupangSdk = () => {
-  if (typeof window === 'undefined') return Promise.reject(new Error('Missing window'));
-  if (coupangSdkPromise) return coupangSdkPromise;
-  coupangSdkPromise = new Promise((resolve, reject) => {
-    const existing = document.getElementById('coupang-partners-sdk');
-    if (existing?.dataset.loaded === 'true') {
-      resolve();
+const pickRandomPromo = (excludeCode = '') => {
+  if (!COUPANG_PROMO_ITEMS.length) return null;
+  if (COUPANG_PROMO_ITEMS.length === 1) return COUPANG_PROMO_ITEMS[0];
+  const pool = COUPANG_PROMO_ITEMS.filter((item) => item.code !== excludeCode);
+  const list = pool.length ? pool : COUPANG_PROMO_ITEMS;
+  return list[Math.floor(Math.random() * list.length)];
+};
+
+const readPromoNextAt = () => {
+  try {
+    return Number(window.localStorage.getItem(COUPANG_PROMO_NEXT_AT_KEY) || '0') || 0;
+  } catch {
+    return 0;
+  }
+};
+
+const writePromoNextAt = (ts) => {
+  try {
+    window.localStorage.setItem(COUPANG_PROMO_NEXT_AT_KEY, String(ts));
+  } catch {
+    // ignore localStorage failure
+  }
+};
+
+const formatRemaining = (ms) => {
+  const totalMin = Math.max(0, Math.ceil(ms / 60000));
+  const hh = Math.floor(totalMin / 60);
+  const mm = totalMin % 60;
+  if (hh <= 0) return `${mm}분`;
+  if (mm <= 0) return `${hh}시간`;
+  return `${hh}시간 ${mm}분`;
+};
+
+function CoupangPromoFloating() {
+  const [open, setOpen] = useState(false);
+  const [notice, setNotice] = useState('');
+  const [promo, setPromo] = useState(() => pickRandomPromo());
+
+  const close = () => setOpen(false);
+
+  const openIfAllowed = () => {
+    const nextAt = readPromoNextAt();
+    const remaining = nextAt - Date.now();
+    if (remaining > 0) {
+      setNotice(`프로모션 팝업은 24시간마다 1회만 열 수 있어요. (${formatRemaining(remaining)} 후 다시 가능)`);
       return;
     }
-    const script = existing || document.createElement('script');
-    script.id = 'coupang-partners-sdk';
-    script.src = 'https://ads-partners.coupang.com/g.js';
-    script.async = true;
-    script.dataset.loaded = 'false';
-    script.onload = () => {
-      script.dataset.loaded = 'true';
-      resolve();
+
+    // 쿨다운은 팝업 OPEN 시점에 설정
+    writePromoNextAt(Date.now() + COUPANG_PROMO_COOLDOWN_MS);
+    setNotice('');
+    setPromo((prev) => pickRandomPromo(prev?.code || ''));
+    setOpen(true);
+  };
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
     };
-    script.onerror = () => reject(new Error('Failed to load Coupang Partners SDK'));
-    if (!existing) document.head.appendChild(script);
-  });
-  return coupangSdkPromise;
-};
+  }, [open]);
+
+  return (
+    <>
+      <div className="coupang-promo-floating">
+        {notice ? <div className="coupang-promo-notice">{notice}</div> : null}
+        <button type="button" className="btn primary coupang-promo-trigger" onClick={openIfAllowed}>
+          쿠팡 프로모션 (광고)
+        </button>
+      </div>
+
+      {open && promo ? (
+        <div
+          className="modal-backdrop"
+          role="dialog"
+          aria-modal="true"
+          aria-label="쿠팡 프로모션 (광고)"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) close();
+          }}
+        >
+          <div className="modal coupang-promo-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-head">
+              <div>
+                <div className="modal-title">
+                  쿠팡 프로모션 <span className="pill">AD</span>
+                </div>
+                <div className="muted">진행 중인 쿠팡 이벤트/프로모션을 확인해 보세요.</div>
+              </div>
+              <button className="icon-btn" type="button" onClick={close} aria-label="닫기">
+                ×
+              </button>
+            </div>
+
+            <div className="modal-body">
+              <a className="coupang-promo-image-link" href={promo.link} target="_blank" rel="noopener noreferrer" onClick={close}>
+                <img className="coupang-promo-image" src={promo.image} alt={`쿠팡 프로모션 ${promo.code}`} loading="lazy" />
+              </a>
+              <div className="actions">
+                <a className="btn primary" href={promo.link} target="_blank" rel="noopener noreferrer" onClick={close}>
+                  쿠팡에서 프로모션 보기
+                </a>
+                <button className="btn ghost" type="button" onClick={close}>
+                  닫기
+                </button>
+              </div>
+              <p className="muted coupang-promo-disclosure">쿠팡파트너스 활동으로 수수료를 제공받을 수 있습니다.</p>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </>
+  );
+}
 
 let pdfjsSdkPromise;
 const loadPdfJs = () => {
@@ -127,246 +234,6 @@ function CardFrame({ title, subtitle, children, actions }) {
         {actions && <div className="wizard-actions">{actions}</div>}
       </div>
       {children}
-    </div>
-  );
-}
-
-const COUPANG_POOL_CACHE_KEY = 'tax3.coupangPoolCache.v1';
-const COUPANG_POOL_CACHE_TTL_MS = 1000 * 60 * 60 * 48;
-
-const readCoupangPoolCache = () => {
-  try {
-    if (typeof window === 'undefined' || !window.localStorage) return null;
-    const raw = window.localStorage.getItem(COUPANG_POOL_CACHE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    const products = Array.isArray(parsed?.products) ? parsed.products : null;
-    if (!products?.length) return null;
-    const ts = typeof parsed?.ts === 'number' ? parsed.ts : Date.parse(parsed?.fetchedAt || '');
-    if (Number.isFinite(ts) && Date.now() - ts > COUPANG_POOL_CACHE_TTL_MS) return null;
-    return products;
-  } catch {
-    return null;
-  }
-};
-
-const writeCoupangPoolCache = (products) => {
-  try {
-    if (typeof window === 'undefined' || !window.localStorage) return;
-    const payload = { ts: Date.now(), products };
-    window.localStorage.setItem(COUPANG_POOL_CACHE_KEY, JSON.stringify(payload));
-  } catch {
-    // ignore
-  }
-};
-
-const COUPANG_ROTATE_INTERVAL_MS = 10_000;
-let coupangProductCursor = Math.floor(Math.random() * 1_000_000);
-const COUPANG_PRODUCT_CURSOR_KEY = 'tax3.coupangProductCursor';
-
-const modIndex = (value, total) => ((value % total) + total) % total;
-
-const getRotationStartIndex = ({ total, storageKey, fallbackState, step = 1 }) => {
-  if (!total) return 0;
-  const normalizedStep = Number.isFinite(step) && step > 0 ? Math.floor(step) : 1;
-
-  try {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      const raw = window.localStorage.getItem(storageKey);
-      const stored = raw == null ? NaN : parseInt(raw, 10);
-      const start = Number.isFinite(stored) ? modIndex(stored, total) : Math.floor(Math.random() * total);
-      window.localStorage.setItem(storageKey, String(modIndex(start + normalizedStep, total)));
-      return start;
-    }
-  } catch {
-    // ignore localStorage failures and fall back to in-memory cursor
-  }
-
-  const start = modIndex(fallbackState.value, total);
-  fallbackState.value = modIndex(start + normalizedStep, total);
-  return start;
-};
-
-const getProductRotationStartIndex = (total, step) =>
-  getRotationStartIndex({
-    total,
-    storageKey: COUPANG_PRODUCT_CURSOR_KEY,
-    fallbackState: {
-      get value() {
-        return coupangProductCursor;
-      },
-      set value(v) {
-        coupangProductCursor = v;
-      },
-    },
-    step,
-  });
-
-const pickRotated = (items, count) => {
-  if (!Array.isArray(items) || items.length === 0) return [];
-  if (items.length <= count) return items.slice(0, count);
-  const start = getProductRotationStartIndex(items.length, count);
-  const out = [];
-  for (let i = 0; i < count; i += 1) {
-    out.push(items[(start + i) % items.length]);
-  }
-  return out;
-};
-
-const pickRotatedDistinctGroups = (items, count) => {
-  if (!Array.isArray(items) || items.length === 0) return [];
-  if (items.length <= count) return items.slice(0, count);
-
-  const start = getProductRotationStartIndex(items.length, count);
-  const picked = [];
-  const usedGroups = new Set();
-  const usedKeys = new Set();
-
-  for (let i = 0; i < items.length && picked.length < count; i += 1) {
-    const item = items[(start + i) % items.length];
-    const groupKey = item?.groupId || item?.groupLabel || '';
-    if (groupKey && usedGroups.has(groupKey)) continue;
-    const uniq = item?.url || item?.id || `${groupKey}:${i}`;
-    if (usedKeys.has(uniq)) continue;
-    usedKeys.add(uniq);
-    if (groupKey) usedGroups.add(groupKey);
-    picked.push(item);
-  }
-
-  if (picked.length < count) {
-    for (let i = 0; i < items.length && picked.length < count; i += 1) {
-      const item = items[(start + i) % items.length];
-      const uniq = item?.url || item?.id || i;
-      if (usedKeys.has(uniq)) continue;
-      usedKeys.add(uniq);
-      picked.push(item);
-    }
-  }
-
-  return picked.slice(0, count);
-};
-
-function CoupangBestCategoryAds({ title = '추천 상품' }) {
-  const [state, setState] = useState(() => ({
-    status: 'idle',
-    products: [],
-    error: null,
-  }));
-  const poolRef = useRef([]);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    let active = true;
-
-    const desiredCount = 4;
-    const cached = readCoupangPoolCache();
-    if (cached?.length) {
-      poolRef.current = cached;
-      setState({ status: 'success', products: pickRotatedDistinctGroups(cached, desiredCount), error: null });
-    } else {
-      setState({ status: 'loading', products: [], error: null });
-    }
-
-    const load = async () => {
-      try {
-        const res = await fetch('/api/coupang/pool?limit=60', {
-          signal: controller.signal,
-          headers: { Accept: 'application/json' },
-        });
-
-        const contentType = res.headers.get('content-type') || '';
-        const isJson = contentType.includes('application/json');
-        const data = isJson ? await res.json().catch(() => ({})) : {};
-
-        if (!active) return;
-        if (!res.ok || !isJson || !data?.ok) {
-          if (!cached?.length) setState({ status: 'error', products: [], error: '광고 데이터를 불러오지 못했습니다.' });
-          return;
-        }
-
-        const pool = Array.isArray(data?.products) ? data.products : [];
-        if (!pool.length) {
-          if (!cached?.length) setState({ status: 'error', products: [], error: '광고 데이터를 불러오지 못했습니다.' });
-          return;
-        }
-
-        poolRef.current = pool;
-        writeCoupangPoolCache(pool);
-        setState({ status: 'success', products: pickRotatedDistinctGroups(pool, desiredCount), error: null });
-      } catch (error) {
-        if (error?.name === 'AbortError') return;
-        if (!active) return;
-        if (!cached?.length) setState({ status: 'error', products: [], error: '광고 데이터를 불러오지 못했습니다.' });
-        return;
-      }
-    };
-
-    load();
-
-    return () => {
-      active = false;
-      controller.abort();
-    };
-  }, []);
-
-  useEffect(() => {
-    if (state.status !== 'success') return undefined;
-    if (!poolRef.current.length) return undefined;
-
-    const tick = () => {
-      setState((prev) => {
-        if (prev.status !== 'success') return prev;
-        const pool = poolRef.current;
-        if (!pool.length) return prev;
-        return { ...prev, products: pickRotatedDistinctGroups(pool, 4) };
-      });
-    };
-
-    const intervalId = window.setInterval(tick, COUPANG_ROTATE_INTERVAL_MS);
-    return () => window.clearInterval(intervalId);
-  }, [state.status]);
-
-  if (state.status === 'success' && state.products.length > 0) {
-    return (
-      <div className="ad-embed">
-        <div className="ad-embed-head">
-          <span className="pill">쿠팡 파트너스</span>
-          <span className="muted">{title}</span>
-        </div>
-        <div className="ad-disclosure">
-          이 포스팅은 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다.
-        </div>
-        <div className="ads">
-          {state.products.map((p) => (
-            <a key={p.id ?? p.url} className="ad-card" href={p.url} target="_blank" rel="noreferrer">
-              <img className="ad-img" src={p.image} alt={p.name} loading="lazy" />
-              <div className="ad-title">{p.name}</div>
-              <div className="ad-desc">
-                {p.groupLabel ? `${p.groupLabel} · ` : ''}
-                {p.isRocket ? '로켓배송' : '일반배송'} · {p.isFreeShipping ? '무료배송' : '배송비 확인'}
-              </div>
-              <div className="ad-price">{typeof p.price === 'number' ? formatWon(p.price) : '-'}</div>
-            </a>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="ad-embed">
-      <div className="ad-embed-head">
-        <span className="pill">쿠팡 파트너스</span>
-        <span className="muted">{title}</span>
-      </div>
-      <div className="ad-disclosure">
-        이 포스팅은 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다.
-      </div>
-      {state.status === 'loading' ? (
-        <div className="muted">광고를 불러오는 중…</div>
-      ) : state.status === 'error' ? (
-        <div className="muted">{state.error || '광고를 불러오지 못했습니다.'}</div>
-      ) : null}
     </div>
   );
 }
@@ -1410,7 +1277,6 @@ function TaxWizard({ initialCalculator = null }) {
           )}
         </div>
       </div>
-      <CoupangBestCategoryAds title="계산 중 추천" />
     </div>
   );
 
@@ -3387,16 +3253,19 @@ function Home() {
 
 function App() {
   return (
-    <Routes>
-      <Route path="/" element={<Home />} />
-      <Route path={landingConfigs.yearend.path} element={<CalculatorLandingPage calculatorId="yearend" />} />
-      <Route path={landingConfigs.corporate.path} element={<CalculatorLandingPage calculatorId="corporate" />} />
-      <Route path={landingConfigs.financial.path} element={<CalculatorLandingPage calculatorId="financial" />} />
-      {calculatorFrames.map((c) => (
-        <Route key={c.id} path={`/${c.id}`} element={<IframePage title={c.title} src={c.src} />} />
-      ))}
-      <Route path="*" element={<Home />} />
-    </Routes>
+    <>
+      <CoupangPromoFloating />
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path={landingConfigs.yearend.path} element={<CalculatorLandingPage calculatorId="yearend" />} />
+        <Route path={landingConfigs.corporate.path} element={<CalculatorLandingPage calculatorId="corporate" />} />
+        <Route path={landingConfigs.financial.path} element={<CalculatorLandingPage calculatorId="financial" />} />
+        {calculatorFrames.map((c) => (
+          <Route key={c.id} path={`/${c.id}`} element={<IframePage title={c.title} src={c.src} />} />
+        ))}
+        <Route path="*" element={<Home />} />
+      </Routes>
+    </>
   );
 }
 
