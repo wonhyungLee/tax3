@@ -15,6 +15,7 @@ import {
   parseCorporateFinancialStatementPdf,
   parseCorporateTaxReturnPdf,
 } from './lib/corporate-pdf-parser';
+import CoupangAutoPopup from './CoupangAutoPopup';
 
 const calculators = [
   { id: 'yearend', name: '연말정산', blurb: '근로소득 환급/추납' },
@@ -47,144 +48,6 @@ const calculatorFrames = [
   { id: 'corporate', title: '법인세(원본)', src: '/corporate/index.html' },
   { id: 'financial', title: '금융소득 종합과세(원본)', src: '/financial/index.html' },
 ];
-
-const COUPANG_PROMO_ITEMS = [
-  { code: 'dPJvzF', link: 'https://link.coupang.com/a/dPJvzF', image: '/coupang-promo/dPJvzF_600.gif' },
-  { code: 'dPJzZu', link: 'https://link.coupang.com/a/dPJzZu', image: '/coupang-promo/dPJzZu_600.gif' },
-  { code: 'dPJC4g', link: 'https://link.coupang.com/a/dPJC4g', image: '/coupang-promo/dPJC4g_600.gif' },
-  { code: 'dPJQFz', link: 'https://link.coupang.com/a/dPJQFz', image: '/coupang-promo/dPJQFz_600.gif' },
-  { code: 'dPJVxr', link: 'https://link.coupang.com/a/dPJVxr', image: '/coupang-promo/dPJVxr_600.gif' },
-  { code: 'dPJ2jt', link: 'https://link.coupang.com/a/dPJ2jt', image: '/coupang-promo/dPJ2jt_600.gif' },
-  { code: 'dPKcZs', link: 'https://link.coupang.com/a/dPKcZs', image: '/coupang-promo/dPKcZs_600.gif' },
-  { code: 'dPKgU0', link: 'https://link.coupang.com/a/dPKgU0', image: '/coupang-promo/dPKgU0_600.gif' },
-  { code: 'dPKjlp', link: 'https://link.coupang.com/a/dPKjlp', image: '/coupang-promo/dPKjlp_600.gif' },
-  { code: 'dPKIZ9', link: 'https://link.coupang.com/a/dPKIZ9', image: '/coupang-promo/dPKIZ9_600.gif' },
-  { code: 'dPKoN6', link: 'https://link.coupang.com/a/dPKoN6', image: '/coupang-promo/dPKoN6_600.gif' },
-  { code: 'dPKr4O', link: 'https://link.coupang.com/a/dPKr4O', image: '/coupang-promo/dPKr4O_600.gif' },
-  { code: 'dPKvE3', link: 'https://link.coupang.com/a/dPKvE3', image: '/coupang-promo/dPKvE3_600.gif' },
-  { code: 'dPKzjf', link: 'https://link.coupang.com/a/dPKzjf', image: '/coupang-promo/dPKzjf_600.gif' },
-  { code: 'dPKFV8', link: 'https://link.coupang.com/a/dPKFV8', image: '/coupang-promo/dPKFV8_600.gif' },
-  { code: 'dPKI7T', link: 'https://link.coupang.com/a/dPKI7T', image: '/coupang-promo/dPKI7T_600.gif' },
-];
-const COUPANG_PROMO_NEXT_AT_KEY = 'cp_promo_next_at_v1';
-const COUPANG_PROMO_COOLDOWN_MS = 24 * 60 * 60 * 1000;
-
-const pickRandomPromo = (excludeCode = '') => {
-  if (!COUPANG_PROMO_ITEMS.length) return null;
-  if (COUPANG_PROMO_ITEMS.length === 1) return COUPANG_PROMO_ITEMS[0];
-  const pool = COUPANG_PROMO_ITEMS.filter((item) => item.code !== excludeCode);
-  const list = pool.length ? pool : COUPANG_PROMO_ITEMS;
-  return list[Math.floor(Math.random() * list.length)];
-};
-
-const readPromoNextAt = () => {
-  try {
-    return Number(window.localStorage.getItem(COUPANG_PROMO_NEXT_AT_KEY) || '0') || 0;
-  } catch {
-    return 0;
-  }
-};
-
-const writePromoNextAt = (ts) => {
-  try {
-    window.localStorage.setItem(COUPANG_PROMO_NEXT_AT_KEY, String(ts));
-  } catch {
-    // ignore localStorage failure
-  }
-};
-
-const formatRemaining = (ms) => {
-  const totalMin = Math.max(0, Math.ceil(ms / 60000));
-  const hh = Math.floor(totalMin / 60);
-  const mm = totalMin % 60;
-  if (hh <= 0) return `${mm}분`;
-  if (mm <= 0) return `${hh}시간`;
-  return `${hh}시간 ${mm}분`;
-};
-
-function CoupangPromoFloating() {
-  const [open, setOpen] = useState(false);
-  const [notice, setNotice] = useState('');
-  const [promo, setPromo] = useState(() => pickRandomPromo());
-
-  const close = () => setOpen(false);
-
-  const openIfAllowed = () => {
-    const nextAt = readPromoNextAt();
-    const remaining = nextAt - Date.now();
-    if (remaining > 0) {
-      setNotice(`프로모션 팝업은 24시간마다 1회만 열 수 있어요. (${formatRemaining(remaining)} 후 다시 가능)`);
-      return;
-    }
-
-    // 쿨다운은 팝업 OPEN 시점에 설정
-    writePromoNextAt(Date.now() + COUPANG_PROMO_COOLDOWN_MS);
-    setNotice('');
-    setPromo((prev) => pickRandomPromo(prev?.code || ''));
-    setOpen(true);
-  };
-
-  useEffect(() => {
-    if (!open) return undefined;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, [open]);
-
-  return (
-    <>
-      <div className="coupang-promo-floating">
-        {notice ? <div className="coupang-promo-notice">{notice}</div> : null}
-        <button type="button" className="btn primary coupang-promo-trigger" onClick={openIfAllowed}>
-          쿠팡 프로모션 (광고)
-        </button>
-      </div>
-
-      {open && promo ? (
-        <div
-          className="modal-backdrop"
-          role="dialog"
-          aria-modal="true"
-          aria-label="쿠팡 프로모션 (광고)"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) close();
-          }}
-        >
-          <div className="modal coupang-promo-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-head">
-              <div>
-                <div className="modal-title">
-                  쿠팡 프로모션 <span className="pill">AD</span>
-                </div>
-                <div className="muted">진행 중인 쿠팡 이벤트/프로모션을 확인해 보세요.</div>
-              </div>
-              <button className="icon-btn" type="button" onClick={close} aria-label="닫기">
-                ×
-              </button>
-            </div>
-
-            <div className="modal-body">
-              <a className="coupang-promo-image-link" href={promo.link} target="_blank" rel="noopener noreferrer" onClick={close}>
-                <img className="coupang-promo-image" src={promo.image} alt={`쿠팡 프로모션 ${promo.code}`} loading="lazy" />
-              </a>
-              <div className="actions">
-                <a className="btn primary" href={promo.link} target="_blank" rel="noopener noreferrer" onClick={close}>
-                  쿠팡에서 프로모션 보기
-                </a>
-                <button className="btn ghost" type="button" onClick={close}>
-                  닫기
-                </button>
-              </div>
-              <p className="muted coupang-promo-disclosure">쿠팡파트너스 활동으로 수수료를 제공받을 수 있습니다.</p>
-            </div>
-          </div>
-        </div>
-      ) : null}
-    </>
-  );
-}
 
 let pdfjsSdkPromise;
 const loadPdfJs = () => {
@@ -3254,7 +3117,7 @@ function Home() {
 function App() {
   return (
     <>
-      <CoupangPromoFloating />
+      <CoupangAutoPopup />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path={landingConfigs.yearend.path} element={<CalculatorLandingPage calculatorId="yearend" />} />

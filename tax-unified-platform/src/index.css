@@ -397,59 +397,6 @@ a { color: inherit; text-decoration: none; }
 
 .modal .actions { margin-top: 0; }
 
-.coupang-promo-floating {
-  position: fixed;
-  right: 16px;
-  bottom: 16px;
-  z-index: 190;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 8px;
-  width: min(92vw, 360px);
-}
-
-.coupang-promo-notice {
-  width: 100%;
-  padding: 8px 10px;
-  border-radius: 12px;
-  border: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.95);
-  color: var(--muted);
-  font-size: 12px;
-  line-height: 1.45;
-  box-shadow: var(--shadow);
-}
-
-.coupang-promo-trigger {
-  box-shadow: 0 14px 28px rgba(111,180,255,0.35);
-}
-
-.coupang-promo-modal {
-  width: min(620px, 100%);
-}
-
-.coupang-promo-image-link {
-  display: block;
-  border-radius: 14px;
-  border: 1px solid var(--border);
-  overflow: hidden;
-  background: #ffffff;
-}
-
-.coupang-promo-image {
-  display: block;
-  width: 100%;
-  aspect-ratio: 1 / 1;
-  object-fit: cover;
-  background: #0f172a;
-}
-
-.coupang-promo-disclosure {
-  margin: 0;
-  font-size: 12px;
-}
-
 .seo-details {
   margin-top: 14px;
   border: 1px solid var(--border);
@@ -696,5 +643,4 @@ iframe { width: 100%; height: 100vh; border: none; background: #0b1224; }
   .wizard-nav { display: none; }
   .modal-backdrop { align-items: flex-end; padding: 12px; }
   .modal { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
-  .coupang-promo-floating { bottom: 112px; right: 12px; }
 }
